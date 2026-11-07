@@ -171,3 +171,36 @@ async def test_child_does_not_inherit_ambient_secrets(
         )
     finally:
         await stop(session, state)
+
+
+async def test_src_project_validator_runs_before_source_child_startup(
+    tmp_path: Path, state: Path
+) -> None:
+    project = tmp_path / "project"
+    name = "validated_source_capability"
+    initialize(project, name)
+    (project / "src").mkdir()
+    shutil.move(str(project / name), project / "src" / name)
+    (project / "src" / name / "validation.py").write_text(
+        'def check(manifest):\n'
+        '    assert manifest.bundle_id == "validated.source.capability"\n'
+    )
+    specification = project / "capability.toml"
+    specification.write_text(
+        specification.read_text().replace(
+            f'package_root = "{name}"', f'package_root = "src/{name}"'
+        )
+        + f'validator = "{name}.validation:check"\n'
+    )
+    session = asyncio.create_task(serve(project, state, watch=True))
+    try:
+        await ready(state, session)
+        health = await call(project, state, capability=None, payload=None)
+        assert isinstance(health, Health) and health.ready
+        result = await call(
+            project, state, capability=None, payload={"text": "validated"}
+        )
+        assert isinstance(result, Result) and result.payload == {"text": "validated"}
+    finally:
+        if not session.done():
+            await stop(session, state)

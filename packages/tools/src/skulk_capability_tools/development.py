@@ -35,6 +35,7 @@ from skulk_capability_sdk.wire import ProtocolError, read_message, write_message
 
 from .inspection import read_public
 from .packaging import load_spec, validate_manifest
+from .project import project_imports
 
 
 async def validate_payload(schema: dict[str, JsonValue], payload: JsonValue) -> None:
@@ -68,7 +69,8 @@ def project_manifest(project: Path) -> Manifest:
     manifest = Manifest.model_validate_json(
         read_public(project / "manifest.json", MAX_MANIFEST_BYTES)
     )
-    validate_manifest(spec, manifest)
+    with project_imports(project / "capability.toml"):
+        validate_manifest(spec, manifest)
     return manifest
 
 

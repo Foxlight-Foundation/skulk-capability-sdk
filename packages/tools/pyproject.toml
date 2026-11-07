@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "skulk-capability-tools"
+version = "0.1.0"
+description = "Public authoring, packaging and publisher tools for Skulk capabilities"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { file = "LICENSE.md" }
+dependencies = [
+    "skulk-capability-sdk>=0.5.6,<0.6",
+    "cryptography>=50.0.2,<51",
+    "httpx>=0.28.1,<1",
+    "anyio>=4.14.2,<5",
+    "keyring>=25,<26",
+    "referencing>=0.37,<1",
+]
+
+[project.scripts]
+skulk-cap = "skulk_capability_tools.cli:main"
+capability-build = "skulk_capability_tools.build_release:main"
+capability-wheelhouse = "skulk_capability_tools.wheelhouse:main"
+capability-catalog = "skulk_capability_tools.build_catalog:main"
+capability-feed = "skulk_capability_tools.assemble_feed:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/skulk_capability_tools"]
+include = ["src/skulk_capability_tools/py.typed"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/skulk_capability_tools", "LICENSE.md", "README.md", "EXTRACTION.json"]

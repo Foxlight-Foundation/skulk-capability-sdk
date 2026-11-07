@@ -21,13 +21,14 @@ jobs:
         with:
           version: '0.8.22'
           python-version: '3.13'
-      - run: uv sync --frozen
-      - run: uv run basedpyright --pythonpath .venv/bin/python
-      - run: uv run ruff check
-      - run: uv run ruff format --check
-      - run: uv run pytest
-      - run: uv build
-      - run: uv run python tools/check_export.py
+      - run: uv sync --frozen --all-packages --no-editable
+      - run: uv run --no-sync basedpyright --pythonpath .venv/bin/python
+      - run: uv run --no-sync ruff check
+      - run: uv run --no-sync ruff format --check
+      - run: uv run --no-sync pytest
+      - run: uv build --all-packages
+      - run: uv run --no-sync python tools/check_export.py
+      - run: uv run --no-sync python tools/check_tools_export.py
       - run: git diff --exit-code
       - uses: actions/upload-artifact@v4
         with:

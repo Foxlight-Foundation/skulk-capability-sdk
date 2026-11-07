@@ -1,0 +1,74 @@
+{
+  "source_commit": "1f95a0954f0d13945cb369ca3f1be32d00505c9e",
+  "modules": {
+    "build_release.py": {
+      "source_sha256": "34fdef85eb4a1317a4de9a4a369fcc200d4aa9ee04d434b9f98201f66bb29129",
+      "extracted_sha256": "21d3ba0198c6e9fbbd08cf924d18ffdc8be67735e6ebba5fa643d24473713710",
+      "adjustment": "Public namespaces; bounded ordinary public manifest reads; protected key reads unchanged"
+    },
+    "releases.py": {
+      "source_sha256": "041f4020eb68c176acefc153ebd7111f6b2bb3bc4c1b1dc896d352ce7df913b3",
+      "extracted_sha256": "7a583623f18e5b93a964962d3e78ac73f2e732025aa66573432dca0403001f70",
+      "adjustment": "Public namespace/import boundary; no provider or owner effects copied"
+    },
+    "runtime_release.py": {
+      "source_sha256": "68b966e0772d5995dec269a136efcf01350e523ec66e2e04d3dd71089b5e03d2",
+      "extracted_sha256": "80124c2886cc6c7d69e53eafbbcb6f7a72cd9c33142be35949b4ecce8dc8517f",
+      "adjustment": "Public namespace/import boundary; no provider or owner effects copied"
+    },
+    "release_runtime.py": {
+      "source_sha256": "94eec3193e078605fcb33e69d0c9a768e88136838b22eec213d8d11015910f33",
+      "extracted_sha256": "0a402fa1e6a554d0b4877f967e99d9a86ecc53a713b0a09ac2a735a714ecaf04",
+      "adjustment": "Public namespace/import boundary; no provider or owner effects copied"
+    },
+    "packaging.py": {
+      "source_sha256": "dd297be10b415737807ae12bdc208c1145fb3711b7e9b80c57e7f67cfe5af75c",
+      "extracted_sha256": "7065aaad075a9f8fab5e1d5ba9bcb0a12692d833fa7a2d7c02e0389abea7fb48",
+      "adjustment": "Public namespaces; remove private owner source packing/import exemptions; author code uses public SDK interfaces"
+    },
+    "describe.py": {
+      "source_sha256": "e4bbb919e4960d496008ea38a36081747251d5545ff406683acb2bf25486addc",
+      "extracted_sha256": "256942f856bce3bbbb41c277a67f01de1f2f5a8e43ce9c36546701a1f7412087",
+      "adjustment": "Public namespace/import boundary; no provider or owner effects copied"
+    },
+    "publication_admission.py": {
+      "source_sha256": "23c72b68a6498dd6bc3f24cc238db488eb2e41c1bced7d2d0cd647f5ba469c9b",
+      "extracted_sha256": "f8006c257b7e0a75b9bdd86dc75fcfa1ee61e5e66ef552ef1d0aa28516e0ba3d",
+      "adjustment": "Public namespace/import boundary; no provider or owner effects copied"
+    },
+    "wheelhouse.py": {
+      "source_sha256": "0090e6d737432a9f6c4f509fada62dfcffc0167f62fc6e1f17040eb281e74d44",
+      "extracted_sha256": "725eafae2ab4815eb778fce8448c85b2f2e1278259d55dfc909325f346097936",
+      "adjustment": "Public namespaces; direct locked wheel URLs; bounded HTTPS redirects with no inherited authorization/cookies; bytes remain hash/size pinned"
+    },
+    "catalog.py": {
+      "source_sha256": "8e11306d06993728c2c591893f0ecd33be1315efca8ca16944cb25a3c5fb3fb9",
+      "extracted_sha256": "aef0665f59e479b5710172303f9e44a36412fa1c2d83e5f3c5249d1a8b3229f1",
+      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing"
+    },
+    "build_catalog.py": {
+      "source_sha256": "f8ad2983f9a628775b5ecad65ee7aee6f1ca722abe4ac10e11257007f1dbd728",
+      "extracted_sha256": "10039ac2d07e7cb47534cac46c502f9c680f32037395a13cee85fdb2ddad1bf0",
+      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing"
+    },
+    "assemble_feed.py": {
+      "source_sha256": "b4bda5397822085495c9c9696422000b9b54a7df7515bbcfaf4cdc73d1fa2179",
+      "extracted_sha256": "1a63690d313a6a13f3bbd2955de5e4a6b9847f709488b94020a90f57bb2d9b7a",
+      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing"
+    }
+  },
+  "metadata_projections": "Only public retained selection/settings shapes; installation and supervision implementations excluded",
+  "tests": {
+    "test_wheelhouse.py": {
+      "source_sha256": "fe7d899081fa3831d6a0843b7208291e28fb926dbc27577c134a61a4857f8ac3",
+      "adjustment": "Public namespaces; platform-lock and old redirect-policy checks replaced by public lock and bounded credential-free redirect regressions",
+      "extracted_sha256": "d321b26a201c5723a0da2bf5d47c447e488c0577cfb89f853fb8e7ec2075812b"
+    },
+    "test_release_runtime.py": {
+      "source_sha256": "b52dd75219012079d651ff69a87ce03ef1c93e3bca2414cce4807f6d98bd62a7",
+      "adjustment": "Public namespaces only",
+      "extracted_sha256": "0f509d124388b130f72ef15d83af862c687695ec76cc21812705965e6d0a1b07"
+    }
+  },
+  "format": 1
+}

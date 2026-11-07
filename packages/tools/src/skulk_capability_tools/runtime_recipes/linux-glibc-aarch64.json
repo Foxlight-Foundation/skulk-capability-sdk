@@ -1,0 +1,155 @@
+{
+  "format": 1,
+  "owner_version": "0.10.5",
+  "sdk_version": "0.5.5",
+  "platform": "linux-glibc-aarch64",
+  "source_owner_commit": "1f95a0954f0d13945cb369ca3f1be32d00505c9e",
+  "source_runtime_digest": "b0e8e8c52b2896ef3796c8a0b99480d8e104d0b65fc21d594f9bc1fb0c4b7e0d",
+  "wheels": [
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/annotated_types-0.8.0-py3-none-any.whl",
+      "hash": "sha256:f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+      "size": 13427
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/anyio-4.16.0-py3-none-any.whl",
+      "hash": "sha256:c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026",
+      "size": 134521
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/attrs-26.1.0-py3-none-any.whl",
+      "hash": "sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+      "size": 67548
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/certifi-2026.10.18-py3-none-any.whl",
+      "hash": "sha256:73191c47aaa79da394e8fee2dbc2ec827432cab56311122c9e47abf79e390f62",
+      "size": 134093
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/cffi-2.1.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+      "hash": "sha256:f16c709686a78c727bbbf059f92b0bf41c6fc60deec706d2dc19f529175a6125",
+      "size": 222369
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/cryptography-50.0.2-cp311-abi3-manylinux_2_28_aarch64.whl",
+      "hash": "sha256:f9f6143a8c75945eb960d9eb98905a441394abfa24afaae239d514ffb2586480",
+      "size": 4738340
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/h11-0.16.0-py3-none-any.whl",
+      "hash": "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86",
+      "size": 37515
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/httpcore-1.0.9-py3-none-any.whl",
+      "hash": "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55",
+      "size": 78784
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/httpx-0.28.1-py3-none-any.whl",
+      "hash": "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad",
+      "size": 73517
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/idna-3.20-py3-none-any.whl",
+      "hash": "sha256:ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+      "size": 69583
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/jaraco.classes-3.4.0-py3-none-any.whl",
+      "hash": "sha256:f662826b6bed8cace05e7ff873ce0f9283b5c924470fe664fff1c2f00f581790",
+      "size": 6777
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/jaraco_context-6.1.2-py3-none-any.whl",
+      "hash": "sha256:bf8150b79a2d5d91ae48629d8b427a8f7ba0e1097dd6202a9059f29a36379535",
+      "size": 7871
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/jaraco_functools-4.6.0-py3-none-any.whl",
+      "hash": "sha256:99e3dc0060c5cbe8fcd1cdb36258e2a65ca40f1566b2033b12abb1bb44dd3c30",
+      "size": 11677
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/jeepney-0.9.0-py3-none-any.whl",
+      "hash": "sha256:97e5714520c16fc0a45695e5365a2e11b81ea79bba796e26f9f1d178cb182683",
+      "size": 49010
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/jsonschema-4.26.0-py3-none-any.whl",
+      "hash": "sha256:d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce",
+      "size": 90630
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/jsonschema_specifications-2025.9.1-py3-none-any.whl",
+      "hash": "sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe",
+      "size": 18437
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/keyring-25.7.0-py3-none-any.whl",
+      "hash": "sha256:be4a0b195f149690c166e850609a477c532ddbfbaed96a404d4e43f8d5e2689f",
+      "size": 39160
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/more_itertools-11.2.1-py3-none-any.whl",
+      "hash": "sha256:35a7377edd1dd6608dcb2cdf534ded55ea32d49448875ad042cd3f879fb1ded0",
+      "size": 74405
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/packaging-26.3-py3-none-any.whl",
+      "hash": "sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+      "size": 129956
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/pycparser-3.12-py3-none-any.whl",
+      "hash": "sha256:a076f3f489b39b43ed13563a1dafe42447445bec2e294154ec5c57fcdda4c85e",
+      "size": 62600
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/pydantic-2.14.1-py3-none-any.whl",
+      "hash": "sha256:9195d967ec791692a04438115466764fb8b9a27b31f14a760437694f40d6b454",
+      "size": 488106
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/pydantic_core-2.50.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+      "hash": "sha256:409e0ea40ec30d9158f33574fd758e689f6045a0f2596701828c27816ca9687d",
+      "size": 2047049
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/referencing-0.37.0-py3-none-any.whl",
+      "hash": "sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231",
+      "size": 26766
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/rpds_py-2026.9.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+      "hash": "sha256:457866b85daf5034296666168b84a69e0b2e89dc4f1af102b46f6448a60b9063",
+      "size": 372611
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/secretstorage-3.5.0-py3-none-any.whl",
+      "hash": "sha256:0ce65888c0725fcb2c5bc0fdb8e5438eece02c523557ea40ce0703c266248137",
+      "size": 15554
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/skulk_capability_nodes-0.10.5-py3-none-any.whl",
+      "hash": "sha256:9559485eff0b44343d7b2cdd2c2cf5eaf836a7be5bb54a0f9d9747916c61ae3a",
+      "size": 525562
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/skulk_capability_sdk-0.5.5-py3-none-any.whl",
+      "hash": "sha256:8a65486a50dd58bef87e47f00c5aa05b8c327940ba6f8ead26b67da8658ae1ce",
+      "size": 42631
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/typing_extensions-4.16.0-py3-none-any.whl",
+      "hash": "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+      "size": 45571
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/reference.openai/42378358083/linux-glibc-aarch64/typing_inspection-0.4.4-py3-none-any.whl",
+      "hash": "sha256:65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+      "size": 14750
+    }
+  ]
+}

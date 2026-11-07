@@ -77,15 +77,23 @@ def project_manifest(project: Path) -> Manifest:
         if len(raw) > 524288:
             raise Denied("Project validation exceeds its metadata budget")
         try:
-            subprocess.run(
-                [sys.executable, "-m", "skulk_capability_tools._manifest_worker"],
-                input=raw,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                env={"PATH": os.defpath, "PYTHONUTF8": "1"},
-                timeout=3,
-                check=True,
-            )
+            with tempfile.TemporaryDirectory(
+                prefix="skulk-validator-bytecode-"
+            ) as bytecode:
+                subprocess.run(
+                    [sys.executable, "-m", "skulk_capability_tools._manifest_worker"],
+                    input=raw,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    env={
+                        "PATH": os.defpath,
+                        "PYTHONUTF8": "1",
+                        "PYTHONDONTWRITEBYTECODE": "1",
+                        "PYTHONPYCACHEPREFIX": bytecode,
+                    },
+                    timeout=3,
+                    check=True,
+                )
         except (subprocess.SubprocessError, OSError) as error:
             raise Denied("Project manifest validation refused or timed out") from error
     return manifest
@@ -108,7 +116,7 @@ class DevelopmentChild:
 
     def __init__(self, project: Path, state: Path) -> None:
         self.project = project
-        self.state = state
+        self.state = state.absolute()
         self.manifest = project_manifest(project)
         self.reader: asyncio.StreamReader | None = None
         self.writer: asyncio.StreamWriter | None = None
@@ -164,6 +172,12 @@ class DevelopmentChild:
                     env={
                         "PATH": os.defpath,
                         "PYTHONUTF8": "1",
+                        # A fresh nonexistent prefix plus disabled writes ignores
+                        # timestamp-valid project caches without deleting files.
+                        "PYTHONDONTWRITEBYTECODE": "1",
+                        "PYTHONPYCACHEPREFIX": str(
+                            self.state / ("bytecode-" + secrets.token_hex(16))
+                        ),
                         "PYTHONPATH": os.pathsep.join(
                             str(path.resolve())
                             for path in (
@@ -301,6 +315,7 @@ async def local_child(project: Path, state: Path) -> AsyncGenerator[DevelopmentC
 async def serve(project: Path, state: Path, *, watch: bool = False) -> None:
     """Run a private local IPC session; watch restarts only between invocations."""
     project = project.resolve(strict=True)
+    state = state.absolute()
     secure_directory(state)
     lock = HostLock(state)
     path = state / "session.sock"

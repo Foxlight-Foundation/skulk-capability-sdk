@@ -2,6 +2,8 @@
 
 import asyncio
 import json
+import os
+import py_compile
 import shutil
 import tempfile
 from collections.abc import Iterator
@@ -234,7 +236,10 @@ async def test_watched_validator_is_fresh_and_receives_no_ambient_secrets(
     validator.write_text(
         "import os\ndef check(manifest):\n"
         '    assert "SKULK_AUTHOR_VALIDATOR_SECRET" not in os.environ\n'
+        "    assert 1\n"
     )
+    py_compile.compile(str(validator), doraise=True)
+    original_stat = validator.stat()
     specification = project / "capability.toml"
     specification.write_text(
         specification.read_text()
@@ -246,9 +251,8 @@ async def test_watched_validator_is_fresh_and_receives_no_ambient_secrets(
         assert isinstance(
             await call(project, state, capability=None, payload=None), Health
         )
-        validator.write_text(
-            'def check(manifest):\n    raise ValueError("updated rejection")\n'
-        )
+        validator.write_text(validator.read_text().replace("assert 1", "assert 0"))
+        os.utime(validator, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
         # Bypass the CLI's own refreshed validation to exercise the running
         # watch server's independent restart/admission check.
         reader, writer = await asyncio.open_unix_connection(str(state / "session.sock"))
@@ -261,6 +265,54 @@ async def test_watched_validator_is_fresh_and_receives_no_ambient_secrets(
             await writer.wait_closed()
         await asyncio.wait_for(session, 5)
         assert not (state / "session.sock").exists()
+    finally:
+        if not session.done():
+            await stop(session, state)
+
+
+async def test_watched_source_ignores_same_size_same_mtime_bytecode(
+    tmp_path: Path, state: Path
+) -> None:
+    project = tmp_path / "project"
+    initialize(project, "bytecode_watch_capability")
+    source = project / "bytecode_watch_capability/app.py"
+    source.write_text(
+        source.read_text().replace(
+            'payload={"text": message.payload["text"]} if valid else None,',
+            'payload={"text": "alpha"} if valid else None,',
+        )
+    )
+    py_compile.compile(str(source), doraise=True)
+    original_stat = source.stat()
+    session = asyncio.create_task(serve(project, state, watch=True))
+    try:
+        await ready(state, session)
+        first = await call(project, state, capability=None, payload={"text": "input"})
+        assert isinstance(first, Result) and first.payload == {"text": "alpha"}
+        source.write_text(source.read_text().replace('"alpha"', '"bravo"'))
+        os.utime(source, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
+        assert source.stat().st_size == original_stat.st_size
+        second = await call(project, state, capability=None, payload={"text": "input"})
+        assert isinstance(second, Result) and second.payload == {"text": "bravo"}
+    finally:
+        if not session.done():
+            await stop(session, state)
+
+
+async def test_relative_state_is_normalized_before_child_changes_directory(
+    tmp_path: Path, state: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = tmp_path / "project"
+    initialize(project, "relative_state_capability")
+    monkeypatch.chdir(state.parent)
+    relative = Path(state.name)
+    session = asyncio.create_task(serve(project, relative))
+    try:
+        await ready(state, session)
+        result = await call(
+            project, relative, capability=None, payload={"text": "relative"}
+        )
+        assert isinstance(result, Result) and result.payload == {"text": "relative"}
     finally:
         if not session.done():
             await stop(session, state)

@@ -345,3 +345,39 @@ async def test_source_launch_forwards_declared_manifest_arguments(
     finally:
         if not session.done():
             await stop(session, state)
+
+
+async def test_watch_restart_preserves_the_subsequent_call_time_budget(
+    tmp_path: Path, state: Path
+) -> None:
+    """A real slow restart plus call can exceed the old shared 35-second ceiling."""
+    project = tmp_path / "project"
+    initialize(project, "restart_budget_capability")
+    manifest = project / "manifest.json"
+    value = json.loads(manifest.read_text())
+    value["bounds"].update(startup_seconds=30.0, call_seconds=30.0)
+    manifest.write_text(json.dumps(value))
+    session = asyncio.create_task(serve(project, state, watch=True))
+    try:
+        await ready(state, session)
+        source = project / "restart_budget_capability/app.py"
+        source.write_text(
+            source.read_text()
+            .replace(
+                "startup = read_startup(startup_fd)",
+                "startup = read_startup(startup_fd)\n    await asyncio.sleep(20)",
+            )
+            .replace(
+                "descriptor = startup.manifest.descriptors[0]",
+                "await asyncio.sleep(20)\n"
+                "                descriptor = startup.manifest.descriptors[0]",
+            )
+        )
+        reply = await asyncio.wait_for(
+            call(project, state, capability=None, payload={"text": "after restart"}),
+            timeout=55,
+        )
+        assert isinstance(reply, Result) and reply.payload == {"text": "after restart"}
+    finally:
+        if not session.done():
+            await stop(session, state)

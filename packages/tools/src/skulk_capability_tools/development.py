@@ -37,6 +37,13 @@ from skulk_capability_sdk.wire import ProtocolError, read_message, write_message
 from .inspection import read_public
 from .packaging import load_spec, validate_manifest
 
+LOCAL_EXCHANGE_SECONDS = 90.0
+"""Cover read(5), old shutdown(12), validation(3), startup(30), call(30), reply.
+
+These maxima come from the current SDK Bounds contract. A watched restart is
+preparation for a new invocation, and must not consume its declared call window.
+"""
+
 
 async def validate_payload(schema: dict[str, JsonValue], payload: JsonValue) -> None:
     """Bound local schema evaluation independently of the author's event loop."""
@@ -335,8 +342,9 @@ async def serve(project: Path, state: Path, *, watch: bool = False) -> None:
                     writer.close()
                     return
                 try:
-                    async with asyncio.timeout(35), gate:
-                        message = await read_message(reader)
+                    async with asyncio.timeout(LOCAL_EXCHANGE_SECONDS), gate:
+                        async with asyncio.timeout(5):
+                            message = await read_message(reader)
                         if watch and fingerprint != _sources(project):
                             # No invocation is retried; old-child cleanup must
                             # finish before a replacement receives new work.
@@ -419,7 +427,7 @@ async def call(
             remaining_seconds=manifest.bounds.call_seconds,
             payload=payload,
         )
-    async with asyncio.timeout(35):
+    async with asyncio.timeout(LOCAL_EXCHANGE_SECONDS):
         reader, writer = await asyncio.open_unix_connection(str(state / "session.sock"))
         try:
             await write_message(writer, request)

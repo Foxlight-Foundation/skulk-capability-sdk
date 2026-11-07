@@ -182,7 +182,7 @@ async def test_src_project_validator_runs_before_source_child_startup(
     (project / "src").mkdir()
     shutil.move(str(project / name), project / "src" / name)
     (project / "src" / name / "validation.py").write_text(
-        'def check(manifest):\n'
+        "def check(manifest):\n"
         '    assert manifest.bundle_id == "validated.source.capability"\n'
     )
     specification = project / "capability.toml"

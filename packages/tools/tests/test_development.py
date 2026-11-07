@@ -381,3 +381,96 @@ async def test_watch_restart_preserves_the_subsequent_call_time_budget(
     finally:
         if not session.done():
             await stop(session, state)
+
+
+def _stamp_source(project: Path) -> Path:
+    """Pause each source generation after imports and before readiness."""
+    initialize(project, "startup_edits_capability")
+    source = project / "startup_edits_capability/app.py"
+    source.write_text(
+        source.read_text()
+        .replace(
+            "async def serve(startup_fd: int) -> None:",
+            'STAMP = "alpha"\n\nasync def serve(startup_fd: int) -> None:',
+        )
+        .replace(
+            "startup = read_startup(startup_fd)",
+            "startup = read_startup(startup_fd)\n"
+            "    from pathlib import Path\n"
+            '    Path("started-" + STAMP).write_text("ready to release")\n'
+            '    while not Path("allow-" + STAMP).exists():\n'
+            "        await asyncio.sleep(0.01)",
+        )
+        .replace(
+            'payload={"text": message.payload["text"]} if valid else None,',
+            'payload={"text": STAMP} if valid else None,',
+        )
+    )
+    return source
+
+
+async def _marker(path: Path) -> None:
+    """Wait for a real child warm-up marker under a finite deadline."""
+    async with asyncio.timeout(5):
+        for _ in range(500):
+            if path.exists():
+                return
+            await asyncio.sleep(0.01)
+        raise TimeoutError("Child warm-up marker did not appear")
+
+
+async def test_source_edit_during_initial_startup_remains_pending(
+    tmp_path: Path, state: Path
+) -> None:
+    project = tmp_path / "project"
+    source = _stamp_source(project)
+    session = asyncio.create_task(serve(project, state, watch=True))
+    try:
+        await _marker(project / "started-alpha")
+        source.write_text(
+            source.read_text().replace('STAMP = "alpha"', 'STAMP = "bravo"')
+        )
+        (project / "allow-alpha").touch()
+        (project / "allow-bravo").touch()
+        await ready(state, session)
+        reply = await call(project, state, capability=None, payload={"text": "new"})
+        assert isinstance(reply, Result) and reply.payload == {"text": "bravo"}
+    finally:
+        if not session.done():
+            await stop(session, state)
+
+
+async def test_source_edit_during_replacement_startup_remains_pending(
+    tmp_path: Path, state: Path
+) -> None:
+    project = tmp_path / "project"
+    source = _stamp_source(project)
+    (project / "allow-alpha").touch()
+    session = asyncio.create_task(serve(project, state, watch=True))
+    pending: asyncio.Task[Result | Health] | None = None
+    try:
+        await ready(state, session)
+        source.write_text(
+            source.read_text().replace('STAMP = "alpha"', 'STAMP = "bravo"')
+        )
+        pending = asyncio.create_task(
+            call(project, state, capability=None, payload={"text": "first"})
+        )
+        await _marker(project / "started-bravo")
+        source.write_text(
+            source.read_text().replace('STAMP = "bravo"', 'STAMP = "charlie"')
+        )
+        (project / "allow-bravo").touch()
+        (project / "allow-charlie").touch()
+        first = await pending
+        pending = None
+        assert isinstance(first, Result) and first.payload == {"text": "bravo"}
+        second = await call(project, state, capability=None, payload={"text": "next"})
+        assert isinstance(second, Result) and second.payload == {"text": "charlie"}
+    finally:
+        if pending is not None and not pending.done():
+            pending.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await pending
+        if not session.done():
+            await stop(session, state)

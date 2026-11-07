@@ -330,9 +330,11 @@ async def serve(project: Path, state: Path, *, watch: bool = False) -> None:
     gate = asyncio.Lock()
     stop = asyncio.Event()
     try:
+        # Record before imports/readiness: edits during warm-up must remain
+        # pending for the next request, even when the child loaded older bytes.
+        fingerprint = _sources(project)
         async with local_child(project, state) as initial:
             current = initial
-            fingerprint = _sources(project)
 
             async def accept(
                 reader: asyncio.StreamReader, writer: asyncio.StreamWriter
@@ -345,13 +347,14 @@ async def serve(project: Path, state: Path, *, watch: bool = False) -> None:
                     async with asyncio.timeout(LOCAL_EXCHANGE_SECONDS), gate:
                         async with asyncio.timeout(5):
                             message = await read_message(reader)
-                        if watch and fingerprint != _sources(project):
+                        source_fingerprint = _sources(project) if watch else fingerprint
+                        if fingerprint != source_fingerprint:
                             # No invocation is retried; old-child cleanup must
                             # finish before a replacement receives new work.
                             await current.close()
                             current = DevelopmentChild(project, state)
                             await current.start()
-                            fingerprint = _sources(project)
+                            fingerprint = source_fingerprint
                         if isinstance(message, Invoke):
                             response = await current.invoke(message)
                         elif isinstance(message, Health):

@@ -6,7 +6,7 @@ a model-free starter and local harness, explicit signed-feed tooling, and
 journaled administration through the existing host API. It does not switch the
 installed owner to a native SDK runtime or claim complete TypeScript parity.
 
-The local qualification ran strict typing, lint/format, 161 tests, and positive
+The local qualification ran strict typing, lint/format, 163 tests, and positive
 wheel/source audits. Release models were compared against the qualified owner
 models without importing owner implementation into the public packages. Exact
 binary runtime recipes cover macOS arm64 and glibc Linux x86_64/aarch64;

@@ -1,0 +1,35 @@
+name: Public SDK qualification
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  python:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      SOURCE_DATE_EPOCH: '1767225600'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.22'
+          python-version: '3.13'
+      - run: uv sync --frozen
+      - run: uv run basedpyright --pythonpath .venv/bin/python
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run pytest
+      - run: uv build
+      - run: uv run python tools/check_export.py
+      - run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-sdk-${{ matrix.runner }}
+          path: dist/*

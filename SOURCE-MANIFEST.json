@@ -1,0 +1,75 @@
+{
+  "format": 1,
+  "source_commit": "1f95a0954f0d13945cb369ca3f1be32d00505c9e",
+  "license_decision_commit": "cb21ff9446511e0a01ab53f652e647d58041941e",
+  "files": {
+    "skulk_capability_sdk/__init__.py": {
+      "source_sha256": "be59f50d228426ca7f0555e1708a2586ed8d0954f08ddcf65ffa5741420c439e",
+      "exported_sha256": "be59f50d228426ca7f0555e1708a2586ed8d0954f08ddcf65ffa5741420c439e"
+    },
+    "skulk_capability_sdk/_credential_reader.py": {
+      "source_sha256": "a42314b92e54e68829af15acbb859f0c4956c089cbc6e3e43e17734adeadef70",
+      "exported_sha256": "a42314b92e54e68829af15acbb859f0c4956c089cbc6e3e43e17734adeadef70"
+    },
+    "skulk_capability_sdk/contracts.py": {
+      "source_sha256": "545ef221a7529cd7ba691739326ffd5d19c3c6be8cdef72aa07361c224baf06a",
+      "exported_sha256": "545ef221a7529cd7ba691739326ffd5d19c3c6be8cdef72aa07361c224baf06a"
+    },
+    "skulk_capability_sdk/credentials.py": {
+      "source_sha256": "c983809ce98ee54d39e73a9f5408f9e0b3bfea6bb9dad8be9cfca471b466812b",
+      "exported_sha256": "c983809ce98ee54d39e73a9f5408f9e0b3bfea6bb9dad8be9cfca471b466812b"
+    },
+    "skulk_capability_sdk/database.py": {
+      "source_sha256": "d294bc7be863e0d47990d79334081c29e1bc745cb679ad0d23bfd1f7be599777",
+      "exported_sha256": "d294bc7be863e0d47990d79334081c29e1bc745cb679ad0d23bfd1f7be599777"
+    },
+    "skulk_capability_sdk/operations.py": {
+      "source_sha256": "dc752bbd2113acd6a7526db771d0c0473e4443ba830813c297e527777ba30122",
+      "exported_sha256": "dc752bbd2113acd6a7526db771d0c0473e4443ba830813c297e527777ba30122"
+    },
+    "skulk_capability_sdk/py.typed": {
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exported_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "skulk_capability_sdk/serving.py": {
+      "source_sha256": "02d2a9c8fd4136f6e6241f4f21dc2574d437dc2c2c4d70a66c8c3c64df2cf9e5",
+      "exported_sha256": "02d2a9c8fd4136f6e6241f4f21dc2574d437dc2c2c4d70a66c8c3c64df2cf9e5"
+    },
+    "skulk_capability_sdk/storage.py": {
+      "source_sha256": "060c5df3c20b3c0dd9762613f43a0813ae715bbdf794e901ff787fdc474436fb",
+      "exported_sha256": "060c5df3c20b3c0dd9762613f43a0813ae715bbdf794e901ff787fdc474436fb"
+    },
+    "skulk_capability_sdk/streams.py": {
+      "source_sha256": "c5e65b112f91a260905da365f88c05603f965aa02787800ca3cdea8f6696ed67",
+      "exported_sha256": "c5e65b112f91a260905da365f88c05603f965aa02787800ca3cdea8f6696ed67"
+    },
+    "skulk_capability_sdk/wire.py": {
+      "source_sha256": "061db7b78ec53b5095cf38e0dc2b40f146814a813977c822dd18e3c7f7adf62e",
+      "exported_sha256": "061db7b78ec53b5095cf38e0dc2b40f146814a813977c822dd18e3c7f7adf62e"
+    },
+    "tests/test_credential_reader.py": {
+      "source_sha256": "2a9a46bd2787e6c943e8958cbe8eebee09227074d1282116f151991ca642cfe2",
+      "exported_sha256": "08a0cb774575e9cd1529ac6cbd296d040e95f2ab080b5f859b16762be0bec0f0",
+      "adjustment": "Standalone-package import grouping only"
+    },
+    "tests/test_serving.py": {
+      "source_sha256": "8b32abbd829b18420e2688514b769924f4075f9ef01ab680469ffb56fa2e3f12",
+      "exported_sha256": "c5082c2463de41c710e086beeb6500cb6316884e66808c9c9ad103216cab30a8",
+      "adjustment": "Standalone-package import grouping only"
+    },
+    "tests/test_streams.py": {
+      "source_sha256": "5d749a59890ab500d2a081eb3873ccf8957e9f92fcba46faf61d9cb098580bcb",
+      "exported_sha256": "ab3518eb6e9750a8cfaaf4a4a5238bd961c9a8897e9b971982452b7ccd1ceb7e",
+      "adjustment": "Standalone-package import grouping only"
+    },
+    "tests/test_surface.py": {
+      "source_sha256": "3e728b816fd67f96116fc786de48dc791182d4029b939372ea866e7ed6361237",
+      "exported_sha256": "3e728b816fd67f96116fc786de48dc791182d4029b939372ea866e7ed6361237"
+    },
+    "tests/test_window.py": {
+      "source_sha256": "02dc411090b3bbbe617bbe87b923f60ce9bc6a59c20c8e0606f18d99466701d9",
+      "exported_sha256": "6ded152f0271681a9a22035391e3e1156ec50010aef58cdaed21c4c1cd44f18b",
+      "adjustment": "Standalone-package import grouping only"
+    }
+  }
+}

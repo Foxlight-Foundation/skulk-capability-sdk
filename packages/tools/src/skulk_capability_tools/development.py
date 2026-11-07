@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import secrets
+import subprocess
 import sys
 import tempfile
 from collections.abc import AsyncGenerator
@@ -35,7 +36,6 @@ from skulk_capability_sdk.wire import ProtocolError, read_message, write_message
 
 from .inspection import read_public
 from .packaging import load_spec, validate_manifest
-from .project import project_imports
 
 
 async def validate_payload(schema: dict[str, JsonValue], payload: JsonValue) -> None:
@@ -69,8 +69,25 @@ def project_manifest(project: Path) -> Manifest:
     manifest = Manifest.model_validate_json(
         read_public(project / "manifest.json", MAX_MANIFEST_BYTES)
     )
-    with project_imports(project / "capability.toml"):
-        validate_manifest(spec, manifest)
+    # Project validators execute in a fresh bounded process. A watched restart
+    # cannot reuse cached author modules or inherit ambient provider credentials.
+    validate_manifest(spec.model_copy(update={"validator": None}), manifest)
+    if spec.validator is not None:
+        raw = json.dumps([str(project), manifest.model_dump_json()]).encode()
+        if len(raw) > 524288:
+            raise Denied("Project validation exceeds its metadata budget")
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "skulk_capability_tools._manifest_worker"],
+                input=raw,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                env={"PATH": os.defpath, "PYTHONUTF8": "1"},
+                timeout=3,
+                check=True,
+            )
+        except (subprocess.SubprocessError, OSError) as error:
+            raise Denied("Project manifest validation refused or timed out") from error
     return manifest
 
 
@@ -133,7 +150,11 @@ class DevelopmentChild:
                 # inherits no management token, provider account or Fabric key.
                 self.process = await asyncio.create_subprocess_exec(
                     sys.executable,
-                    "-m",
+                    "-c",
+                    (
+                        "import importlib,sys\n"
+                        "importlib.import_module(sys.argv.pop(1)).main()"
+                    ),
                     spec.entry,
                     "--config-fd",
                     str(inherited.fileno()),

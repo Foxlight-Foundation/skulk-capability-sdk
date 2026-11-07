@@ -17,6 +17,7 @@ PACKAGE = "skulk_capability_tools"
 MODULES = {
     "__init__.py",
     "_schema_worker.py",
+    "_manifest_worker.py",
     "_host_metadata.py",
     "assemble_feed.py",
     "build_catalog.py",

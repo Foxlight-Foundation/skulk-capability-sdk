@@ -12,6 +12,7 @@ from skulk_capability_tools.development import call, project_manifest, serve
 from skulk_capability_tools.starter import initialize
 
 from skulk_capability_sdk.contracts import Denied, Health, Result
+from skulk_capability_sdk.wire import read_message, write_message
 
 
 @pytest.fixture
@@ -201,6 +202,65 @@ async def test_src_project_validator_runs_before_source_child_startup(
             project, state, capability=None, payload={"text": "validated"}
         )
         assert isinstance(result, Result) and result.payload == {"text": "validated"}
+    finally:
+        if not session.done():
+            await stop(session, state)
+
+
+async def test_source_entry_calls_main_without_a_script_guard(
+    tmp_path: Path, state: Path
+) -> None:
+    project = tmp_path / "project"
+    initialize(project, "function_entry_capability")
+    source = project / "function_entry_capability/app.py"
+    source.write_text(source.read_text().split('\nif __name__ == "__main__":')[0])
+    session = asyncio.create_task(serve(project, state))
+    try:
+        await ready(state, session)
+        result = await call(project, state, capability=None, payload={"text": "entry"})
+        assert isinstance(result, Result) and result.payload == {"text": "entry"}
+    finally:
+        if not session.done():
+            await stop(session, state)
+
+
+async def test_watched_validator_is_fresh_and_receives_no_ambient_secrets(
+    tmp_path: Path, state: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("SKULK_AUTHOR_VALIDATOR_SECRET", "synthetic-not-a-credential")
+    project = tmp_path / "project"
+    initialize(project, "watched_validator_capability")
+    validator = project / "watched_validator_capability/validation.py"
+    validator.write_text(
+        "import os\ndef check(manifest):\n"
+        '    assert "SKULK_AUTHOR_VALIDATOR_SECRET" not in os.environ\n'
+    )
+    specification = project / "capability.toml"
+    specification.write_text(
+        specification.read_text()
+        + 'validator = "watched_validator_capability.validation:check"\n'
+    )
+    session = asyncio.create_task(serve(project, state, watch=True))
+    try:
+        await ready(state, session)
+        assert isinstance(
+            await call(project, state, capability=None, payload=None), Health
+        )
+        validator.write_text(
+            'def check(manifest):\n    raise ValueError("updated rejection")\n'
+        )
+        # Bypass the CLI's own refreshed validation to exercise the running
+        # watch server's independent restart/admission check.
+        reader, writer = await asyncio.open_unix_connection(str(state / "session.sock"))
+        try:
+            await write_message(writer, Health(protocol=4, nonce="a" * 32, ready=False))
+            with pytest.raises(asyncio.IncompleteReadError):
+                await read_message(reader)
+        finally:
+            writer.close()
+            await writer.wait_closed()
+        await asyncio.wait_for(session, 5)
+        assert not (state / "session.sock").exists()
     finally:
         if not session.done():
             await stop(session, state)

@@ -316,3 +316,32 @@ async def test_relative_state_is_normalized_before_child_changes_directory(
     finally:
         if not session.done():
             await stop(session, state)
+
+
+async def test_source_launch_forwards_declared_manifest_arguments(
+    tmp_path: Path, state: Path
+) -> None:
+    project = tmp_path / "project"
+    initialize(project, "declared_arguments_capability")
+    manifest = project / "manifest.json"
+    value = json.loads(manifest.read_text())
+    value["arguments"] = ["--mode", "declared"]
+    manifest.write_text(json.dumps(value))
+    source = project / "declared_arguments_capability/app.py"
+    source.write_text(
+        source.read_text().replace(
+            'parser.add_argument("--config-fd", type=int, required=True)',
+            'parser.add_argument("--config-fd", type=int, required=True)\n'
+            '    parser.add_argument("--mode", choices=["declared"], required=True)',
+        )
+    )
+    session = asyncio.create_task(serve(project, state))
+    try:
+        await ready(state, session)
+        result = await call(
+            project, state, capability=None, payload={"text": "arguments"}
+        )
+        assert isinstance(result, Result) and result.payload == {"text": "arguments"}
+    finally:
+        if not session.done():
+            await stop(session, state)

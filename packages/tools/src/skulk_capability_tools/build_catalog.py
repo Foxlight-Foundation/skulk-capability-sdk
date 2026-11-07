@@ -11,6 +11,7 @@ from skulk_capability_sdk.contracts import canonical
 from skulk_capability_sdk.storage import atomic_private, read_private
 
 from .catalog import (
+    CATALOG_MAX_BYTES,
     Catalog,
     CatalogEntry,
     SignedCatalog,
@@ -68,7 +69,10 @@ def main(argv: list[str] | None = None) -> None:
     signed = SignedCatalog(
         catalog=catalog, signature=key.sign(canonical(catalog)).hex()
     )
-    atomic_private(args.output, signed.model_dump_json().encode())
+    document = signed.model_dump_json().encode()
+    if len(document) > CATALOG_MAX_BYTES:
+        parser.error("serialized catalog exceeds the supported reader metadata bound")
+    atomic_private(args.output, document)
 
 
 if __name__ == "__main__":

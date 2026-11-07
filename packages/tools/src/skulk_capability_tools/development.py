@@ -164,6 +164,7 @@ class DevelopmentChild:
                         "importlib.import_module(sys.argv.pop(1)).main()"
                     ),
                     spec.entry,
+                    *self.manifest.arguments,
                     "--config-fd",
                     str(inherited.fileno()),
                     pass_fds=(inherited.fileno(),),

@@ -51,6 +51,7 @@ from skulk_capability_sdk.contracts import Denied, Manifest, canonical
 from skulk_capability_sdk.storage import atomic_private, read_private, secure_directory
 
 from .catalog import (
+    CATALOG_MAX_BYTES,
     Catalog,
     CatalogEntry,
     SignedCatalog,
@@ -75,9 +76,6 @@ from .wheelhouse import (
     select_wheel,
     supported_tags,
 )
-
-CATALOG_MAX_BYTES: Final = 262144
-"""The bound a host reads a catalog document with."""
 
 CLOCK_SKEW_SECONDS: Final = 300
 """How far ahead of this machine a build runner's clock may have been."""

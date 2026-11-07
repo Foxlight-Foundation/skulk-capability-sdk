@@ -140,3 +140,57 @@ def test_key_creation_refuses_replacement_and_returns_only_public_material(
     with pytest.raises(FileExistsError):
         keygen(["--private-key", str(path)])
     assert path.read_bytes() == original
+
+
+def test_catalog_refuses_a_valid_but_oversized_signed_envelope(tmp_path: Path) -> None:
+    """Model field limits do not establish the whole reader envelope's byte limit."""
+    from skulk_capability_tools.build_catalog import main as catalog_main
+    from skulk_capability_tools.catalog import CATALOG_MAX_BYTES
+
+    from skulk_capability_sdk.storage import atomic_private
+
+    template = tmp_path / "template"
+    template.mkdir(mode=0o700)
+    metadata, _, _ = release(template)
+    original = SignedRelease.model_validate_json(metadata.read_bytes()).release
+    key = Ed25519PrivateKey.generate()
+    private = tmp_path / "publisher.key"
+    atomic_private(private, key.private_bytes_raw())
+    output = tmp_path / "catalog.json"
+    arguments = [
+        "--publisher",
+        "fixture",
+        "--private-key",
+        str(private),
+        "--revision",
+        "1",
+        "--expires-at",
+        str(int(time.time()) + 3600),
+        "--output",
+        str(output),
+    ]
+    for index in range(32):
+        directory = tmp_path / f"release-{index}"
+        directory.mkdir(mode=0o700)
+        claims = original.model_copy(
+            update={
+                "sequence": index + 1,
+                "manifest": original.manifest.model_copy(
+                    update={"bundle_id": f"fixture.echo{index}"}
+                ),
+                "permissions": tuple(f"{item:02d}" + "x" * 510 for item in range(16)),
+            }
+        )
+        record = SignedRelease(
+            release=claims, signature=key.sign(canonical(claims)).hex()
+        )
+        atomic_private(directory / "release.json", record.model_dump_json().encode())
+        arguments += ["--release", str(directory), f"https://example.test/{index}/"]
+        if index == 0:
+            catalog_main(arguments)
+            assert output.stat().st_size < CATALOG_MAX_BYTES
+            output.unlink()
+    with pytest.raises(SystemExit) as raised:
+        catalog_main(arguments)
+    assert raised.value.code == 2
+    assert not output.exists()

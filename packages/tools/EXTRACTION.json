@@ -43,18 +43,18 @@
     },
     "catalog.py": {
       "source_sha256": "8e11306d06993728c2c591893f0ecd33be1315efca8ca16944cb25a3c5fb3fb9",
-      "extracted_sha256": "23f424ba5e7cd2765fd525f9684b47c1a3e8e89ea1b371fac7d2e1c676265101",
-      "adjustment": "Public namespace/import boundary; no provider or owner effects copied"
+      "extracted_sha256": "aef0665f59e479b5710172303f9e44a36412fa1c2d83e5f3c5249d1a8b3229f1",
+      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing"
     },
     "build_catalog.py": {
       "source_sha256": "f8ad2983f9a628775b5ecad65ee7aee6f1ca722abe4ac10e11257007f1dbd728",
-      "extracted_sha256": "91e973463d19fbb3fde69139b319038a359ccefd3f7508f7465c57a6914c92f0",
-      "adjustment": "Public namespace/import boundary; no provider or owner effects copied"
+      "extracted_sha256": "10039ac2d07e7cb47534cac46c502f9c680f32037395a13cee85fdb2ddad1bf0",
+      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing"
     },
     "assemble_feed.py": {
       "source_sha256": "b4bda5397822085495c9c9696422000b9b54a7df7515bbcfaf4cdc73d1fa2179",
-      "extracted_sha256": "ff5deeebfde1c19c129d0a4698d98037111f6d0ba307cdabc04f289663205fc7",
-      "adjustment": "Public namespaces; direct URL wheels remain locked artifacts at independent signing"
+      "extracted_sha256": "1a63690d313a6a13f3bbd2955de5e4a6b9847f709488b94020a90f57bb2d9b7a",
+      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing"
     }
   },
   "metadata_projections": "Only public retained selection/settings shapes; installation and supervision implementations excluded",

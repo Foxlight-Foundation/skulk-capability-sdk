@@ -12,7 +12,7 @@ import hashlib
 import json
 import time
 from collections.abc import Callable
-from typing import Annotated, Literal, Self, final
+from typing import Annotated, Final, Literal, Self, final
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -34,6 +34,9 @@ from .runtime_release import (
     SignedRuntimeRelease,
     canonical_platform,
 )
+
+CATALOG_MAX_BYTES: Final = 262144
+"""Complete signed catalog envelope accepted by supported host readers."""
 
 CATALOG_PROTOCOL = 2
 """Default catalog protocol for declarations within the original bounds.

@@ -9,6 +9,7 @@ import zipfile
 from pathlib import Path
 from typing import Literal
 
+from check_tools_export import SOURCE_FILES as TOOLS_SOURCE_FILES
 from pydantic import BaseModel, ConfigDict, Field
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,14 +118,18 @@ def validate_artifacts() -> dict[str, str]:
             raise ValueError("Wheel license differs")
     source_archive = ROOT / "dist" / f"{prefix}.tar.gz"
     with tarfile.open(source_archive, "r:gz") as archive:
-        allowed = package_files | {
-            "SOURCE-MANIFEST.json",
-            ".gitignore",
-            "LICENSE.md",
-            "README.md",
-            "pyproject.toml",
-            "PKG-INFO",
-        }
+        allowed = (
+            package_files
+            | {
+                "SOURCE-MANIFEST.json",
+                ".gitignore",
+                "LICENSE.md",
+                "README.md",
+                "pyproject.toml",
+                "PKG-INFO",
+            }
+            | {f"packages/tools/{name}" for name in TOOLS_SOURCE_FILES}
+        )
         members = archive.getmembers()
         if len(members) != len(allowed) or {m.name for m in members} != {
             f"{prefix}/{name}" for name in allowed

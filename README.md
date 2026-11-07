@@ -34,3 +34,9 @@ The host independently authenticates callers and admits each capability call.
 
 `SOURCE-MANIFEST.json` records SHA-256 for the exact qualified Python export.
 The initial export contains no repository history from the owner implementation.
+
+## Author tools
+
+[The Python author guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/main/docs/python-authoring.md) covers anonymous wheel installation, a model-free source starter, local run/watch/invoke/debug, unsigned builds, exact runtime acquisition, signing/inspection and revision-fenced host lifecycle commands. The `skulk-capability-tools` package provides `skulk-cap` and compatible legacy publisher entry points.
+
+The CLI and the runtime are separate packages. Runtime recipes retain owner 0.10.5/SDK 0.5.5 while these author interfaces use SDK 0.5.7. Package installation grants no Fabric authority. The local development harness currently exercises unary calls; application-framework, TypeScript and native adoption have separate qualification.

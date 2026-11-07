@@ -1,0 +1,3530 @@
+{
+  "format": 1,
+  "source": {
+    "commit": "4d1a33331bef8a2313f75da98b4ceab1bed162d6",
+    "sdk_version": "0.4.0",
+    "host_version": "0.6.0",
+    "pydantic_version": "2.13.5",
+    "qualified_skulk_version": "2.0.0"
+  },
+  "protocol": {
+    "current": 4,
+    "accepted": [
+      3,
+      4
+    ],
+    "max_frame_bytes": 65536,
+    "max_manifest_bytes": 131072,
+    "max_startup_bytes": 196608,
+    "max_media_bytes": 1048576
+  },
+  "schemas": {
+    "Descriptor": {
+      "$defs": {
+        "JsonValue": {}
+      },
+      "additionalProperties": false,
+      "description": "Public capability descriptor with four independently typed I/O modes.",
+      "properties": {
+        "id": {
+          "description": "Public capability identifier.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "description": "Semantic version.",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Version",
+          "type": "string"
+        },
+        "title": {
+          "description": "Operator title.",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "description": "Capability behavior.",
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "input_schema": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "description": "Public input JSON Schema.",
+          "title": "Input Schema",
+          "type": "object"
+        },
+        "output_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Public final-result JSON Schema.",
+          "title": "Output Schema"
+        },
+        "io_mode": {
+          "default": "unary",
+          "enum": [
+            "unary",
+            "server_streaming",
+            "client_streaming",
+            "bidirectional"
+          ],
+          "title": "Io Mode",
+          "type": "string"
+        },
+        "input_chunk_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Chunk Schema"
+        },
+        "output_chunk_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Chunk Schema"
+        },
+        "annotations": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Annotations"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "title",
+        "description",
+        "input_schema"
+      ],
+      "title": "Descriptor",
+      "type": "object"
+    },
+    "Bounds": {
+      "additionalProperties": false,
+      "description": "Hard local admission, liveness, restart and output limits.",
+      "properties": {
+        "max_children": {
+          "default": 4,
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Max Children",
+          "type": "integer"
+        },
+        "concurrency": {
+          "const": 1,
+          "default": 1,
+          "title": "Concurrency",
+          "type": "integer"
+        },
+        "startup_seconds": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Startup Seconds",
+          "type": "number"
+        },
+        "health_seconds": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "Health Seconds",
+          "type": "number"
+        },
+        "call_seconds": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Call Seconds",
+          "type": "number"
+        },
+        "stream_seconds": {
+          "default": 300.0,
+          "description": "Single deadline ceiling for a streaming call, including cleanup.",
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Stream Seconds",
+          "type": "number"
+        },
+        "shutdown_seconds": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "maximum": 5,
+          "title": "Shutdown Seconds",
+          "type": "number"
+        },
+        "restart_budget": {
+          "default": 3,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Restart Budget",
+          "type": "integer"
+        },
+        "backoff_seconds": {
+          "default": 0.1,
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "Backoff Seconds",
+          "type": "number"
+        },
+        "log_bytes": {
+          "const": 0,
+          "default": 0,
+          "description": "No child log payload retention.",
+          "title": "Log Bytes",
+          "type": "integer"
+        }
+      },
+      "title": "Bounds",
+      "type": "object"
+    },
+    "Surface": {
+      "additionalProperties": false,
+      "description": "One declared operator-facing web surface of a capability node.\n\nIdentity, kind and permissions are immutable manifest facts; readiness and\nthe volatile endpoint arrive in correlated health replies. ``proxied``\nsurfaces are declared so the manifest is complete, but their endpoints are\nwithheld from every projection until the proxy contract is qualified.",
+      "properties": {
+        "surface_id": {
+          "pattern": "^[a-z][a-z0-9-]{0,31}$",
+          "title": "Surface Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "proxied",
+            "link"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "entry": {
+          "default": "/",
+          "maxLength": 256,
+          "title": "Entry",
+          "type": "string"
+        },
+        "websocket": {
+          "default": false,
+          "title": "Websocket",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "surface_id",
+        "title",
+        "kind"
+      ],
+      "title": "Surface",
+      "type": "object"
+    },
+    "SurfaceReport": {
+      "additionalProperties": false,
+      "description": "Volatile readiness of one declared surface, reported with health.\n\nA complete snapshot is expected: a declared surface absent from the reply\nis not ready and any earlier endpoint is withdrawn.",
+      "properties": {
+        "surface_id": {
+          "pattern": "^[a-z][a-z0-9-]{0,31}$",
+          "title": "Surface Id",
+          "type": "string"
+        },
+        "ready": {
+          "title": "Ready",
+          "type": "boolean"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "maximum": 65535,
+              "minimum": 1024,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "surface_id",
+        "ready"
+      ],
+      "title": "SurfaceReport",
+      "type": "object"
+    },
+    "OperationBounds": {
+      "additionalProperties": false,
+      "description": "Limits for durable operations a node runs outside the invocation slot.",
+      "properties": {
+        "max_queued": {
+          "default": 4,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Max Queued",
+          "type": "integer"
+        },
+        "max_runtime_seconds": {
+          "default": 3600,
+          "maximum": 86400,
+          "minimum": 1,
+          "title": "Max Runtime Seconds",
+          "type": "integer"
+        },
+        "stale_after_seconds": {
+          "default": 30,
+          "maximum": 3600,
+          "minimum": 1,
+          "title": "Stale After Seconds",
+          "type": "integer"
+        },
+        "retain": {
+          "default": 64,
+          "maximum": 1024,
+          "minimum": 1,
+          "title": "Retain",
+          "type": "integer"
+        },
+        "log_bytes": {
+          "default": 262144,
+          "maximum": 16777216,
+          "minimum": 0,
+          "title": "Log Bytes",
+          "type": "integer"
+        },
+        "reservations": {
+          "default": 65536,
+          "description": "Replay-fence capacity. Reaching it refuses new starts rather than forgetting old ids, which would make them replayable.",
+          "maximum": 1000000,
+          "minimum": 64,
+          "title": "Reservations",
+          "type": "integer"
+        }
+      },
+      "title": "OperationBounds",
+      "type": "object"
+    },
+    "StewardExposure": {
+      "additionalProperties": false,
+      "description": "Trusted private manifest classification; never inferred from tool text.\n\n``read`` exposures become direct steward tools; ``lifecycle`` and\n``operation`` exposures become inert proposals that need an approval. A\ndeclaration is not evidence of enforcement: the owner still validates the\nmanifest and the child still checks authority at dispatch.",
+      "properties": {
+        "qualified_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Qualified Id",
+          "type": "string"
+        },
+        "behavior": {
+          "enum": [
+            "read",
+            "lifecycle",
+            "operation"
+          ],
+          "title": "Behavior",
+          "type": "string"
+        },
+        "risk": {
+          "enum": [
+            "observation",
+            "billable",
+            "effect"
+          ],
+          "title": "Risk",
+          "type": "string"
+        },
+        "provider_selection": {
+          "anyOf": [
+            {
+              "enum": [
+                "runpod-simulator",
+                "runpod-witness-experimental"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "runpod-simulator",
+          "description": "Governed provider for lifecycle exposures; None only for read and operation exposures that select no provider.",
+          "title": "Provider Selection"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model-facing tool description; omitted means the descriptor's.",
+          "title": "Summary"
+        }
+      },
+      "required": [
+        "qualified_id",
+        "behavior",
+        "risk"
+      ],
+      "title": "StewardExposure",
+      "type": "object"
+    },
+    "CredentialInput": {
+      "additionalProperties": false,
+      "description": "One plugin-declared write-only credential; values are never manifest data.",
+      "properties": {
+        "credential_id": {
+          "description": "Stable node-local credential reference.",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Credential Id",
+          "type": "string"
+        },
+        "title": {
+          "description": "Owner-facing credential label.",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "description": "What this credential authorizes and where to obtain it.",
+          "maxLength": 2048,
+          "title": "Description",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "description": "Whether readiness requires a usable value.",
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "credential_id",
+        "title",
+        "description"
+      ],
+      "title": "CredentialInput",
+      "type": "object"
+    },
+    "Manifest": {
+      "$defs": {
+        "Bounds": {
+          "additionalProperties": false,
+          "description": "Hard local admission, liveness, restart and output limits.",
+          "properties": {
+            "max_children": {
+              "default": 4,
+              "maximum": 16,
+              "minimum": 1,
+              "title": "Max Children",
+              "type": "integer"
+            },
+            "concurrency": {
+              "const": 1,
+              "default": 1,
+              "title": "Concurrency",
+              "type": "integer"
+            },
+            "startup_seconds": {
+              "default": 5.0,
+              "exclusiveMinimum": 0,
+              "maximum": 30,
+              "title": "Startup Seconds",
+              "type": "number"
+            },
+            "health_seconds": {
+              "default": 1.0,
+              "exclusiveMinimum": 0,
+              "maximum": 10,
+              "title": "Health Seconds",
+              "type": "number"
+            },
+            "call_seconds": {
+              "default": 5.0,
+              "exclusiveMinimum": 0,
+              "maximum": 30,
+              "title": "Call Seconds",
+              "type": "number"
+            },
+            "stream_seconds": {
+              "default": 300.0,
+              "description": "Single deadline ceiling for a streaming call, including cleanup.",
+              "exclusiveMinimum": 0,
+              "maximum": 300,
+              "title": "Stream Seconds",
+              "type": "number"
+            },
+            "shutdown_seconds": {
+              "default": 1.0,
+              "exclusiveMinimum": 0,
+              "maximum": 5,
+              "title": "Shutdown Seconds",
+              "type": "number"
+            },
+            "restart_budget": {
+              "default": 3,
+              "maximum": 10,
+              "minimum": 0,
+              "title": "Restart Budget",
+              "type": "integer"
+            },
+            "backoff_seconds": {
+              "default": 0.1,
+              "exclusiveMinimum": 0,
+              "maximum": 10,
+              "title": "Backoff Seconds",
+              "type": "number"
+            },
+            "log_bytes": {
+              "const": 0,
+              "default": 0,
+              "description": "No child log payload retention.",
+              "title": "Log Bytes",
+              "type": "integer"
+            }
+          },
+          "title": "Bounds",
+          "type": "object"
+        },
+        "CredentialInput": {
+          "additionalProperties": false,
+          "description": "One plugin-declared write-only credential; values are never manifest data.",
+          "properties": {
+            "credential_id": {
+              "description": "Stable node-local credential reference.",
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,127}$",
+              "title": "Credential Id",
+              "type": "string"
+            },
+            "title": {
+              "description": "Owner-facing credential label.",
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "description": "What this credential authorizes and where to obtain it.",
+              "maxLength": 2048,
+              "title": "Description",
+              "type": "string"
+            },
+            "required": {
+              "default": true,
+              "description": "Whether readiness requires a usable value.",
+              "title": "Required",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "credential_id",
+            "title",
+            "description"
+          ],
+          "title": "CredentialInput",
+          "type": "object"
+        },
+        "Descriptor": {
+          "additionalProperties": false,
+          "description": "Public capability descriptor with four independently typed I/O modes.",
+          "properties": {
+            "id": {
+              "description": "Public capability identifier.",
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "description": "Semantic version.",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "title": "Version",
+              "type": "string"
+            },
+            "title": {
+              "description": "Operator title.",
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "description": "Capability behavior.",
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Description",
+              "type": "string"
+            },
+            "input_schema": {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "description": "Public input JSON Schema.",
+              "title": "Input Schema",
+              "type": "object"
+            },
+            "output_schema": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Public final-result JSON Schema.",
+              "title": "Output Schema"
+            },
+            "io_mode": {
+              "default": "unary",
+              "enum": [
+                "unary",
+                "server_streaming",
+                "client_streaming",
+                "bidirectional"
+              ],
+              "title": "Io Mode",
+              "type": "string"
+            },
+            "input_chunk_schema": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Input Chunk Schema"
+            },
+            "output_chunk_schema": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Output Chunk Schema"
+            },
+            "annotations": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Annotations"
+            }
+          },
+          "required": [
+            "id",
+            "version",
+            "title",
+            "description",
+            "input_schema"
+          ],
+          "title": "Descriptor",
+          "type": "object"
+        },
+        "JsonValue": {},
+        "OperationBounds": {
+          "additionalProperties": false,
+          "description": "Limits for durable operations a node runs outside the invocation slot.",
+          "properties": {
+            "max_queued": {
+              "default": 4,
+              "maximum": 64,
+              "minimum": 1,
+              "title": "Max Queued",
+              "type": "integer"
+            },
+            "max_runtime_seconds": {
+              "default": 3600,
+              "maximum": 86400,
+              "minimum": 1,
+              "title": "Max Runtime Seconds",
+              "type": "integer"
+            },
+            "stale_after_seconds": {
+              "default": 30,
+              "maximum": 3600,
+              "minimum": 1,
+              "title": "Stale After Seconds",
+              "type": "integer"
+            },
+            "retain": {
+              "default": 64,
+              "maximum": 1024,
+              "minimum": 1,
+              "title": "Retain",
+              "type": "integer"
+            },
+            "log_bytes": {
+              "default": 262144,
+              "maximum": 16777216,
+              "minimum": 0,
+              "title": "Log Bytes",
+              "type": "integer"
+            },
+            "reservations": {
+              "default": 65536,
+              "description": "Replay-fence capacity. Reaching it refuses new starts rather than forgetting old ids, which would make them replayable.",
+              "maximum": 1000000,
+              "minimum": 64,
+              "title": "Reservations",
+              "type": "integer"
+            }
+          },
+          "title": "OperationBounds",
+          "type": "object"
+        },
+        "StewardExposure": {
+          "additionalProperties": false,
+          "description": "Trusted private manifest classification; never inferred from tool text.\n\n``read`` exposures become direct steward tools; ``lifecycle`` and\n``operation`` exposures become inert proposals that need an approval. A\ndeclaration is not evidence of enforcement: the owner still validates the\nmanifest and the child still checks authority at dispatch.",
+          "properties": {
+            "qualified_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Qualified Id",
+              "type": "string"
+            },
+            "behavior": {
+              "enum": [
+                "read",
+                "lifecycle",
+                "operation"
+              ],
+              "title": "Behavior",
+              "type": "string"
+            },
+            "risk": {
+              "enum": [
+                "observation",
+                "billable",
+                "effect"
+              ],
+              "title": "Risk",
+              "type": "string"
+            },
+            "provider_selection": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "runpod-simulator",
+                    "runpod-witness-experimental"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "runpod-simulator",
+              "description": "Governed provider for lifecycle exposures; None only for read and operation exposures that select no provider.",
+              "title": "Provider Selection"
+            },
+            "summary": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Model-facing tool description; omitted means the descriptor's.",
+              "title": "Summary"
+            }
+          },
+          "required": [
+            "qualified_id",
+            "behavior",
+            "risk"
+          ],
+          "title": "StewardExposure",
+          "type": "object"
+        },
+        "Surface": {
+          "additionalProperties": false,
+          "description": "One declared operator-facing web surface of a capability node.\n\nIdentity, kind and permissions are immutable manifest facts; readiness and\nthe volatile endpoint arrive in correlated health replies. ``proxied``\nsurfaces are declared so the manifest is complete, but their endpoints are\nwithheld from every projection until the proxy contract is qualified.",
+          "properties": {
+            "surface_id": {
+              "pattern": "^[a-z][a-z0-9-]{0,31}$",
+              "title": "Surface Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "proxied",
+                "link"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "entry": {
+              "default": "/",
+              "maxLength": 256,
+              "title": "Entry",
+              "type": "string"
+            },
+            "websocket": {
+              "default": false,
+              "title": "Websocket",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "surface_id",
+            "title",
+            "kind"
+          ],
+          "title": "Surface",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Owner-installed immutable bundle contract; no secrets or PATH discovery.",
+      "properties": {
+        "protocol": {
+          "default": 4,
+          "enum": [
+            3,
+            4
+          ],
+          "title": "Protocol",
+          "type": "integer"
+        },
+        "bundle_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Bundle Id",
+          "type": "string"
+        },
+        "bundle_version": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Bundle Version",
+          "type": "string"
+        },
+        "skulk_requires": {
+          "default": "==2.0.0",
+          "maxLength": 128,
+          "title": "Skulk Requires",
+          "type": "string"
+        },
+        "executable": {
+          "description": "Absolute approved executable.",
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Executable",
+          "type": "string"
+        },
+        "executable_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Executable Sha256",
+          "type": "string"
+        },
+        "arguments": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Arguments",
+          "type": "array"
+        },
+        "descriptors": {
+          "items": {
+            "$ref": "#/$defs/Descriptor"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Descriptors",
+          "type": "array"
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds"
+        },
+        "effect": {
+          "default": "read",
+          "enum": [
+            "read",
+            "governed"
+          ],
+          "title": "Effect",
+          "type": "string"
+        },
+        "steward": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/StewardExposure"
+          },
+          "maxItems": 8,
+          "title": "Steward",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Operator-facing bundle title; the bundle id otherwise.",
+          "title": "Title"
+        },
+        "surfaces": {
+          "default": [],
+          "description": "Declared web surfaces; readiness rides health replies.",
+          "items": {
+            "$ref": "#/$defs/Surface"
+          },
+          "maxItems": 4,
+          "title": "Surfaces",
+          "type": "array"
+        },
+        "operations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OperationBounds"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Durable-operation limits; required by operation descriptors."
+        },
+        "configuration_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Ordinary-settings schema; configured bundles start disabled.",
+          "title": "Configuration Schema"
+        },
+        "credential_inputs": {
+          "default": [],
+          "description": "Write-only inputs for the provisioned node credential store.",
+          "items": {
+            "$ref": "#/$defs/CredentialInput"
+          },
+          "maxItems": 16,
+          "title": "Credential Inputs",
+          "type": "array"
+        },
+        "preflight_profile": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "runpod-native"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Signed owner preflight profile enforced at enable and restart.",
+          "title": "Preflight Profile"
+        }
+      },
+      "required": [
+        "bundle_id",
+        "bundle_version",
+        "executable",
+        "executable_sha256",
+        "arguments",
+        "descriptors"
+      ],
+      "title": "Manifest",
+      "type": "object"
+    },
+    "Startup": {
+      "$defs": {
+        "Bounds": {
+          "additionalProperties": false,
+          "description": "Hard local admission, liveness, restart and output limits.",
+          "properties": {
+            "max_children": {
+              "default": 4,
+              "maximum": 16,
+              "minimum": 1,
+              "title": "Max Children",
+              "type": "integer"
+            },
+            "concurrency": {
+              "const": 1,
+              "default": 1,
+              "title": "Concurrency",
+              "type": "integer"
+            },
+            "startup_seconds": {
+              "default": 5.0,
+              "exclusiveMinimum": 0,
+              "maximum": 30,
+              "title": "Startup Seconds",
+              "type": "number"
+            },
+            "health_seconds": {
+              "default": 1.0,
+              "exclusiveMinimum": 0,
+              "maximum": 10,
+              "title": "Health Seconds",
+              "type": "number"
+            },
+            "call_seconds": {
+              "default": 5.0,
+              "exclusiveMinimum": 0,
+              "maximum": 30,
+              "title": "Call Seconds",
+              "type": "number"
+            },
+            "stream_seconds": {
+              "default": 300.0,
+              "description": "Single deadline ceiling for a streaming call, including cleanup.",
+              "exclusiveMinimum": 0,
+              "maximum": 300,
+              "title": "Stream Seconds",
+              "type": "number"
+            },
+            "shutdown_seconds": {
+              "default": 1.0,
+              "exclusiveMinimum": 0,
+              "maximum": 5,
+              "title": "Shutdown Seconds",
+              "type": "number"
+            },
+            "restart_budget": {
+              "default": 3,
+              "maximum": 10,
+              "minimum": 0,
+              "title": "Restart Budget",
+              "type": "integer"
+            },
+            "backoff_seconds": {
+              "default": 0.1,
+              "exclusiveMinimum": 0,
+              "maximum": 10,
+              "title": "Backoff Seconds",
+              "type": "number"
+            },
+            "log_bytes": {
+              "const": 0,
+              "default": 0,
+              "description": "No child log payload retention.",
+              "title": "Log Bytes",
+              "type": "integer"
+            }
+          },
+          "title": "Bounds",
+          "type": "object"
+        },
+        "CredentialInput": {
+          "additionalProperties": false,
+          "description": "One plugin-declared write-only credential; values are never manifest data.",
+          "properties": {
+            "credential_id": {
+              "description": "Stable node-local credential reference.",
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,127}$",
+              "title": "Credential Id",
+              "type": "string"
+            },
+            "title": {
+              "description": "Owner-facing credential label.",
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "description": "What this credential authorizes and where to obtain it.",
+              "maxLength": 2048,
+              "title": "Description",
+              "type": "string"
+            },
+            "required": {
+              "default": true,
+              "description": "Whether readiness requires a usable value.",
+              "title": "Required",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "credential_id",
+            "title",
+            "description"
+          ],
+          "title": "CredentialInput",
+          "type": "object"
+        },
+        "Descriptor": {
+          "additionalProperties": false,
+          "description": "Public capability descriptor with four independently typed I/O modes.",
+          "properties": {
+            "id": {
+              "description": "Public capability identifier.",
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "description": "Semantic version.",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "title": "Version",
+              "type": "string"
+            },
+            "title": {
+              "description": "Operator title.",
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "description": "Capability behavior.",
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Description",
+              "type": "string"
+            },
+            "input_schema": {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "description": "Public input JSON Schema.",
+              "title": "Input Schema",
+              "type": "object"
+            },
+            "output_schema": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Public final-result JSON Schema.",
+              "title": "Output Schema"
+            },
+            "io_mode": {
+              "default": "unary",
+              "enum": [
+                "unary",
+                "server_streaming",
+                "client_streaming",
+                "bidirectional"
+              ],
+              "title": "Io Mode",
+              "type": "string"
+            },
+            "input_chunk_schema": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Input Chunk Schema"
+            },
+            "output_chunk_schema": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Output Chunk Schema"
+            },
+            "annotations": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Annotations"
+            }
+          },
+          "required": [
+            "id",
+            "version",
+            "title",
+            "description",
+            "input_schema"
+          ],
+          "title": "Descriptor",
+          "type": "object"
+        },
+        "JsonValue": {},
+        "Manifest": {
+          "additionalProperties": false,
+          "description": "Owner-installed immutable bundle contract; no secrets or PATH discovery.",
+          "properties": {
+            "protocol": {
+              "default": 4,
+              "enum": [
+                3,
+                4
+              ],
+              "title": "Protocol",
+              "type": "integer"
+            },
+            "bundle_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Bundle Id",
+              "type": "string"
+            },
+            "bundle_version": {
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "title": "Bundle Version",
+              "type": "string"
+            },
+            "skulk_requires": {
+              "default": "==2.0.0",
+              "maxLength": 128,
+              "title": "Skulk Requires",
+              "type": "string"
+            },
+            "executable": {
+              "description": "Absolute approved executable.",
+              "maxLength": 4096,
+              "minLength": 1,
+              "title": "Executable",
+              "type": "string"
+            },
+            "executable_sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Executable Sha256",
+              "type": "string"
+            },
+            "arguments": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 16,
+              "title": "Arguments",
+              "type": "array"
+            },
+            "descriptors": {
+              "items": {
+                "$ref": "#/$defs/Descriptor"
+              },
+              "maxItems": 8,
+              "minItems": 1,
+              "title": "Descriptors",
+              "type": "array"
+            },
+            "bounds": {
+              "$ref": "#/$defs/Bounds"
+            },
+            "effect": {
+              "default": "read",
+              "enum": [
+                "read",
+                "governed"
+              ],
+              "title": "Effect",
+              "type": "string"
+            },
+            "steward": {
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/StewardExposure"
+              },
+              "maxItems": 8,
+              "title": "Steward",
+              "type": "array"
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Operator-facing bundle title; the bundle id otherwise.",
+              "title": "Title"
+            },
+            "surfaces": {
+              "default": [],
+              "description": "Declared web surfaces; readiness rides health replies.",
+              "items": {
+                "$ref": "#/$defs/Surface"
+              },
+              "maxItems": 4,
+              "title": "Surfaces",
+              "type": "array"
+            },
+            "operations": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/OperationBounds"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Durable-operation limits; required by operation descriptors."
+            },
+            "configuration_schema": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Ordinary-settings schema; configured bundles start disabled.",
+              "title": "Configuration Schema"
+            },
+            "credential_inputs": {
+              "default": [],
+              "description": "Write-only inputs for the provisioned node credential store.",
+              "items": {
+                "$ref": "#/$defs/CredentialInput"
+              },
+              "maxItems": 16,
+              "title": "Credential Inputs",
+              "type": "array"
+            },
+            "preflight_profile": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "local",
+                    "runpod-native"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Signed owner preflight profile enforced at enable and restart.",
+              "title": "Preflight Profile"
+            }
+          },
+          "required": [
+            "bundle_id",
+            "bundle_version",
+            "executable",
+            "executable_sha256",
+            "arguments",
+            "descriptors"
+          ],
+          "title": "Manifest",
+          "type": "object"
+        },
+        "OperationBounds": {
+          "additionalProperties": false,
+          "description": "Limits for durable operations a node runs outside the invocation slot.",
+          "properties": {
+            "max_queued": {
+              "default": 4,
+              "maximum": 64,
+              "minimum": 1,
+              "title": "Max Queued",
+              "type": "integer"
+            },
+            "max_runtime_seconds": {
+              "default": 3600,
+              "maximum": 86400,
+              "minimum": 1,
+              "title": "Max Runtime Seconds",
+              "type": "integer"
+            },
+            "stale_after_seconds": {
+              "default": 30,
+              "maximum": 3600,
+              "minimum": 1,
+              "title": "Stale After Seconds",
+              "type": "integer"
+            },
+            "retain": {
+              "default": 64,
+              "maximum": 1024,
+              "minimum": 1,
+              "title": "Retain",
+              "type": "integer"
+            },
+            "log_bytes": {
+              "default": 262144,
+              "maximum": 16777216,
+              "minimum": 0,
+              "title": "Log Bytes",
+              "type": "integer"
+            },
+            "reservations": {
+              "default": 65536,
+              "description": "Replay-fence capacity. Reaching it refuses new starts rather than forgetting old ids, which would make them replayable.",
+              "maximum": 1000000,
+              "minimum": 64,
+              "title": "Reservations",
+              "type": "integer"
+            }
+          },
+          "title": "OperationBounds",
+          "type": "object"
+        },
+        "StewardExposure": {
+          "additionalProperties": false,
+          "description": "Trusted private manifest classification; never inferred from tool text.\n\n``read`` exposures become direct steward tools; ``lifecycle`` and\n``operation`` exposures become inert proposals that need an approval. A\ndeclaration is not evidence of enforcement: the owner still validates the\nmanifest and the child still checks authority at dispatch.",
+          "properties": {
+            "qualified_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Qualified Id",
+              "type": "string"
+            },
+            "behavior": {
+              "enum": [
+                "read",
+                "lifecycle",
+                "operation"
+              ],
+              "title": "Behavior",
+              "type": "string"
+            },
+            "risk": {
+              "enum": [
+                "observation",
+                "billable",
+                "effect"
+              ],
+              "title": "Risk",
+              "type": "string"
+            },
+            "provider_selection": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "runpod-simulator",
+                    "runpod-witness-experimental"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "runpod-simulator",
+              "description": "Governed provider for lifecycle exposures; None only for read and operation exposures that select no provider.",
+              "title": "Provider Selection"
+            },
+            "summary": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Model-facing tool description; omitted means the descriptor's.",
+              "title": "Summary"
+            }
+          },
+          "required": [
+            "qualified_id",
+            "behavior",
+            "risk"
+          ],
+          "title": "StewardExposure",
+          "type": "object"
+        },
+        "Surface": {
+          "additionalProperties": false,
+          "description": "One declared operator-facing web surface of a capability node.\n\nIdentity, kind and permissions are immutable manifest facts; readiness and\nthe volatile endpoint arrive in correlated health replies. ``proxied``\nsurfaces are declared so the manifest is complete, but their endpoints are\nwithheld from every projection until the proxy contract is qualified.",
+          "properties": {
+            "surface_id": {
+              "pattern": "^[a-z][a-z0-9-]{0,31}$",
+              "title": "Surface Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "proxied",
+                "link"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "entry": {
+              "default": "/",
+              "maxLength": 256,
+              "title": "Entry",
+              "type": "string"
+            },
+            "websocket": {
+              "default": false,
+              "title": "Websocket",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "surface_id",
+            "title",
+            "kind"
+          ],
+          "title": "Surface",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "What a child reads from its inherited startup descriptor.\n\nPrivate inherited descriptor contents, never command-line credentials. Part\nof the authoring surface: a capability's child parses exactly this, with\n``storage.read_startup``. The owner writes it canonically and refuses to\nstart a child whose record would exceed ``MAX_STARTUP_BYTES``.",
+      "properties": {
+        "socket": {
+          "title": "Socket",
+          "type": "string"
+        },
+        "stream_socket": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Owner-provisioned media socket, unavailable to Fabric callers.",
+          "title": "Stream Socket"
+        },
+        "token": {
+          "title": "Token",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "host_id": {
+          "title": "Host Id",
+          "type": "string"
+        },
+        "transport_id": {
+          "title": "Transport Id",
+          "type": "string"
+        },
+        "manifest": {
+          "$ref": "#/$defs/Manifest"
+        },
+        "configuration": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Configuration"
+        },
+        "credential_config": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Provisioned backend configuration; private startup IPC only.",
+          "title": "Credential Config"
+        },
+        "serve_host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Protocol 3: the address the host lets this child serve on besides loopback, the node's Tailscale address. Absent when the node has none, and always at protocol 2. See ``serving``.",
+          "title": "Serve Host"
+        }
+      },
+      "required": [
+        "socket",
+        "token",
+        "node_id",
+        "host_id",
+        "transport_id",
+        "manifest"
+      ],
+      "title": "Startup",
+      "type": "object"
+    },
+    "ApprovedEffect": {
+      "additionalProperties": false,
+      "description": "Exact signed effect bounds, optionally tied to a complete reviewed proposal.",
+      "properties": {
+        "authority_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Authority Id",
+          "type": "string"
+        },
+        "key_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Key Id",
+          "type": "string"
+        },
+        "operator_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Operator Id",
+          "type": "string"
+        },
+        "host_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Host Id",
+          "type": "string"
+        },
+        "transport_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Transport Node Id",
+          "type": "string"
+        },
+        "capability_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Capability Node Id",
+          "type": "string"
+        },
+        "capability_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "capability_version": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Capability Version",
+          "type": "string"
+        },
+        "descriptor_revision": {
+          "pattern": "^[a-f0-9]{16}$",
+          "title": "Descriptor Revision",
+          "type": "string"
+        },
+        "plan_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Digest",
+          "type": "string"
+        },
+        "proposal_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Complete immutable proposal digest for owner-reviewed approvals; omitted only by the legacy direct approval path.",
+          "title": "Proposal Digest"
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "campaign_policy_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Complete reviewed campaign policy; absent for legacy proofs.",
+          "title": "Campaign Policy Digest"
+        },
+        "effect": {
+          "enum": [
+            "acquire",
+            "release"
+          ],
+          "title": "Effect",
+          "type": "string"
+        },
+        "provider_selection": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Provider Selection",
+          "type": "string"
+        },
+        "expires_at_unix_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Expires At Unix Seconds",
+          "type": "integer"
+        },
+        "maximum_lifetime_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "title": "Maximum Lifetime Seconds",
+          "type": "integer"
+        },
+        "maximum_total_cost_microunits": {
+          "minimum": 0,
+          "title": "Maximum Total Cost Microunits",
+          "type": "integer"
+        },
+        "currency": {
+          "const": "USD",
+          "default": "USD",
+          "title": "Currency",
+          "type": "string"
+        },
+        "policy_revision": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Policy Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "authority_id",
+        "key_id",
+        "operator_id",
+        "host_id",
+        "transport_node_id",
+        "capability_node_id",
+        "capability_id",
+        "capability_version",
+        "descriptor_revision",
+        "plan_digest",
+        "idempotency_key",
+        "effect",
+        "provider_selection",
+        "expires_at_unix_seconds",
+        "maximum_lifetime_seconds",
+        "maximum_total_cost_microunits",
+        "policy_revision"
+      ],
+      "title": "ApprovedEffect",
+      "type": "object"
+    },
+    "OperationCall": {
+      "$defs": {
+        "JsonValue": {}
+      },
+      "additionalProperties": false,
+      "description": "One verb of the operation contract; the dispatcher checks authority.",
+      "properties": {
+        "op": {
+          "enum": [
+            "start",
+            "status",
+            "cancel",
+            "list",
+            "log",
+            "plan"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "operation_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operation Id"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "offset": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740992,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Offset"
+        }
+      },
+      "required": [
+        "op"
+      ],
+      "title": "OperationCall",
+      "type": "object"
+    },
+    "OperationStatus": {
+      "$defs": {
+        "JsonValue": {}
+      },
+      "additionalProperties": false,
+      "description": "Observation envelope of one operation; opaque references, safe errors.",
+      "properties": {
+        "operation_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "interrupted"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "submission": {
+          "enum": [
+            "pending",
+            "uncertain",
+            "accepted"
+          ],
+          "title": "Submission",
+          "type": "string"
+        },
+        "progress": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Progress"
+        },
+        "stage": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage"
+        },
+        "queue_position": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Queue Position"
+        },
+        "submitted_at": {
+          "minimum": 0,
+          "title": "Submitted At",
+          "type": "integer"
+        },
+        "updated_at": {
+          "minimum": 0,
+          "title": "Updated At",
+          "type": "integer"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finished At"
+        },
+        "stale": {
+          "title": "Stale",
+          "type": "boolean"
+        },
+        "input_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Input Digest",
+          "type": "string"
+        },
+        "backend_reference": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Backend Reference"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The recorded start input, so a caller can run the operation again or vary it. Carried by ``status`` when it fits beside the result (``MAX_INPUT_ECHO_BYTES``); listings omit it.",
+          "title": "Input"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        }
+      },
+      "required": [
+        "operation_id",
+        "state",
+        "submission",
+        "submitted_at",
+        "updated_at",
+        "stale",
+        "input_digest"
+      ],
+      "title": "OperationStatus",
+      "type": "object"
+    },
+    "OperationPlan": {
+      "$defs": {
+        "JsonValue": {}
+      },
+      "additionalProperties": false,
+      "description": "Immutable estimate a caller reviews before ``start``.",
+      "properties": {
+        "plan_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Digest",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "estimated_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Seconds"
+        },
+        "estimated_cost_microunits": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Cost Microunits"
+        },
+        "expires_at": {
+          "minimum": 0,
+          "title": "Expires At",
+          "type": "integer"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The input to start with: the caller's, completed with what the plan chose (a seed, for one) and carrying ``plan_digest``, so the reviewed plan is the one that starts. Absent when the operation chooses nothing beyond the caller's input.",
+          "title": "Input"
+        }
+      },
+      "required": [
+        "plan_digest",
+        "summary",
+        "expires_at"
+      ],
+      "title": "OperationPlan",
+      "type": "object"
+    },
+    "OperationPage": {
+      "$defs": {
+        "JsonValue": {},
+        "OperationStatus": {
+          "additionalProperties": false,
+          "description": "Observation envelope of one operation; opaque references, safe errors.",
+          "properties": {
+            "operation_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Operation Id",
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "failed",
+                "cancelled",
+                "interrupted"
+              ],
+              "title": "State",
+              "type": "string"
+            },
+            "submission": {
+              "enum": [
+                "pending",
+                "uncertain",
+                "accepted"
+              ],
+              "title": "Submission",
+              "type": "string"
+            },
+            "progress": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Progress"
+            },
+            "stage": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Stage"
+            },
+            "queue_position": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Queue Position"
+            },
+            "submitted_at": {
+              "minimum": 0,
+              "title": "Submitted At",
+              "type": "integer"
+            },
+            "updated_at": {
+              "minimum": 0,
+              "title": "Updated At",
+              "type": "integer"
+            },
+            "finished_at": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Finished At"
+            },
+            "stale": {
+              "title": "Stale",
+              "type": "boolean"
+            },
+            "input_digest": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Input Digest",
+              "type": "string"
+            },
+            "backend_reference": {
+              "anyOf": [
+                {
+                  "maxLength": 1024,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Backend Reference"
+            },
+            "input": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "The recorded start input, so a caller can run the operation again or vary it. Carried by ``status`` when it fits beside the result (``MAX_INPUT_ECHO_BYTES``); listings omit it.",
+              "title": "Input"
+            },
+            "result": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Result"
+            },
+            "error": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error"
+            }
+          },
+          "required": [
+            "operation_id",
+            "state",
+            "submission",
+            "submitted_at",
+            "updated_at",
+            "stale",
+            "input_digest"
+          ],
+          "title": "OperationStatus",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "One page of retained operations, newest first, compacted.\n\nResults and backend references can each reach their bounds, so a listing\ncarries statuses without them (``status`` returns the full record) and at\nmost ``PAGE_SIZE`` entries; ``next_offset`` continues the listing.",
+      "properties": {
+        "operations": {
+          "items": {
+            "$ref": "#/$defs/OperationStatus"
+          },
+          "maxItems": 16,
+          "title": "Operations",
+          "type": "array"
+        },
+        "next_offset": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Offset"
+        },
+        "active": {
+          "minimum": 0,
+          "title": "Active",
+          "type": "integer"
+        },
+        "outstanding": {
+          "default": 0,
+          "description": "Interrupted rows: the backend may still hold their jobs.",
+          "minimum": 0,
+          "title": "Outstanding",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "operations",
+        "active"
+      ],
+      "title": "OperationPage",
+      "type": "object"
+    },
+    "OperationLog": {
+      "additionalProperties": false,
+      "description": "One offset-addressed slice of an operation's bounded log.",
+      "properties": {
+        "operation_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "offset": {
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "next_offset": {
+          "minimum": 0,
+          "title": "Next Offset",
+          "type": "integer"
+        },
+        "truncated": {
+          "title": "Truncated",
+          "type": "boolean"
+        },
+        "text": {
+          "maxLength": 8192,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id",
+        "offset",
+        "next_offset",
+        "truncated",
+        "text"
+      ],
+      "title": "OperationLog",
+      "type": "object"
+    },
+    "WireMessage": {
+      "$defs": {
+        "Health": {
+          "additionalProperties": false,
+          "description": "Correlated challenge/response; readiness is not inferred from a PID.",
+          "properties": {
+            "protocol": {
+              "default": 4,
+              "enum": [
+                3,
+                4
+              ],
+              "title": "Protocol",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "health",
+              "default": "health",
+              "title": "Kind",
+              "type": "string"
+            },
+            "nonce": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Nonce",
+              "type": "string"
+            },
+            "ready": {
+              "title": "Ready",
+              "type": "boolean"
+            },
+            "surfaces": {
+              "default": [],
+              "description": "Complete readiness snapshot of the declared surfaces.",
+              "items": {
+                "$ref": "#/$defs/SurfaceReport"
+              },
+              "maxItems": 4,
+              "title": "Surfaces",
+              "type": "array"
+            }
+          },
+          "required": [
+            "nonce",
+            "ready"
+          ],
+          "title": "Health",
+          "type": "object"
+        },
+        "Hello": {
+          "additionalProperties": false,
+          "description": "Authenticated startup identity and exact manifest agreement.\n\nThe child answers with the digest of the manifest it read from its startup\nrecord rather than echoing the manifest back: the check is the same, and\nthe message stays small however much a capability declares.",
+          "properties": {
+            "protocol": {
+              "default": 4,
+              "enum": [
+                3,
+                4
+              ],
+              "title": "Protocol",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "hello",
+              "default": "hello",
+              "title": "Kind",
+              "type": "string"
+            },
+            "host_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Host Id",
+              "type": "string"
+            },
+            "transport_node_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Transport Node Id",
+              "type": "string"
+            },
+            "capability_node_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Capability Node Id",
+              "type": "string"
+            },
+            "bundle_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Bundle Id",
+              "type": "string"
+            },
+            "bundle_version": {
+              "title": "Bundle Version",
+              "type": "string"
+            },
+            "token": {
+              "maxLength": 64,
+              "minLength": 64,
+              "title": "Token",
+              "type": "string"
+            },
+            "manifest_sha256": {
+              "description": "SHA-256 of the canonical manifest the child read from its startup record (manifest_digest); the owner compares it with its own.",
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Manifest Sha256",
+              "type": "string"
+            }
+          },
+          "required": [
+            "host_id",
+            "transport_node_id",
+            "capability_node_id",
+            "bundle_id",
+            "bundle_version",
+            "token",
+            "manifest_sha256"
+          ],
+          "title": "Hello",
+          "type": "object"
+        },
+        "Invoke": {
+          "additionalProperties": false,
+          "description": "One bounded unary invocation; execution time is a remaining local budget.",
+          "properties": {
+            "protocol": {
+              "default": 4,
+              "enum": [
+                3,
+                4
+              ],
+              "title": "Protocol",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "invoke",
+              "default": "invoke",
+              "title": "Kind",
+              "type": "string"
+            },
+            "call_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Call Id",
+              "type": "string"
+            },
+            "capability_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Capability Id",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "string"
+            },
+            "descriptor_revision": {
+              "pattern": "^[a-f0-9]{16}$",
+              "title": "Descriptor Revision",
+              "type": "string"
+            },
+            "remaining_seconds": {
+              "exclusiveMinimum": 0,
+              "maximum": 30,
+              "title": "Remaining Seconds",
+              "type": "number"
+            },
+            "payload": {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "title": "Payload",
+              "type": "object"
+            }
+          },
+          "required": [
+            "call_id",
+            "capability_id",
+            "version",
+            "descriptor_revision",
+            "remaining_seconds",
+            "payload"
+          ],
+          "title": "Invoke",
+          "type": "object"
+        },
+        "JsonValue": {},
+        "Result": {
+          "additionalProperties": false,
+          "description": "Correlated success or bounded typed failure, with one terminal only.",
+          "oneOf": [
+            {
+              "properties": {
+                "payload": {
+                  "type": "object"
+                },
+                "error": {
+                  "type": "null"
+                }
+              }
+            },
+            {
+              "properties": {
+                "payload": {
+                  "type": "null"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "protocol": {
+              "default": 4,
+              "enum": [
+                3,
+                4
+              ],
+              "title": "Protocol",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "result",
+              "default": "result",
+              "title": "Kind",
+              "type": "string"
+            },
+            "call_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Call Id",
+              "type": "string"
+            },
+            "payload": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Payload"
+            },
+            "error": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "invalid_payload",
+                    "provider_error",
+                    "timeout"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          },
+          "required": [
+            "call_id",
+            "payload",
+            "error"
+          ],
+          "title": "Result",
+          "type": "object"
+        },
+        "Shutdown": {
+          "additionalProperties": false,
+          "description": "Request graceful shutdown before the supervisor escalates.",
+          "properties": {
+            "protocol": {
+              "default": 4,
+              "enum": [
+                3,
+                4
+              ],
+              "title": "Protocol",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "shutdown",
+              "default": "shutdown",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          "title": "Shutdown",
+          "type": "object"
+        },
+        "StreamHello": {
+          "additionalProperties": false,
+          "description": "Bind a fresh media connection to the installed child and admitted call.",
+          "properties": {
+            "protocol": {
+              "default": 4,
+              "enum": [
+                3,
+                4
+              ],
+              "maximum": 4,
+              "minimum": 4,
+              "title": "Protocol",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "stream_hello",
+              "default": "stream_hello",
+              "title": "Kind",
+              "type": "string"
+            },
+            "call_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Call Id",
+              "type": "string"
+            },
+            "token": {
+              "maxLength": 64,
+              "minLength": 64,
+              "title": "Token",
+              "type": "string"
+            },
+            "capability_node_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Capability Node Id",
+              "type": "string"
+            },
+            "manifest_sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Manifest Sha256",
+              "type": "string"
+            }
+          },
+          "required": [
+            "call_id",
+            "token",
+            "capability_node_id",
+            "manifest_sha256"
+          ],
+          "title": "StreamHello",
+          "type": "object"
+        },
+        "StreamInvoke": {
+          "additionalProperties": false,
+          "description": "Admit one duplex invocation on its separately authenticated media channel.",
+          "properties": {
+            "protocol": {
+              "default": 4,
+              "enum": [
+                3,
+                4
+              ],
+              "maximum": 4,
+              "minimum": 4,
+              "title": "Protocol",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "stream_invoke",
+              "default": "stream_invoke",
+              "title": "Kind",
+              "type": "string"
+            },
+            "call_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Call Id",
+              "type": "string"
+            },
+            "capability_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._:@-]+$",
+              "title": "Capability Id",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "string"
+            },
+            "descriptor_revision": {
+              "pattern": "^[a-f0-9]{16}$",
+              "title": "Descriptor Revision",
+              "type": "string"
+            },
+            "remaining_seconds": {
+              "exclusiveMinimum": 0,
+              "maximum": 300,
+              "title": "Remaining Seconds",
+              "type": "number"
+            },
+            "payload": {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "title": "Payload",
+              "type": "object"
+            }
+          },
+          "required": [
+            "call_id",
+            "capability_id",
+            "version",
+            "descriptor_revision",
+            "remaining_seconds",
+            "payload"
+          ],
+          "title": "StreamInvoke",
+          "type": "object"
+        },
+        "SurfaceReport": {
+          "additionalProperties": false,
+          "description": "Volatile readiness of one declared surface, reported with health.\n\nA complete snapshot is expected: a declared surface absent from the reply\nis not ready and any earlier endpoint is withdrawn.",
+          "properties": {
+            "surface_id": {
+              "pattern": "^[a-z][a-z0-9-]{0,31}$",
+              "title": "Surface Id",
+              "type": "string"
+            },
+            "ready": {
+              "title": "Ready",
+              "type": "boolean"
+            },
+            "port": {
+              "anyOf": [
+                {
+                  "maximum": 65535,
+                  "minimum": 1024,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Port"
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            }
+          },
+          "required": [
+            "surface_id",
+            "ready"
+          ],
+          "title": "SurfaceReport",
+          "type": "object"
+        }
+      },
+      "discriminator": {
+        "mapping": {
+          "health": "#/$defs/Health",
+          "hello": "#/$defs/Hello",
+          "invoke": "#/$defs/Invoke",
+          "result": "#/$defs/Result",
+          "shutdown": "#/$defs/Shutdown",
+          "stream_hello": "#/$defs/StreamHello",
+          "stream_invoke": "#/$defs/StreamInvoke"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Hello"
+        },
+        {
+          "$ref": "#/$defs/Health"
+        },
+        {
+          "$ref": "#/$defs/Invoke"
+        },
+        {
+          "$ref": "#/$defs/StreamInvoke"
+        },
+        {
+          "$ref": "#/$defs/StreamHello"
+        },
+        {
+          "$ref": "#/$defs/Result"
+        },
+        {
+          "$ref": "#/$defs/Shutdown"
+        }
+      ]
+    },
+    "StreamPacket": {
+      "$defs": {
+        "BlobMedia": {
+          "additionalProperties": false,
+          "description": "Opaque immutable blob reference; resolution remains Fabric-owned.",
+          "properties": {
+            "kind": {
+              "const": "blob",
+              "default": "blob",
+              "title": "Kind",
+              "type": "string"
+            },
+            "blob_id": {
+              "title": "Blob Id",
+              "type": "string"
+            },
+            "size_bytes": {
+              "minimum": 0,
+              "title": "Size Bytes",
+              "type": "integer"
+            },
+            "sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Sha256",
+              "type": "string"
+            },
+            "media_type": {
+              "title": "Media Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "blob_id",
+            "size_bytes",
+            "sha256",
+            "media_type"
+          ],
+          "title": "BlobMedia",
+          "type": "object"
+        },
+        "InlineMedia": {
+          "additionalProperties": false,
+          "description": "Raw media plus format metadata; never encode the bytes as JSON.",
+          "properties": {
+            "kind": {
+              "const": "inline",
+              "default": "inline",
+              "title": "Kind",
+              "type": "string"
+            },
+            "data": {
+              "format": "binary",
+              "maxLength": 1048576,
+              "title": "Data",
+              "type": "string"
+            },
+            "media_type": {
+              "maxLength": 256,
+              "title": "Media Type",
+              "type": "string"
+            },
+            "codec": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Codec"
+            },
+            "sample_rate": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sample Rate"
+            },
+            "channels": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Channels"
+            },
+            "timestamp_seconds": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Timestamp Seconds"
+            },
+            "duration_seconds": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Duration Seconds"
+            }
+          },
+          "required": [
+            "data",
+            "media_type"
+          ],
+          "title": "InlineMedia",
+          "type": "object"
+        },
+        "JsonValue": {},
+        "StreamEnd": {
+          "additionalProperties": false,
+          "description": "Child cleanup acknowledgment following exactly one output terminal.",
+          "properties": {
+            "kind": {
+              "const": "end",
+              "default": "end",
+              "title": "Kind",
+              "type": "string"
+            },
+            "call_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Call Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "call_id"
+          ],
+          "title": "StreamEnd",
+          "type": "object"
+        },
+        "StreamError": {
+          "additionalProperties": false,
+          "description": "Sanitized machine-readable terminal outcome.",
+          "properties": {
+            "code": {
+              "enum": [
+                "provider_error",
+                "transport_error",
+                "unreachable",
+                "cancelled",
+                "timeout",
+                "invalid_frame"
+              ],
+              "title": "Code",
+              "type": "string"
+            },
+            "message": {
+              "maxLength": 2048,
+              "title": "Message",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "title": "StreamError",
+          "type": "object"
+        },
+        "StreamFrame": {
+          "additionalProperties": false,
+          "description": "One sequenced input or output frame, aligned with Skulk's public contract.",
+          "properties": {
+            "call_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Call Id",
+              "type": "string"
+            },
+            "direction": {
+              "enum": [
+                "caller_to_provider",
+                "provider_to_caller"
+              ],
+              "title": "Direction",
+              "type": "string"
+            },
+            "sequence": {
+              "minimum": 0,
+              "title": "Sequence",
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "started",
+                "chunk",
+                "completed",
+                "failed",
+                "cancelled"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "synthetic": {
+              "const": false,
+              "default": false,
+              "title": "Synthetic",
+              "type": "boolean"
+            },
+            "payload": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JsonValue"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Payload"
+            },
+            "media": {
+              "anyOf": [
+                {
+                  "discriminator": {
+                    "mapping": {
+                      "blob": "#/$defs/BlobMedia",
+                      "inline": "#/$defs/InlineMedia"
+                    },
+                    "propertyName": "kind"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/InlineMedia"
+                    },
+                    {
+                      "$ref": "#/$defs/BlobMedia"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Media"
+            },
+            "error": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/StreamError"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "call_id",
+            "direction",
+            "sequence",
+            "kind"
+          ],
+          "title": "StreamFrame",
+          "type": "object"
+        }
+      },
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StreamFrame"
+        },
+        {
+          "$ref": "#/$defs/StreamEnd"
+        }
+      ]
+    }
+  },
+  "manifest_cases": [
+    {
+      "id": "default-admission",
+      "message": {
+        "protocol": 4,
+        "bundle_id": "example.echo",
+        "bundle_version": "1.0.0",
+        "skulk_requires": "==2.0.0",
+        "executable": "/synthetic/echo.pyz",
+        "executable_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "arguments": [],
+        "descriptors": [
+          {
+            "id": "example.echo",
+            "version": "1.0.0",
+            "title": "Echo",
+            "description": "Synthetic conformance example.",
+            "input_schema": {
+              "type": "object"
+            },
+            "output_schema": {
+              "type": "object"
+            },
+            "io_mode": "unary",
+            "input_chunk_schema": null,
+            "output_chunk_schema": null,
+            "annotations": null
+          }
+        ],
+        "bounds": {
+          "max_children": 4,
+          "concurrency": 1,
+          "startup_seconds": 5.0,
+          "health_seconds": 1.0,
+          "call_seconds": 5.0,
+          "shutdown_seconds": 1.0,
+          "restart_budget": 3,
+          "backoff_seconds": 0.1,
+          "log_bytes": 0
+        },
+        "effect": "read",
+        "steward": [],
+        "configuration_schema": null
+      },
+      "canonical_utf8": "{\"arguments\":[],\"bounds\":{\"backoff_seconds\":0.1,\"call_seconds\":5.0,\"concurrency\":1,\"health_seconds\":1.0,\"log_bytes\":0,\"max_children\":4,\"restart_budget\":3,\"shutdown_seconds\":1.0,\"startup_seconds\":5.0},\"bundle_id\":\"example.echo\",\"bundle_version\":\"1.0.0\",\"configuration_schema\":null,\"descriptors\":[{\"annotations\":null,\"description\":\"Synthetic conformance example.\",\"id\":\"example.echo\",\"input_chunk_schema\":null,\"input_schema\":{\"type\":\"object\"},\"io_mode\":\"unary\",\"output_chunk_schema\":null,\"output_schema\":{\"type\":\"object\"},\"title\":\"Echo\",\"version\":\"1.0.0\"}],\"effect\":\"read\",\"executable\":\"/synthetic/echo.pyz\",\"executable_sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"protocol\":4,\"skulk_requires\":\"==2.0.0\",\"steward\":[]}",
+      "sha256": "cdcdba1bf3eb3e71240bd29c69ff69e2ee05bc8fe622adff1f6e23bf40f7c520"
+    }
+  ],
+  "canonical_cases": [
+    {
+      "id": "integer",
+      "message": {
+        "protocol": 4,
+        "kind": "invoke",
+        "call_id": "conformance-call",
+        "capability_id": "example.echo",
+        "version": "1.0.0",
+        "descriptor_revision": "aaaaaaaaaaaaaaaa",
+        "remaining_seconds": 1.0,
+        "payload": {
+          "number": 1
+        }
+      },
+      "canonical_utf8": "{\"call_id\":\"conformance-call\",\"capability_id\":\"example.echo\",\"descriptor_revision\":\"aaaaaaaaaaaaaaaa\",\"kind\":\"invoke\",\"payload\":{\"number\":1},\"protocol\":4,\"remaining_seconds\":1.0,\"version\":\"1.0.0\"}",
+      "sha256": "064f70a2b7102124af98e657562f42bec00fe1e497c08cf8d9d7de7fd1e96da5"
+    },
+    {
+      "id": "integral-float",
+      "message": {
+        "protocol": 4,
+        "kind": "invoke",
+        "call_id": "conformance-call",
+        "capability_id": "example.echo",
+        "version": "1.0.0",
+        "descriptor_revision": "aaaaaaaaaaaaaaaa",
+        "remaining_seconds": 1.0,
+        "payload": {
+          "number": 1.0
+        }
+      },
+      "canonical_utf8": "{\"call_id\":\"conformance-call\",\"capability_id\":\"example.echo\",\"descriptor_revision\":\"aaaaaaaaaaaaaaaa\",\"kind\":\"invoke\",\"payload\":{\"number\":1.0},\"protocol\":4,\"remaining_seconds\":1.0,\"version\":\"1.0.0\"}",
+      "sha256": "40547371be0feae89bf14a48aa87e9e68781742d655eacebcd950f9b8467213a"
+    },
+    {
+      "id": "negative-zero",
+      "message": {
+        "protocol": 4,
+        "kind": "invoke",
+        "call_id": "conformance-call",
+        "capability_id": "example.echo",
+        "version": "1.0.0",
+        "descriptor_revision": "aaaaaaaaaaaaaaaa",
+        "remaining_seconds": 1.0,
+        "payload": {
+          "number": -0.0
+        }
+      },
+      "canonical_utf8": "{\"call_id\":\"conformance-call\",\"capability_id\":\"example.echo\",\"descriptor_revision\":\"aaaaaaaaaaaaaaaa\",\"kind\":\"invoke\",\"payload\":{\"number\":-0.0},\"protocol\":4,\"remaining_seconds\":1.0,\"version\":\"1.0.0\"}",
+      "sha256": "c3d77b318c1c13395531beb8ff8161bea3c191a0953acb0eaa8c3c2871a4a822"
+    },
+    {
+      "id": "small-exponent",
+      "message": {
+        "protocol": 4,
+        "kind": "invoke",
+        "call_id": "conformance-call",
+        "capability_id": "example.echo",
+        "version": "1.0.0",
+        "descriptor_revision": "aaaaaaaaaaaaaaaa",
+        "remaining_seconds": 1.0,
+        "payload": {
+          "number": 1e-07
+        }
+      },
+      "canonical_utf8": "{\"call_id\":\"conformance-call\",\"capability_id\":\"example.echo\",\"descriptor_revision\":\"aaaaaaaaaaaaaaaa\",\"kind\":\"invoke\",\"payload\":{\"number\":1e-07},\"protocol\":4,\"remaining_seconds\":1.0,\"version\":\"1.0.0\"}",
+      "sha256": "73bd8f826d23f31d3a6ce6eb14e5a383c4f9a55e7ac537a4b53016703f59dce7"
+    },
+    {
+      "id": "large-exponent",
+      "message": {
+        "protocol": 4,
+        "kind": "invoke",
+        "call_id": "conformance-call",
+        "capability_id": "example.echo",
+        "version": "1.0.0",
+        "descriptor_revision": "aaaaaaaaaaaaaaaa",
+        "remaining_seconds": 1.0,
+        "payload": {
+          "number": 1e+20
+        }
+      },
+      "canonical_utf8": "{\"call_id\":\"conformance-call\",\"capability_id\":\"example.echo\",\"descriptor_revision\":\"aaaaaaaaaaaaaaaa\",\"kind\":\"invoke\",\"payload\":{\"number\":1e+20},\"protocol\":4,\"remaining_seconds\":1.0,\"version\":\"1.0.0\"}",
+      "sha256": "fdd4282ada02b4a88b01b3c67d45a4dd84b6f5b2506b5db0406e57676e2640a6"
+    },
+    {
+      "id": "large-integer",
+      "message": {
+        "protocol": 4,
+        "kind": "invoke",
+        "call_id": "conformance-call",
+        "capability_id": "example.echo",
+        "version": "1.0.0",
+        "descriptor_revision": "aaaaaaaaaaaaaaaa",
+        "remaining_seconds": 1.0,
+        "payload": {
+          "number": 9007199254740993
+        }
+      },
+      "canonical_utf8": "{\"call_id\":\"conformance-call\",\"capability_id\":\"example.echo\",\"descriptor_revision\":\"aaaaaaaaaaaaaaaa\",\"kind\":\"invoke\",\"payload\":{\"number\":9007199254740993},\"protocol\":4,\"remaining_seconds\":1.0,\"version\":\"1.0.0\"}",
+      "sha256": "8eeab43b6aa555648bb632f5c8cb297afb3e8fc6d0c7546279aefb669328193c"
+    },
+    {
+      "id": "unicode",
+      "message": {
+        "protocol": 4,
+        "kind": "invoke",
+        "call_id": "conformance-call",
+        "capability_id": "example.echo",
+        "version": "1.0.0",
+        "descriptor_revision": "aaaaaaaaaaaaaaaa",
+        "remaining_seconds": 1.0,
+        "payload": {
+          "\ud800\udc00": "\ud83e\udd8a",
+          "\ue000": "\u00e9",
+          "nested": [
+            null,
+            true,
+            "\n"
+          ]
+        }
+      },
+      "canonical_utf8": "{\"call_id\":\"conformance-call\",\"capability_id\":\"example.echo\",\"descriptor_revision\":\"aaaaaaaaaaaaaaaa\",\"kind\":\"invoke\",\"payload\":{\"nested\":[null,true,\"\\n\"],\"\\ue000\":\"\\u00e9\",\"\\ud800\\udc00\":\"\\ud83e\\udd8a\"},\"protocol\":4,\"remaining_seconds\":1.0,\"version\":\"1.0.0\"}",
+      "sha256": "612a0b807822ca2dca08fb35069b5ac8ce69296438b1047f0d6cdfbb914c77d3"
+    }
+  ],
+  "operation_input_cases": [
+    {
+      "id": "integer",
+      "scope": "node/example.echo@1.0.0/revision",
+      "input": {
+        "number": 1
+      },
+      "sha256": "3d78f0705175812bfaa1a4bfb9c90078898eda63d56646e10d413c1441cf76c4"
+    },
+    {
+      "id": "integral-float",
+      "scope": "node/example.echo@1.0.0/revision",
+      "input": {
+        "number": 1.0
+      },
+      "sha256": "02e90554516c9327707c3226c2b302ea4c95b996b3323ebed02fc58806e52f32"
+    },
+    {
+      "id": "negative-zero",
+      "scope": "node/example.echo@1.0.0/revision",
+      "input": {
+        "number": -0.0
+      },
+      "sha256": "a6e8c02ca9fc6fde10ebd3d558b9d5620bf2da3c2a25f059cc67d87466f4a41a"
+    },
+    {
+      "id": "small-exponent",
+      "scope": "node/example.echo@1.0.0/revision",
+      "input": {
+        "number": 1e-07
+      },
+      "sha256": "868a162c6debebdbe6bf0ed467c6ac4142a263b88012f79b70072faa36e8d501"
+    },
+    {
+      "id": "large-exponent",
+      "scope": "node/example.echo@1.0.0/revision",
+      "input": {
+        "number": 1e+20
+      },
+      "sha256": "56e0421eb104238ede2dc58a169c6c10a10080cda308eec7177017306bb5c182"
+    },
+    {
+      "id": "large-integer",
+      "scope": "node/example.echo@1.0.0/revision",
+      "input": {
+        "number": 9007199254740993
+      },
+      "sha256": "0811a8a7e0138e645a235c10ec3af43932ab66a5c2b847a113b8404ac6dfe147"
+    },
+    {
+      "id": "unicode",
+      "scope": "node/example.echo@1.0.0/revision",
+      "input": {
+        "\ud800\udc00": "\ud83e\udd8a",
+        "\ue000": "\u00e9",
+        "nested": [
+          null,
+          true,
+          "\n"
+        ]
+      },
+      "sha256": "3b8fbedbb7b373c1b6eceeb56d57fb917de789c89b2ef2ec5e99d31ba5e36c8a"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "description": "Public capability descriptor with four independently typed I/O modes.",
+  "properties": {
+    "annotations": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Annotations"
+    },
+    "description": {
+      "description": "Capability behavior.",
+      "maxLength": 2048,
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "id": {
+      "description": "Public capability identifier.",
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Id",
+      "type": "string"
+    },
+    "input_chunk_schema": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Input Chunk Schema"
+    },
+    "input_schema": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "description": "Public input JSON Schema.",
+      "title": "Input Schema",
+      "type": "object"
+    },
+    "io_mode": {
+      "default": "unary",
+      "enum": [
+        "unary",
+        "server_streaming",
+        "client_streaming",
+        "bidirectional"
+      ],
+      "title": "Io Mode",
+      "type": "string"
+    },
+    "output_chunk_schema": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Chunk Schema"
+    },
+    "output_schema": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Public final-result JSON Schema.",
+      "title": "Output Schema"
+    },
+    "title": {
+      "description": "Operator title.",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "version": {
+      "description": "Semantic version.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "title",
+    "description",
+    "input_schema"
+  ],
+  "title": "Descriptor",
+  "type": "object"
+}

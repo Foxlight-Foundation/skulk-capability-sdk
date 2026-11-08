@@ -1,0 +1,79 @@
+{
+  "additionalProperties": false,
+  "description": "Hard local admission, liveness, restart and output limits.",
+  "properties": {
+    "backoff_seconds": {
+      "default": 0.1,
+      "exclusiveMinimum": 0,
+      "maximum": 10,
+      "title": "Backoff Seconds",
+      "type": "number"
+    },
+    "call_seconds": {
+      "default": 5.0,
+      "exclusiveMinimum": 0,
+      "maximum": 30,
+      "title": "Call Seconds",
+      "type": "number"
+    },
+    "concurrency": {
+      "const": 1,
+      "default": 1,
+      "description": "One workload slot per child; declared metadata reads have one separate slot.",
+      "title": "Concurrency",
+      "type": "integer"
+    },
+    "health_seconds": {
+      "default": 1.0,
+      "exclusiveMinimum": 0,
+      "maximum": 10,
+      "title": "Health Seconds",
+      "type": "number"
+    },
+    "log_bytes": {
+      "const": 0,
+      "default": 0,
+      "description": "No child log payload retention.",
+      "title": "Log Bytes",
+      "type": "integer"
+    },
+    "max_children": {
+      "default": 4,
+      "maximum": 16,
+      "minimum": 1,
+      "title": "Max Children",
+      "type": "integer"
+    },
+    "restart_budget": {
+      "default": 3,
+      "maximum": 10,
+      "minimum": 0,
+      "title": "Restart Budget",
+      "type": "integer"
+    },
+    "shutdown_seconds": {
+      "default": 1.0,
+      "exclusiveMinimum": 0,
+      "maximum": 5,
+      "title": "Shutdown Seconds",
+      "type": "number"
+    },
+    "startup_seconds": {
+      "default": 5.0,
+      "exclusiveMinimum": 0,
+      "maximum": 30,
+      "title": "Startup Seconds",
+      "type": "number"
+    },
+    "stream_seconds": {
+      "default": 300.0,
+      "description": "Single deadline ceiling for a streaming call, including cleanup.",
+      "exclusiveMinimum": 0,
+      "maximum": 300,
+      "title": "Stream Seconds",
+      "type": "number"
+    }
+  },
+  "title": "Bounds",
+  "type": "object"
+}

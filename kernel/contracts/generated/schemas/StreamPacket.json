@@ -1,0 +1,298 @@
+{
+  "$defs": {
+    "BlobMedia": {
+      "additionalProperties": false,
+      "description": "Opaque immutable blob reference; resolution remains Fabric-owned.",
+      "properties": {
+        "blob_id": {
+          "title": "Blob Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "blob",
+          "default": "blob",
+          "title": "Kind",
+          "type": "string"
+        },
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "blob_id",
+        "size_bytes",
+        "sha256",
+        "media_type"
+      ],
+      "title": "BlobMedia",
+      "type": "object"
+    },
+    "InlineMedia": {
+      "additionalProperties": false,
+      "description": "Raw media plus format metadata; never encode the bytes as JSON.",
+      "properties": {
+        "channels": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Channels"
+        },
+        "codec": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Codec"
+        },
+        "data": {
+          "format": "binary",
+          "maxLength": 1048576,
+          "title": "Data",
+          "type": "string"
+        },
+        "duration_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Seconds"
+        },
+        "kind": {
+          "const": "inline",
+          "default": "inline",
+          "title": "Kind",
+          "type": "string"
+        },
+        "media_type": {
+          "maxLength": 256,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sample_rate": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sample Rate"
+        },
+        "timestamp_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamp Seconds"
+        }
+      },
+      "required": [
+        "data",
+        "media_type"
+      ],
+      "title": "InlineMedia",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "StreamEnd": {
+      "additionalProperties": false,
+      "description": "Child cleanup acknowledgment following exactly one output terminal.",
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Call Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "end",
+          "default": "end",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "call_id"
+      ],
+      "title": "StreamEnd",
+      "type": "object"
+    },
+    "StreamError": {
+      "additionalProperties": false,
+      "description": "Sanitized machine-readable terminal outcome.",
+      "properties": {
+        "code": {
+          "enum": [
+            "provider_error",
+            "transport_error",
+            "unreachable",
+            "cancelled",
+            "timeout",
+            "invalid_frame"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 2048,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "StreamError",
+      "type": "object"
+    },
+    "StreamFrame": {
+      "additionalProperties": false,
+      "description": "One sequenced input or output frame, aligned with Skulk's public contract.",
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Call Id",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "caller_to_provider",
+            "provider_to_caller"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StreamError"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "enum": [
+            "started",
+            "chunk",
+            "completed",
+            "failed",
+            "cancelled"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "media": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "blob": "#/$defs/BlobMedia",
+                  "inline": "#/$defs/InlineMedia"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/InlineMedia"
+                },
+                {
+                  "$ref": "#/$defs/BlobMedia"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Media"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "synthetic": {
+          "const": false,
+          "default": false,
+          "title": "Synthetic",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "call_id",
+        "direction",
+        "sequence",
+        "kind"
+      ],
+      "title": "StreamFrame",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/StreamFrame"
+    },
+    {
+      "$ref": "#/$defs/StreamEnd"
+    }
+  ]
+}

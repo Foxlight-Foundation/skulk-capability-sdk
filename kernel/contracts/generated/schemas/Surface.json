@@ -1,0 +1,43 @@
+{
+  "additionalProperties": false,
+  "description": "One declared operator-facing web surface of a capability node.\n\nIdentity, kind and permissions are immutable manifest facts; readiness and\nthe volatile endpoint arrive in correlated health replies. ``proxied``\nsurfaces are declared so the manifest is complete, but their endpoints are\nwithheld from every projection until the proxy contract is qualified.",
+  "properties": {
+    "entry": {
+      "default": "/",
+      "maxLength": 256,
+      "title": "Entry",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "proxied",
+        "link"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "surface_id": {
+      "pattern": "^[a-z][a-z0-9-]{0,31}$",
+      "title": "Surface Id",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "websocket": {
+      "default": false,
+      "title": "Websocket",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "surface_id",
+    "title",
+    "kind"
+  ],
+  "title": "Surface",
+  "type": "object"
+}

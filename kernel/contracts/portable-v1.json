@@ -1,0 +1,216 @@
+{
+  "canonicalization": "skulk.portable-json/1",
+  "dialect": "https://json-schema.org/draft/2020-12/schema",
+  "limits": {
+    "contract_bytes": 262144,
+    "json_depth": 64,
+    "json_nodes": 16384,
+    "pattern_bytes": 1024,
+    "pattern_count": 64,
+    "payload_bytes": 65536,
+    "regex_size": 1048576,
+    "safe_integer": 9007199254740991,
+    "schema_bytes": 65536,
+    "schema_expansion": 8192,
+    "schema_nodes": 1024,
+    "schema_reference_depth": 64
+  },
+  "models": {
+    "ContractEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration_schema": {
+          "type": [
+            "object",
+            "boolean",
+            "null"
+          ]
+        },
+        "contract_profile": {
+          "const": "skulk.portable/1"
+        },
+        "descriptors": {
+          "items": {
+            "$ref": "#/$defs/Descriptor"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "type": "array"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 5
+        }
+      },
+      "required": [
+        "contract_profile",
+        "protocol",
+        "descriptors",
+        "configuration_schema",
+        "profile_digest"
+      ],
+      "type": "object"
+    },
+    "Descriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "annotations": {
+          "additionalProperties": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "maxProperties": 32,
+          "type": "object"
+        },
+        "behavior": {
+          "enum": [
+            "read",
+            "proposal",
+            "execute"
+          ]
+        },
+        "contract_profile": {
+          "const": "skulk.portable/1"
+        },
+        "description": {
+          "maxLength": 2048,
+          "minLength": 1,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "input_chunk_schema": {
+          "type": [
+            "object",
+            "boolean",
+            "null"
+          ]
+        },
+        "input_schema": {
+          "type": [
+            "object",
+            "boolean"
+          ]
+        },
+        "io_mode": {
+          "enum": [
+            "unary",
+            "server_streaming",
+            "client_streaming",
+            "bidirectional"
+          ]
+        },
+        "output_chunk_schema": {
+          "type": [
+            "object",
+            "boolean",
+            "null"
+          ]
+        },
+        "output_schema": {
+          "type": [
+            "object",
+            "boolean",
+            "null"
+          ]
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 64,
+          "pattern": "^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "id",
+        "version",
+        "title",
+        "description",
+        "behavior",
+        "io_mode",
+        "input_schema",
+        "output_schema",
+        "input_chunk_schema",
+        "output_chunk_schema",
+        "annotations",
+        "profile_digest"
+      ],
+      "type": "object"
+    }
+  },
+  "profile": "skulk.portable/1",
+  "protocol": 5,
+  "schema_keywords": [
+    "$schema",
+    "$defs",
+    "$ref",
+    "$comment",
+    "title",
+    "description",
+    "default",
+    "examples",
+    "deprecated",
+    "readOnly",
+    "writeOnly",
+    "format",
+    "type",
+    "enum",
+    "const",
+    "multipleOf",
+    "minimum",
+    "maximum",
+    "exclusiveMinimum",
+    "exclusiveMaximum",
+    "minLength",
+    "maxLength",
+    "pattern",
+    "properties",
+    "patternProperties",
+    "additionalProperties",
+    "required",
+    "minProperties",
+    "maxProperties",
+    "propertyNames",
+    "dependentRequired",
+    "dependentSchemas",
+    "items",
+    "prefixItems",
+    "minItems",
+    "maxItems",
+    "uniqueItems",
+    "contains",
+    "minContains",
+    "maxContains",
+    "allOf",
+    "anyOf",
+    "oneOf",
+    "not",
+    "if",
+    "then",
+    "else"
+  ],
+  "semantics": {
+    "canonical_strings": "ASCII JSON escaping, lowercase hex; no insignificant whitespace",
+    "formats": "annotation only",
+    "numbers": "finite binary64, absolute value <= 9007199254740991; integral values normalize to integers",
+    "references": "eager, root-local named definitions, acyclic",
+    "regex": "explicit common subset; no shorthands, inline flags, backreferences, lookaround or class set operations",
+    "unicode": "scalar values; no normalization; canonical keys sort by scalar code point"
+  }
+}

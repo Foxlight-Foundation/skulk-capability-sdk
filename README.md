@@ -40,3 +40,11 @@ The initial export contains no repository history from the owner implementation.
 [The Python author guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/main/docs/python-authoring.md) covers anonymous wheel installation, a model-free source starter, local run/watch/invoke/debug, unsigned builds, exact runtime acquisition, signing/inspection and revision-fenced host lifecycle commands. The `skulk-capability-tools` package provides `skulk-cap` and compatible legacy publisher entry points.
 
 The CLI and the runtime are separate packages. Runtime recipes retain owner 0.10.5/SDK 0.5.5 while these author interfaces use SDK 0.5.7. Package installation grants no Fabric authority. The local development harness currently exercises unary calls; application-framework, TypeScript and native adoption have separate qualification.
+
+## Shared native kernel
+
+The [MIT kernel source](kernel/README.md) includes native Rust, Python and Node
+interfaces and the `skulk.portable/1` candidate. Its [profile reference](docs/native-kernel.md)
+and independent conformance corpus describe the available boundary. Kernel
+qualification builds remain separate from the released Python SDK contract and
+managed-runtime adoption.

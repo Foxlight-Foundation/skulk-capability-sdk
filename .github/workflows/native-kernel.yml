@@ -1,0 +1,47 @@
+name: Native kernel qualification
+on:
+  pull_request:
+  push:
+    branches: [main, feature/capability-developer-tooling]
+    paths:
+      - kernel/**
+      - KERNEL-SOURCE-MANIFEST.json
+      - tools/check_kernel_export.py
+      - tools/qualify_kernel.py
+      - tools/check_portable_profile.py
+      - tools/portable_profile_cases.py
+      - tests/fixtures/author-baseline/**
+      - .github/workflows/native-kernel.yml
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.22'
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - run: rustup toolchain install 1.94.1 --profile minimal --component clippy,rustfmt
+      - run: rustup override set 1.94.1
+      - run: uv sync --frozen --all-packages --no-editable
+      - run: uv run --no-sync python tools/qualify_kernel.py
+      - run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-kernel-${{ matrix.runner }}
+          include-hidden-files: true
+          path: |
+            .runtime/native-qualification/report.json
+            .runtime/native-qualification/portable-*.json
+          retention-days: 14

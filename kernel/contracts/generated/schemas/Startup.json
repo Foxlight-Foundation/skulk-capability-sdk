@@ -1,0 +1,684 @@
+{
+  "$defs": {
+    "Bounds": {
+      "additionalProperties": false,
+      "description": "Hard local admission, liveness, restart and output limits.",
+      "properties": {
+        "backoff_seconds": {
+          "default": 0.1,
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "Backoff Seconds",
+          "type": "number"
+        },
+        "call_seconds": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Call Seconds",
+          "type": "number"
+        },
+        "concurrency": {
+          "const": 1,
+          "default": 1,
+          "description": "One workload slot per child; declared metadata reads have one separate slot.",
+          "title": "Concurrency",
+          "type": "integer"
+        },
+        "health_seconds": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "Health Seconds",
+          "type": "number"
+        },
+        "log_bytes": {
+          "const": 0,
+          "default": 0,
+          "description": "No child log payload retention.",
+          "title": "Log Bytes",
+          "type": "integer"
+        },
+        "max_children": {
+          "default": 4,
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Max Children",
+          "type": "integer"
+        },
+        "restart_budget": {
+          "default": 3,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Restart Budget",
+          "type": "integer"
+        },
+        "shutdown_seconds": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "maximum": 5,
+          "title": "Shutdown Seconds",
+          "type": "number"
+        },
+        "startup_seconds": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Startup Seconds",
+          "type": "number"
+        },
+        "stream_seconds": {
+          "default": 300.0,
+          "description": "Single deadline ceiling for a streaming call, including cleanup.",
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Stream Seconds",
+          "type": "number"
+        }
+      },
+      "title": "Bounds",
+      "type": "object"
+    },
+    "CredentialInput": {
+      "additionalProperties": false,
+      "description": "One plugin-declared write-only credential; values are never manifest data.",
+      "properties": {
+        "credential_id": {
+          "description": "Stable node-local credential reference.",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,127}$",
+          "title": "Credential Id",
+          "type": "string"
+        },
+        "description": {
+          "description": "What this credential authorizes and where to obtain it.",
+          "maxLength": 2048,
+          "title": "Description",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "description": "Whether readiness requires a usable value.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "title": {
+          "description": "Owner-facing credential label.",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_id",
+        "title",
+        "description"
+      ],
+      "title": "CredentialInput",
+      "type": "object"
+    },
+    "Descriptor": {
+      "additionalProperties": false,
+      "description": "Public capability descriptor with four independently typed I/O modes.",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Annotations"
+        },
+        "description": {
+          "description": "Capability behavior.",
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "description": "Public capability identifier.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "input_chunk_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Chunk Schema"
+        },
+        "input_schema": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "description": "Public input JSON Schema.",
+          "title": "Input Schema",
+          "type": "object"
+        },
+        "io_mode": {
+          "default": "unary",
+          "enum": [
+            "unary",
+            "server_streaming",
+            "client_streaming",
+            "bidirectional"
+          ],
+          "title": "Io Mode",
+          "type": "string"
+        },
+        "output_chunk_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Chunk Schema"
+        },
+        "output_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Public final-result JSON Schema.",
+          "title": "Output Schema"
+        },
+        "title": {
+          "description": "Operator title.",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "version": {
+          "description": "Semantic version.",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "title",
+        "description",
+        "input_schema"
+      ],
+      "title": "Descriptor",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Manifest": {
+      "additionalProperties": false,
+      "description": "Owner-installed immutable bundle contract; no secrets or PATH discovery.",
+      "properties": {
+        "arguments": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Arguments",
+          "type": "array"
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds"
+        },
+        "bundle_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Bundle Id",
+          "type": "string"
+        },
+        "bundle_version": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Bundle Version",
+          "type": "string"
+        },
+        "configuration_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Ordinary-settings schema; configured bundles start disabled.",
+          "title": "Configuration Schema"
+        },
+        "credential_inputs": {
+          "default": [],
+          "description": "Write-only inputs for the provisioned node credential store.",
+          "items": {
+            "$ref": "#/$defs/CredentialInput"
+          },
+          "maxItems": 16,
+          "title": "Credential Inputs",
+          "type": "array"
+        },
+        "descriptors": {
+          "items": {
+            "$ref": "#/$defs/Descriptor"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Descriptors",
+          "type": "array"
+        },
+        "effect": {
+          "default": "read",
+          "enum": [
+            "read",
+            "governed"
+          ],
+          "title": "Effect",
+          "type": "string"
+        },
+        "executable": {
+          "description": "Absolute approved executable.",
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Executable",
+          "type": "string"
+        },
+        "executable_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Executable Sha256",
+          "type": "string"
+        },
+        "operations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OperationBounds"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Durable-operation limits; required by operation descriptors."
+        },
+        "preflight_profile": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "runpod-native"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Signed owner preflight profile enforced at enable and restart.",
+          "title": "Preflight Profile"
+        },
+        "protocol": {
+          "default": 4,
+          "enum": [
+            3,
+            4
+          ],
+          "title": "Protocol",
+          "type": "integer"
+        },
+        "runtime_dependencies": {
+          "default": [],
+          "description": "Canonical distribution names this capability adds as runtime roots. Exact versions and wheel bytes belong to the signed runtime inventory.",
+          "items": {
+            "maxLength": 128,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Runtime Dependencies",
+          "type": "array"
+        },
+        "skulk_requires": {
+          "default": ">=2.0.1,<3",
+          "maxLength": 128,
+          "title": "Skulk Requires",
+          "type": "string"
+        },
+        "steward": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/StewardExposure"
+          },
+          "maxItems": 8,
+          "title": "Steward",
+          "type": "array"
+        },
+        "surfaces": {
+          "default": [],
+          "description": "Declared web surfaces; readiness rides health replies.",
+          "items": {
+            "$ref": "#/$defs/Surface"
+          },
+          "maxItems": 4,
+          "title": "Surfaces",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Operator-facing bundle title; the bundle id otherwise.",
+          "title": "Title"
+        }
+      },
+      "required": [
+        "bundle_id",
+        "bundle_version",
+        "executable",
+        "executable_sha256",
+        "arguments",
+        "descriptors"
+      ],
+      "title": "Manifest",
+      "type": "object"
+    },
+    "OperationBounds": {
+      "additionalProperties": false,
+      "description": "Limits for durable operations a node runs outside the invocation slot.",
+      "properties": {
+        "log_bytes": {
+          "default": 262144,
+          "maximum": 16777216,
+          "minimum": 0,
+          "title": "Log Bytes",
+          "type": "integer"
+        },
+        "max_queued": {
+          "default": 4,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Max Queued",
+          "type": "integer"
+        },
+        "max_runtime_seconds": {
+          "default": 3600,
+          "maximum": 86400,
+          "minimum": 1,
+          "title": "Max Runtime Seconds",
+          "type": "integer"
+        },
+        "reservations": {
+          "default": 65536,
+          "description": "Replay-fence capacity. Reaching it refuses new starts rather than forgetting old ids, which would make them replayable.",
+          "maximum": 1000000,
+          "minimum": 64,
+          "title": "Reservations",
+          "type": "integer"
+        },
+        "retain": {
+          "default": 64,
+          "maximum": 1024,
+          "minimum": 1,
+          "title": "Retain",
+          "type": "integer"
+        },
+        "stale_after_seconds": {
+          "default": 30,
+          "maximum": 3600,
+          "minimum": 1,
+          "title": "Stale After Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "OperationBounds",
+      "type": "object"
+    },
+    "StewardExposure": {
+      "additionalProperties": false,
+      "description": "Trusted private manifest classification; never inferred from tool text.\n\n``read`` exposures become direct steward tools; ``lifecycle`` and\n``operation`` exposures become inert proposals that need an approval. A\ndeclaration is not evidence of enforcement: the owner still validates the\nmanifest and the child still checks authority at dispatch.",
+      "properties": {
+        "behavior": {
+          "enum": [
+            "read",
+            "lifecycle",
+            "operation"
+          ],
+          "title": "Behavior",
+          "type": "string"
+        },
+        "provider_selection": {
+          "anyOf": [
+            {
+              "enum": [
+                "runpod-simulator",
+                "runpod-witness-experimental"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "runpod-simulator",
+          "description": "Governed provider for lifecycle exposures; None only for read and operation exposures that select no provider.",
+          "title": "Provider Selection"
+        },
+        "qualified_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Qualified Id",
+          "type": "string"
+        },
+        "risk": {
+          "enum": [
+            "observation",
+            "billable",
+            "effect"
+          ],
+          "title": "Risk",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model-facing tool description; omitted means the descriptor's.",
+          "title": "Summary"
+        }
+      },
+      "required": [
+        "qualified_id",
+        "behavior",
+        "risk"
+      ],
+      "title": "StewardExposure",
+      "type": "object"
+    },
+    "Surface": {
+      "additionalProperties": false,
+      "description": "One declared operator-facing web surface of a capability node.\n\nIdentity, kind and permissions are immutable manifest facts; readiness and\nthe volatile endpoint arrive in correlated health replies. ``proxied``\nsurfaces are declared so the manifest is complete, but their endpoints are\nwithheld from every projection until the proxy contract is qualified.",
+      "properties": {
+        "entry": {
+          "default": "/",
+          "maxLength": 256,
+          "title": "Entry",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "proxied",
+            "link"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "surface_id": {
+          "pattern": "^[a-z][a-z0-9-]{0,31}$",
+          "title": "Surface Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "websocket": {
+          "default": false,
+          "title": "Websocket",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "surface_id",
+        "title",
+        "kind"
+      ],
+      "title": "Surface",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What a child reads from its inherited startup descriptor.\n\nPrivate inherited descriptor contents, never command-line credentials. Part\nof the authoring surface: a capability's child parses exactly this, with\n``storage.read_startup``. The owner writes it canonically and refuses to\nstart a child whose record would exceed ``MAX_STARTUP_BYTES``.",
+  "properties": {
+    "configuration": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Configuration"
+    },
+    "credential_config": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Provisioned backend configuration; private startup IPC only.",
+      "title": "Credential Config"
+    },
+    "host_id": {
+      "title": "Host Id",
+      "type": "string"
+    },
+    "manifest": {
+      "$ref": "#/$defs/Manifest"
+    },
+    "node_id": {
+      "title": "Node Id",
+      "type": "string"
+    },
+    "serve_host": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Protocol 3: the address the host lets this child serve on besides loopback, the node's Tailscale address. Absent when the node has none, and always at protocol 2. See ``serving``.",
+      "title": "Serve Host"
+    },
+    "socket": {
+      "title": "Socket",
+      "type": "string"
+    },
+    "stream_socket": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Owner-provisioned media socket, unavailable to Fabric callers.",
+      "title": "Stream Socket"
+    },
+    "token": {
+      "title": "Token",
+      "type": "string"
+    },
+    "transport_id": {
+      "title": "Transport Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "socket",
+    "token",
+    "node_id",
+    "host_id",
+    "transport_id",
+    "manifest"
+  ],
+  "title": "Startup",
+  "type": "object"
+}

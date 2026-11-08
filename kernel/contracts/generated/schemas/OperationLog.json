@@ -1,0 +1,41 @@
+{
+  "additionalProperties": false,
+  "description": "One offset-addressed slice of an operation's bounded log.",
+  "properties": {
+    "next_offset": {
+      "minimum": 0,
+      "title": "Next Offset",
+      "type": "integer"
+    },
+    "offset": {
+      "minimum": 0,
+      "title": "Offset",
+      "type": "integer"
+    },
+    "operation_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "text": {
+      "maxLength": 8192,
+      "title": "Text",
+      "type": "string"
+    },
+    "truncated": {
+      "title": "Truncated",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "operation_id",
+    "offset",
+    "next_offset",
+    "truncated",
+    "text"
+  ],
+  "title": "OperationLog",
+  "type": "object"
+}

@@ -1,0 +1,51 @@
+{
+  "additionalProperties": false,
+  "description": "Limits for durable operations a node runs outside the invocation slot.",
+  "properties": {
+    "log_bytes": {
+      "default": 262144,
+      "maximum": 16777216,
+      "minimum": 0,
+      "title": "Log Bytes",
+      "type": "integer"
+    },
+    "max_queued": {
+      "default": 4,
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Max Queued",
+      "type": "integer"
+    },
+    "max_runtime_seconds": {
+      "default": 3600,
+      "maximum": 86400,
+      "minimum": 1,
+      "title": "Max Runtime Seconds",
+      "type": "integer"
+    },
+    "reservations": {
+      "default": 65536,
+      "description": "Replay-fence capacity. Reaching it refuses new starts rather than forgetting old ids, which would make them replayable.",
+      "maximum": 1000000,
+      "minimum": 64,
+      "title": "Reservations",
+      "type": "integer"
+    },
+    "retain": {
+      "default": 64,
+      "maximum": 1024,
+      "minimum": 1,
+      "title": "Retain",
+      "type": "integer"
+    },
+    "stale_after_seconds": {
+      "default": 30,
+      "maximum": 3600,
+      "minimum": 1,
+      "title": "Stale After Seconds",
+      "type": "integer"
+    }
+  },
+  "title": "OperationBounds",
+  "type": "object"
+}

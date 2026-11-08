@@ -40,7 +40,8 @@ testpaths = ["tests", "packages/tools/tests"]
 
 [tool.basedpyright]
 typeCheckingMode = "strict"
-include = ["skulk_capability_sdk", "tests", "tools", "packages/tools"]
+include = ["skulk_capability_sdk", "tests", "tools", "packages/tools", "kernel/bindings/python"]
+extraPaths = ["kernel/bindings/python"]
 
 [tool.ruff]
 target-version = "py313"

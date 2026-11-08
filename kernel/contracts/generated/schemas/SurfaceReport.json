@@ -1,0 +1,48 @@
+{
+  "additionalProperties": false,
+  "description": "Volatile readiness of one declared surface, reported with health.\n\nA complete snapshot is expected: a declared surface absent from the reply\nis not ready and any earlier endpoint is withdrawn.",
+  "properties": {
+    "port": {
+      "anyOf": [
+        {
+          "maximum": 65535,
+          "minimum": 1024,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Port"
+    },
+    "ready": {
+      "title": "Ready",
+      "type": "boolean"
+    },
+    "surface_id": {
+      "pattern": "^[a-z][a-z0-9-]{0,31}$",
+      "title": "Surface Id",
+      "type": "string"
+    },
+    "url": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Url"
+    }
+  },
+  "required": [
+    "surface_id",
+    "ready"
+  ],
+  "title": "SurfaceReport",
+  "type": "object"
+}

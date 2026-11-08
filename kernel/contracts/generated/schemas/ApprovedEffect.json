@@ -1,0 +1,170 @@
+{
+  "additionalProperties": false,
+  "description": "Exact signed effect bounds, optionally tied to a complete reviewed proposal.",
+  "properties": {
+    "authority_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Authority Id",
+      "type": "string"
+    },
+    "campaign_policy_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Complete reviewed campaign policy; absent for legacy proofs.",
+      "title": "Campaign Policy Digest"
+    },
+    "capability_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Capability Id",
+      "type": "string"
+    },
+    "capability_node_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Capability Node Id",
+      "type": "string"
+    },
+    "capability_version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Capability Version",
+      "type": "string"
+    },
+    "currency": {
+      "const": "USD",
+      "default": "USD",
+      "title": "Currency",
+      "type": "string"
+    },
+    "descriptor_revision": {
+      "pattern": "^[a-f0-9]{16}$",
+      "title": "Descriptor Revision",
+      "type": "string"
+    },
+    "effect": {
+      "enum": [
+        "acquire",
+        "release"
+      ],
+      "title": "Effect",
+      "type": "string"
+    },
+    "expires_at_unix_seconds": {
+      "exclusiveMinimum": 0,
+      "title": "Expires At Unix Seconds",
+      "type": "integer"
+    },
+    "host_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Host Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "key_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Key Id",
+      "type": "string"
+    },
+    "maximum_lifetime_seconds": {
+      "exclusiveMinimum": 0,
+      "maximum": 86400,
+      "title": "Maximum Lifetime Seconds",
+      "type": "integer"
+    },
+    "maximum_total_cost_microunits": {
+      "minimum": 0,
+      "title": "Maximum Total Cost Microunits",
+      "type": "integer"
+    },
+    "operator_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Operator Id",
+      "type": "string"
+    },
+    "plan_digest": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Plan Digest",
+      "type": "string"
+    },
+    "policy_revision": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Policy Revision",
+      "type": "string"
+    },
+    "proposal_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Complete immutable proposal digest for owner-reviewed approvals; omitted only by the legacy direct approval path.",
+      "title": "Proposal Digest"
+    },
+    "provider_selection": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Provider Selection",
+      "type": "string"
+    },
+    "transport_node_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Transport Node Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "authority_id",
+    "key_id",
+    "operator_id",
+    "host_id",
+    "transport_node_id",
+    "capability_node_id",
+    "capability_id",
+    "capability_version",
+    "descriptor_revision",
+    "plan_digest",
+    "idempotency_key",
+    "effect",
+    "provider_selection",
+    "expires_at_unix_seconds",
+    "maximum_lifetime_seconds",
+    "maximum_total_cost_microunits",
+    "policy_revision"
+  ],
+  "title": "ApprovedEffect",
+  "type": "object"
+}

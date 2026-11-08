@@ -1,0 +1,514 @@
+{
+  "$defs": {
+    "Health": {
+      "additionalProperties": false,
+      "description": "Correlated challenge/response; readiness is not inferred from a PID.",
+      "properties": {
+        "kind": {
+          "const": "health",
+          "default": "health",
+          "title": "Kind",
+          "type": "string"
+        },
+        "nonce": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Nonce",
+          "type": "string"
+        },
+        "protocol": {
+          "default": 4,
+          "enum": [
+            3,
+            4
+          ],
+          "title": "Protocol",
+          "type": "integer"
+        },
+        "ready": {
+          "title": "Ready",
+          "type": "boolean"
+        },
+        "surfaces": {
+          "default": [],
+          "description": "Complete readiness snapshot of the declared surfaces.",
+          "items": {
+            "$ref": "#/$defs/SurfaceReport"
+          },
+          "maxItems": 4,
+          "title": "Surfaces",
+          "type": "array"
+        }
+      },
+      "required": [
+        "nonce",
+        "ready"
+      ],
+      "title": "Health",
+      "type": "object"
+    },
+    "Hello": {
+      "additionalProperties": false,
+      "description": "Authenticated startup identity and exact manifest agreement.\n\nThe child answers with the digest of the manifest it read from its startup\nrecord rather than echoing the manifest back: the check is the same, and\nthe message stays small however much a capability declares.",
+      "properties": {
+        "bundle_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Bundle Id",
+          "type": "string"
+        },
+        "bundle_version": {
+          "title": "Bundle Version",
+          "type": "string"
+        },
+        "capability_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Capability Node Id",
+          "type": "string"
+        },
+        "host_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Host Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "hello",
+          "default": "hello",
+          "title": "Kind",
+          "type": "string"
+        },
+        "manifest_sha256": {
+          "description": "SHA-256 of the canonical manifest the child read from its startup record (manifest_digest); the owner compares it with its own.",
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Manifest Sha256",
+          "type": "string"
+        },
+        "protocol": {
+          "default": 4,
+          "enum": [
+            3,
+            4
+          ],
+          "title": "Protocol",
+          "type": "integer"
+        },
+        "token": {
+          "maxLength": 64,
+          "minLength": 64,
+          "title": "Token",
+          "type": "string"
+        },
+        "transport_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Transport Node Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "host_id",
+        "transport_node_id",
+        "capability_node_id",
+        "bundle_id",
+        "bundle_version",
+        "token",
+        "manifest_sha256"
+      ],
+      "title": "Hello",
+      "type": "object"
+    },
+    "Invoke": {
+      "additionalProperties": false,
+      "description": "One bounded unary invocation; execution time is a remaining local budget.",
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Call Id",
+          "type": "string"
+        },
+        "capability_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "descriptor_revision": {
+          "pattern": "^[a-f0-9]{16}$",
+          "title": "Descriptor Revision",
+          "type": "string"
+        },
+        "kind": {
+          "const": "invoke",
+          "default": "invoke",
+          "title": "Kind",
+          "type": "string"
+        },
+        "payload": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Payload",
+          "type": "object"
+        },
+        "protocol": {
+          "default": 4,
+          "enum": [
+            3,
+            4
+          ],
+          "title": "Protocol",
+          "type": "integer"
+        },
+        "remaining_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Remaining Seconds",
+          "type": "number"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "call_id",
+        "capability_id",
+        "version",
+        "descriptor_revision",
+        "remaining_seconds",
+        "payload"
+      ],
+      "title": "Invoke",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Result": {
+      "additionalProperties": false,
+      "description": "Correlated success or bounded typed failure, with one terminal only.",
+      "oneOf": [
+        {
+          "properties": {
+            "error": {
+              "type": "null"
+            },
+            "payload": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "properties": {
+            "error": {
+              "type": "string"
+            },
+            "payload": {
+              "type": "null"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Call Id",
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "enum": [
+                "invalid_payload",
+                "provider_error",
+                "timeout"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error"
+        },
+        "kind": {
+          "const": "result",
+          "default": "result",
+          "title": "Kind",
+          "type": "string"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Payload"
+        },
+        "protocol": {
+          "default": 4,
+          "enum": [
+            3,
+            4
+          ],
+          "title": "Protocol",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "call_id",
+        "payload",
+        "error"
+      ],
+      "title": "Result",
+      "type": "object"
+    },
+    "Shutdown": {
+      "additionalProperties": false,
+      "description": "Request graceful shutdown before the supervisor escalates.",
+      "properties": {
+        "kind": {
+          "const": "shutdown",
+          "default": "shutdown",
+          "title": "Kind",
+          "type": "string"
+        },
+        "protocol": {
+          "default": 4,
+          "enum": [
+            3,
+            4
+          ],
+          "title": "Protocol",
+          "type": "integer"
+        }
+      },
+      "title": "Shutdown",
+      "type": "object"
+    },
+    "StreamHello": {
+      "additionalProperties": false,
+      "description": "Bind a fresh media connection to the installed child and admitted call.",
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Call Id",
+          "type": "string"
+        },
+        "capability_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Capability Node Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "stream_hello",
+          "default": "stream_hello",
+          "title": "Kind",
+          "type": "string"
+        },
+        "manifest_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Manifest Sha256",
+          "type": "string"
+        },
+        "protocol": {
+          "default": 4,
+          "enum": [
+            3,
+            4
+          ],
+          "maximum": 4,
+          "minimum": 4,
+          "title": "Protocol",
+          "type": "integer"
+        },
+        "token": {
+          "maxLength": 64,
+          "minLength": 64,
+          "title": "Token",
+          "type": "string"
+        }
+      },
+      "required": [
+        "call_id",
+        "token",
+        "capability_node_id",
+        "manifest_sha256"
+      ],
+      "title": "StreamHello",
+      "type": "object"
+    },
+    "StreamInvoke": {
+      "additionalProperties": false,
+      "description": "Admit one duplex invocation on its separately authenticated media channel.",
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Call Id",
+          "type": "string"
+        },
+        "capability_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "descriptor_revision": {
+          "pattern": "^[a-f0-9]{16}$",
+          "title": "Descriptor Revision",
+          "type": "string"
+        },
+        "kind": {
+          "const": "stream_invoke",
+          "default": "stream_invoke",
+          "title": "Kind",
+          "type": "string"
+        },
+        "payload": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Payload",
+          "type": "object"
+        },
+        "protocol": {
+          "default": 4,
+          "enum": [
+            3,
+            4
+          ],
+          "maximum": 4,
+          "minimum": 4,
+          "title": "Protocol",
+          "type": "integer"
+        },
+        "remaining_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Remaining Seconds",
+          "type": "number"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "call_id",
+        "capability_id",
+        "version",
+        "descriptor_revision",
+        "remaining_seconds",
+        "payload"
+      ],
+      "title": "StreamInvoke",
+      "type": "object"
+    },
+    "SurfaceReport": {
+      "additionalProperties": false,
+      "description": "Volatile readiness of one declared surface, reported with health.\n\nA complete snapshot is expected: a declared surface absent from the reply\nis not ready and any earlier endpoint is withdrawn.",
+      "properties": {
+        "port": {
+          "anyOf": [
+            {
+              "maximum": 65535,
+              "minimum": 1024,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port"
+        },
+        "ready": {
+          "title": "Ready",
+          "type": "boolean"
+        },
+        "surface_id": {
+          "pattern": "^[a-z][a-z0-9-]{0,31}$",
+          "title": "Surface Id",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "surface_id",
+        "ready"
+      ],
+      "title": "SurfaceReport",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "health": "#/$defs/Health",
+      "hello": "#/$defs/Hello",
+      "invoke": "#/$defs/Invoke",
+      "result": "#/$defs/Result",
+      "shutdown": "#/$defs/Shutdown",
+      "stream_hello": "#/$defs/StreamHello",
+      "stream_invoke": "#/$defs/StreamInvoke"
+    },
+    "propertyName": "kind"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Hello"
+    },
+    {
+      "$ref": "#/$defs/Health"
+    },
+    {
+      "$ref": "#/$defs/Invoke"
+    },
+    {
+      "$ref": "#/$defs/StreamInvoke"
+    },
+    {
+      "$ref": "#/$defs/StreamHello"
+    },
+    {
+      "$ref": "#/$defs/Result"
+    },
+    {
+      "$ref": "#/$defs/Shutdown"
+    }
+  ]
+}

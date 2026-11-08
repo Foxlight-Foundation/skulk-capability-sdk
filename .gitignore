@@ -5,3 +5,7 @@ __pycache__/
 .ruff_cache/
 dist/
 .runtime/
+kernel/target/
+kernel/bindings/node/node_modules/
+kernel/bindings/node/dist/
+kernel/bindings/node/*.node

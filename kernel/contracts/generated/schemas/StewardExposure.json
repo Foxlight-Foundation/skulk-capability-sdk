@@ -1,0 +1,69 @@
+{
+  "additionalProperties": false,
+  "description": "Trusted private manifest classification; never inferred from tool text.\n\n``read`` exposures become direct steward tools; ``lifecycle`` and\n``operation`` exposures become inert proposals that need an approval. A\ndeclaration is not evidence of enforcement: the owner still validates the\nmanifest and the child still checks authority at dispatch.",
+  "properties": {
+    "behavior": {
+      "enum": [
+        "read",
+        "lifecycle",
+        "operation"
+      ],
+      "title": "Behavior",
+      "type": "string"
+    },
+    "provider_selection": {
+      "anyOf": [
+        {
+          "enum": [
+            "runpod-simulator",
+            "runpod-witness-experimental"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": "runpod-simulator",
+      "description": "Governed provider for lifecycle exposures; None only for read and operation exposures that select no provider.",
+      "title": "Provider Selection"
+    },
+    "qualified_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:@-]+$",
+      "title": "Qualified Id",
+      "type": "string"
+    },
+    "risk": {
+      "enum": [
+        "observation",
+        "billable",
+        "effect"
+      ],
+      "title": "Risk",
+      "type": "string"
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Model-facing tool description; omitted means the descriptor's.",
+      "title": "Summary"
+    }
+  },
+  "required": [
+    "qualified_id",
+    "behavior",
+    "risk"
+  ],
+  "title": "StewardExposure",
+  "type": "object"
+}

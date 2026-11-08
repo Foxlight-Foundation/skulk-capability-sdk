@@ -1,0 +1,602 @@
+{
+  "source_commit": "549125c9782f934e0a9e2fa32f87336c46fe14a6",
+  "pydantic": "2.13.5",
+  "source_sha256": {
+    "contracts.py": "348076225a186c0781834dc98e5ae961a4501d7f1d027686a50b83a17e7e1336",
+    "streams.py": "a9785c07a0c865a4eec07f385ef124cffdbe6b975fceaf0156d1715f0906ad61",
+    "wire.py": "061db7b78ec53b5095cf38e0dc2b40f146814a813977c822dd18e3c7f7adf62e"
+  },
+  "schemas": {
+    "StreamError": {
+      "additionalProperties": false,
+      "description": "Sanitized machine-readable terminal outcome.",
+      "properties": {
+        "code": {
+          "enum": [
+            "provider_error",
+            "transport_error",
+            "unreachable",
+            "cancelled",
+            "timeout",
+            "invalid_frame"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 2048,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "StreamError",
+      "type": "object"
+    },
+    "InlineMedia": {
+      "additionalProperties": false,
+      "description": "Raw media plus format metadata; never encode the bytes as JSON.",
+      "properties": {
+        "kind": {
+          "const": "inline",
+          "default": "inline",
+          "title": "Kind",
+          "type": "string"
+        },
+        "data": {
+          "format": "binary",
+          "maxLength": 1048576,
+          "title": "Data",
+          "type": "string"
+        },
+        "media_type": {
+          "maxLength": 256,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "codec": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Codec"
+        },
+        "sample_rate": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sample Rate"
+        },
+        "channels": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Channels"
+        },
+        "timestamp_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamp Seconds"
+        },
+        "duration_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Seconds"
+        }
+      },
+      "required": [
+        "data",
+        "media_type"
+      ],
+      "title": "InlineMedia",
+      "type": "object"
+    },
+    "BlobMedia": {
+      "additionalProperties": false,
+      "description": "Opaque immutable blob reference; resolution remains Fabric-owned.",
+      "properties": {
+        "kind": {
+          "const": "blob",
+          "default": "blob",
+          "title": "Kind",
+          "type": "string"
+        },
+        "blob_id": {
+          "title": "Blob Id",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "blob_id",
+        "size_bytes",
+        "sha256",
+        "media_type"
+      ],
+      "title": "BlobMedia",
+      "type": "object"
+    },
+    "StreamFrame": {
+      "$defs": {
+        "BlobMedia": {
+          "additionalProperties": false,
+          "description": "Opaque immutable blob reference; resolution remains Fabric-owned.",
+          "properties": {
+            "kind": {
+              "const": "blob",
+              "default": "blob",
+              "title": "Kind",
+              "type": "string"
+            },
+            "blob_id": {
+              "title": "Blob Id",
+              "type": "string"
+            },
+            "size_bytes": {
+              "minimum": 0,
+              "title": "Size Bytes",
+              "type": "integer"
+            },
+            "sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Sha256",
+              "type": "string"
+            },
+            "media_type": {
+              "title": "Media Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "blob_id",
+            "size_bytes",
+            "sha256",
+            "media_type"
+          ],
+          "title": "BlobMedia",
+          "type": "object"
+        },
+        "InlineMedia": {
+          "additionalProperties": false,
+          "description": "Raw media plus format metadata; never encode the bytes as JSON.",
+          "properties": {
+            "kind": {
+              "const": "inline",
+              "default": "inline",
+              "title": "Kind",
+              "type": "string"
+            },
+            "data": {
+              "format": "binary",
+              "maxLength": 1048576,
+              "title": "Data",
+              "type": "string"
+            },
+            "media_type": {
+              "maxLength": 256,
+              "title": "Media Type",
+              "type": "string"
+            },
+            "codec": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Codec"
+            },
+            "sample_rate": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sample Rate"
+            },
+            "channels": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Channels"
+            },
+            "timestamp_seconds": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Timestamp Seconds"
+            },
+            "duration_seconds": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Duration Seconds"
+            }
+          },
+          "required": [
+            "data",
+            "media_type"
+          ],
+          "title": "InlineMedia",
+          "type": "object"
+        },
+        "JsonValue": {},
+        "StreamError": {
+          "additionalProperties": false,
+          "description": "Sanitized machine-readable terminal outcome.",
+          "properties": {
+            "code": {
+              "enum": [
+                "provider_error",
+                "transport_error",
+                "unreachable",
+                "cancelled",
+                "timeout",
+                "invalid_frame"
+              ],
+              "title": "Code",
+              "type": "string"
+            },
+            "message": {
+              "maxLength": 2048,
+              "title": "Message",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "title": "StreamError",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "One sequenced input or output frame, aligned with Skulk's public contract.",
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Call Id",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "caller_to_provider",
+            "provider_to_caller"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "started",
+            "chunk",
+            "completed",
+            "failed",
+            "cancelled"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "synthetic": {
+          "const": false,
+          "default": false,
+          "title": "Synthetic",
+          "type": "boolean"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload"
+        },
+        "media": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "blob": "#/$defs/BlobMedia",
+                  "inline": "#/$defs/InlineMedia"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/InlineMedia"
+                },
+                {
+                  "$ref": "#/$defs/BlobMedia"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Media"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StreamError"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "call_id",
+        "direction",
+        "sequence",
+        "kind"
+      ],
+      "title": "StreamFrame",
+      "type": "object"
+    },
+    "StreamEnd": {
+      "additionalProperties": false,
+      "description": "Child cleanup acknowledgment following exactly one output terminal.",
+      "properties": {
+        "kind": {
+          "const": "end",
+          "default": "end",
+          "title": "Kind",
+          "type": "string"
+        },
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Call Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "call_id"
+      ],
+      "title": "StreamEnd",
+      "type": "object"
+    }
+  },
+  "packets": [
+    {
+      "projection": {
+        "call_id": "call",
+        "direction": "caller_to_provider",
+        "sequence": 0,
+        "kind": "started",
+        "synthetic": false,
+        "payload": null,
+        "media": null,
+        "error": null
+      },
+      "media_hex": "",
+      "wire_hex": "000000b27b2270726f746f636f6c223a342c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2263616c6c65725f746f5f70726f7669646572222c2273657175656e6365223a302c226b696e64223a2273746172746564222c2273796e746865746963223a66616c73652c227061796c6f6164223a6e756c6c2c226d65646961223a6e756c6c2c226572726f72223a6e756c6c7d2c226d656469615f73697a65223a307d",
+      "wire_sha256": "7bbdf87e0e7392bad20d59dd5969c23e57166dda26c1cb2c31a59189702aa357"
+    },
+    {
+      "projection": {
+        "call_id": "call",
+        "direction": "caller_to_provider",
+        "sequence": 1,
+        "kind": "completed",
+        "synthetic": false,
+        "payload": null,
+        "media": null,
+        "error": null
+      },
+      "media_hex": "",
+      "wire_hex": "000000b47b2270726f746f636f6c223a342c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2263616c6c65725f746f5f70726f7669646572222c2273657175656e6365223a312c226b696e64223a22636f6d706c65746564222c2273796e746865746963223a66616c73652c227061796c6f6164223a6e756c6c2c226d65646961223a6e756c6c2c226572726f72223a6e756c6c7d2c226d656469615f73697a65223a307d",
+      "wire_sha256": "55756c8216b56a5d36d71a9cf6d910dd0405be6f6a69214c1c61163d9eaef5f2"
+    },
+    {
+      "projection": {
+        "call_id": "call",
+        "direction": "provider_to_caller",
+        "sequence": 1,
+        "kind": "chunk",
+        "synthetic": false,
+        "payload": {
+          "int": 1,
+          "float": 1.0,
+          "zero": -0.0,
+          "big": 18446744073709551616,
+          "\ue000": "\u00e9",
+          "\ud800\udc00": "\ud83e\udd8a"
+        },
+        "media": null,
+        "error": null
+      },
+      "media_hex": "",
+      "wire_hex": "000001187b2270726f746f636f6c223a342c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c2273657175656e6365223a312c226b696e64223a226368756e6b222c2273796e746865746963223a66616c73652c227061796c6f6164223a7b22696e74223a312c22666c6f6174223a312e302c227a65726f223a2d302e302c22626967223a31383434363734343037333730393535313631362c225c7565303030223a225c7530306539222c225c75643830305c7564633030223a225c75643833655c7564643861227d2c226d65646961223a6e756c6c2c226572726f72223a6e756c6c7d2c226d656469615f73697a65223a307d",
+      "wire_sha256": "7696713ca402dcc3a746ee6d4095451c8647d1631489d4d1639426d3eb37c7cd"
+    },
+    {
+      "projection": {
+        "call_id": "call",
+        "direction": "provider_to_caller",
+        "sequence": 2,
+        "kind": "chunk",
+        "synthetic": false,
+        "payload": null,
+        "media": {
+          "kind": "inline",
+          "media_type": "audio/pcm",
+          "codec": "pcm_s16le",
+          "sample_rate": 48000,
+          "channels": 2,
+          "timestamp_seconds": 0.0,
+          "duration_seconds": 1.0
+        },
+        "error": null
+      },
+      "media_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "wire_hex": "0000013b7b2270726f746f636f6c223a342c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c2273657175656e6365223a322c226b696e64223a226368756e6b222c2273796e746865746963223a66616c73652c227061796c6f6164223a6e756c6c2c226d65646961223a7b226b696e64223a22696e6c696e65222c226d656469615f74797065223a22617564696f2f70636d222c22636f646563223a2270636d5f7331366c65222c2273616d706c655f72617465223a34383030302c226368616e6e656c73223a322c2274696d657374616d705f7365636f6e6473223a302e302c226475726174696f6e5f7365636f6e6473223a312e307d2c226572726f72223a6e756c6c7d2c226d656469615f73697a65223a33327d000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "wire_sha256": "dc81e733a480afaabc7d7efa5bfeffc68dc211a2a6b798299d4cf2965f3707d7"
+    },
+    {
+      "projection": {
+        "call_id": "call",
+        "direction": "provider_to_caller",
+        "sequence": 3,
+        "kind": "completed",
+        "synthetic": false,
+        "payload": null,
+        "media": {
+          "kind": "blob",
+          "blob_id": "synthetic",
+          "size_bytes": 123,
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "media_type": "video/mp4"
+        },
+        "error": null
+      },
+      "media_hex": "",
+      "wire_hex": "0000014b7b2270726f746f636f6c223a342c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c2273657175656e6365223a332c226b696e64223a22636f6d706c65746564222c2273796e746865746963223a66616c73652c227061796c6f6164223a6e756c6c2c226d65646961223a7b226b696e64223a22626c6f62222c22626c6f625f6964223a2273796e746865746963222c2273697a655f6279746573223a3132332c22736861323536223a2261616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c226d656469615f74797065223a22766964656f2f6d7034227d2c226572726f72223a6e756c6c7d2c226d656469615f73697a65223a307d",
+      "wire_sha256": "d71ce75331736111c68066282498b2dfdc06356c097981f0d3d29bcb23f22828"
+    },
+    {
+      "projection": {
+        "call_id": "call",
+        "direction": "provider_to_caller",
+        "sequence": 1,
+        "kind": "failed",
+        "synthetic": false,
+        "payload": null,
+        "media": null,
+        "error": {
+          "code": "provider_error",
+          "message": "synthetic failure"
+        }
+      },
+      "media_hex": "",
+      "wire_hex": "000000e47b2270726f746f636f6c223a342c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c2273657175656e6365223a312c226b696e64223a226661696c6564222c2273796e746865746963223a66616c73652c227061796c6f6164223a6e756c6c2c226d65646961223a6e756c6c2c226572726f72223a7b22636f6465223a2270726f76696465725f6572726f72222c226d657373616765223a2273796e746865746963206661696c757265227d7d2c226d656469615f73697a65223a307d",
+      "wire_sha256": "4b80938cc3362f8e89c793d39cce39dcea1976b669ed1d9779309bff4967cce1"
+    },
+    {
+      "projection": {
+        "call_id": "call",
+        "direction": "provider_to_caller",
+        "sequence": 1,
+        "kind": "cancelled",
+        "synthetic": false,
+        "payload": null,
+        "media": null,
+        "error": {
+          "code": "cancelled",
+          "message": "synthetic cancellation"
+        }
+      },
+      "media_hex": "",
+      "wire_hex": "000000e77b2270726f746f636f6c223a342c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c2273657175656e6365223a312c226b696e64223a2263616e63656c6c6564222c2273796e746865746963223a66616c73652c227061796c6f6164223a6e756c6c2c226d65646961223a6e756c6c2c226572726f72223a7b22636f6465223a2263616e63656c6c6564222c226d657373616765223a2273796e7468657469632063616e63656c6c6174696f6e227d7d2c226d656469615f73697a65223a307d",
+      "wire_sha256": "e3cd307aafc57a76895e32528f8228eb159f54d55fda5f6796c9812c4ffa4520"
+    },
+    {
+      "projection": {
+        "kind": "end",
+        "call_id": "call"
+      },
+      "media_hex": "",
+      "wire_hex": "000000457b2270726f746f636f6c223a342c226672616d65223a7b226b696e64223a22656e64222c2263616c6c5f6964223a2263616c6c227d2c226d656469615f73697a65223a307d",
+      "wire_sha256": "fab13c0fba0a62987ee73a82d6c3ee49b61f776df2da72d6c80938621a6864ee"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import sysconfig
 import tarfile
 import zipfile
 from pathlib import Path
@@ -116,6 +117,16 @@ def main() -> None:
     )
     env["PYO3_PYTHON"] = sys.executable
     env["SKULK_NATIVE_TEST_PYTHON"] = sys.executable
+    if sys.platform == "linux":
+        # Cargo's standalone PyO3 test executable embeds Python, unlike an
+        # extension loaded by Python. Find this interpreter's shared library
+        # without changing the host environment or depending on a system Python.
+        python_library = sysconfig.get_config_var("LIBDIR")
+        if not isinstance(python_library, str) or not python_library:
+            raise ValueError("Selected Python has no shared-library directory")
+        env["LD_LIBRARY_PATH"] = os.pathsep.join(
+            [python_library, *filter(None, [env.get("LD_LIBRARY_PATH")])]
+        )
     node_version = run(["node", "--version"], env).strip()
     if not node_version.startswith("v22."):
         raise ValueError("Native qualification requires Node 22")

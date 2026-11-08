@@ -1,0 +1,222 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "OperationStatus": {
+      "additionalProperties": false,
+      "description": "Observation envelope of one operation; opaque references, safe errors.",
+      "properties": {
+        "backend_reference": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Backend Reference"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finished At"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The recorded start input, so a caller can run the operation again or vary it. Carried by ``status`` when it fits beside the result (``MAX_INPUT_ECHO_BYTES``); listings omit it.",
+          "title": "Input"
+        },
+        "input_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Input Digest",
+          "type": "string"
+        },
+        "operation_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "progress": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Progress"
+        },
+        "queue_position": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Queue Position"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result"
+        },
+        "stage": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage"
+        },
+        "stale": {
+          "title": "Stale",
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "interrupted"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "submission": {
+          "enum": [
+            "pending",
+            "uncertain",
+            "accepted"
+          ],
+          "title": "Submission",
+          "type": "string"
+        },
+        "submitted_at": {
+          "minimum": 0,
+          "title": "Submitted At",
+          "type": "integer"
+        },
+        "updated_at": {
+          "minimum": 0,
+          "title": "Updated At",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "operation_id",
+        "state",
+        "submission",
+        "submitted_at",
+        "updated_at",
+        "stale",
+        "input_digest"
+      ],
+      "title": "OperationStatus",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One page of retained operations, newest first, compacted.\n\nResults and backend references can each reach their bounds, so a listing\ncarries statuses without them (``status`` returns the full record) and at\nmost ``PAGE_SIZE`` entries; ``next_offset`` continues the listing.",
+  "properties": {
+    "active": {
+      "minimum": 0,
+      "title": "Active",
+      "type": "integer"
+    },
+    "next_offset": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Next Offset"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/OperationStatus"
+      },
+      "maxItems": 16,
+      "title": "Operations",
+      "type": "array"
+    },
+    "outstanding": {
+      "default": 0,
+      "description": "Interrupted rows: the backend may still hold their jobs.",
+      "minimum": 0,
+      "title": "Outstanding",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "operations",
+    "active"
+  ],
+  "title": "OperationPage",
+  "type": "object"
+}

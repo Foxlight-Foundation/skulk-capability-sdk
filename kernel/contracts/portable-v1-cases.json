@@ -1,0 +1,241 @@
+{
+  "profile": "skulk.portable/1",
+  "scope": "Independent expected cases for candidate contract, not runtime adoption",
+  "codec": [
+    {
+      "source": "{\"z\":1.0,\"a\":-0.0}",
+      "canonical": "{\"a\":0,\"z\":1}"
+    },
+    {
+      "source": "[1,1.00,1e0,-0,-0.0]",
+      "canonical": "[1,1,1,0,0]"
+    },
+    {
+      "source": "\"\ud83e\udd8a\"",
+      "canonical": "\"\\ud83e\\udd8a\""
+    },
+    {
+      "source": "9007199254740991",
+      "canonical": "9007199254740991"
+    },
+    {
+      "source": "-9007199254740991",
+      "canonical": "-9007199254740991"
+    },
+    {
+      "source": "9007199254740992",
+      "error": "portable_number"
+    },
+    {
+      "source": "-9007199254740992",
+      "error": "portable_number"
+    },
+    {
+      "source": "{\"a\":1,\"\\u0061\":2}",
+      "error": "portable_json"
+    },
+    {
+      "source": "\"\\ud800\"",
+      "error": "portable_unicode"
+    },
+    {
+      "source": "{\"\\udfff\":0}",
+      "error": "portable_unicode"
+    },
+    {
+      "source": "NaN",
+      "error": "portable_json"
+    },
+    {
+      "source": "1e999",
+      "error": "portable_json"
+    }
+  ],
+  "schemas": [
+    {
+      "schema": "{\"type\":\"integer\"}",
+      "instance": "1.0",
+      "valid": true
+    },
+    {
+      "schema": "{\"type\":\"integer\"}",
+      "instance": "true",
+      "valid": false
+    },
+    {
+      "schema": "{\"type\":\"number\",\"multipleOf\":0.1}",
+      "instance": "0.3",
+      "valid": true
+    },
+    {
+      "schema": "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"integer\"}},\"required\":[\"x\"],\"additionalProperties\":false}",
+      "instance": "{\"x\":1}",
+      "valid": true
+    },
+    {
+      "schema": "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"integer\"}},\"required\":[\"x\"],\"additionalProperties\":false}",
+      "instance": "{\"x\":1,\"y\":2}",
+      "valid": false
+    },
+    {
+      "schema": "{\"type\":\"array\",\"prefixItems\":[{\"type\":\"integer\"},{\"type\":\"string\"}],\"items\":false}",
+      "instance": "[1,\"a\"]",
+      "valid": true
+    },
+    {
+      "schema": "{\"type\":\"array\",\"prefixItems\":[{\"type\":\"integer\"},{\"type\":\"string\"}],\"items\":false}",
+      "instance": "[1,\"a\",2]",
+      "valid": false
+    },
+    {
+      "schema": "{\"contains\":{\"type\":\"integer\"},\"minContains\":2}",
+      "instance": "[1,2,\"a\"]",
+      "valid": true
+    },
+    {
+      "schema": "{\"oneOf\":[{\"type\":\"number\"},{\"type\":\"integer\"}]}",
+      "instance": "1",
+      "valid": false
+    },
+    {
+      "schema": "{\"if\":{\"type\":\"string\"},\"then\":{\"minLength\":2},\"else\":{\"minimum\":0}}",
+      "instance": "-1",
+      "valid": false
+    },
+    {
+      "schema": "{\"pattern\":\"^a$\"}",
+      "instance": "\"a\\n\"",
+      "valid": false
+    },
+    {
+      "schema": "{\"pattern\":\"[0-9]+\"}",
+      "instance": "\"x42\"",
+      "valid": true
+    },
+    {
+      "schema": "{\"pattern\":\"\\\\d+\"}",
+      "instance": "\"42\"",
+      "error": "portable_pattern"
+    },
+    {
+      "schema": "{\"pattern\":\"(?=a)a\"}",
+      "instance": "\"a\"",
+      "error": "portable_pattern"
+    },
+    {
+      "schema": "{\"pattern\":\"(a)\\\\1\"}",
+      "instance": "\"aa\"",
+      "error": "portable_pattern"
+    },
+    {
+      "schema": "{\"$defs\":{\"n\":{\"type\":\"integer\"}},\"$ref\":\"#/$defs/n\",\"minimum\":2}",
+      "instance": "1",
+      "valid": false
+    },
+    {
+      "schema": "{\"$defs\":{\"n\":{\"type\":\"integer\"}},\"$ref\":\"#/$defs/n\",\"minimum\":2}",
+      "instance": "2",
+      "valid": true
+    },
+    {
+      "schema": "{\"$defs\":{\"bad\":{\"$ref\":\"#/$defs/missing\"}}}",
+      "instance": "null",
+      "error": "portable_reference"
+    },
+    {
+      "schema": "{\"$ref\":\"https://example.invalid/schema\"}",
+      "instance": "null",
+      "error": "portable_reference"
+    },
+    {
+      "schema": "{\"$defs\":{\"loop\":{\"type\":\"integer\",\"$ref\":\"#/$defs/loop\"}},\"not\":{\"$ref\":\"#/$defs/loop\"}}",
+      "instance": "null",
+      "error": "portable_cycle"
+    },
+    {
+      "schema": "{\"unevaluatedProperties\":false}",
+      "instance": "{}",
+      "error": "portable_keyword"
+    },
+    {
+      "schema": "{\"default\":{\"$ref\":\"https://example.invalid/annotation\"}}",
+      "instance": "{}",
+      "valid": true
+    },
+    {
+      "schema": "{\"format\":\"email\"}",
+      "instance": "\"deliberately not an email\"",
+      "valid": true
+    },
+    {
+      "schema": "{\"properties\":{\"x\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\"}}}",
+      "instance": "{}",
+      "error": "portable_dialect"
+    },
+    {
+      "schema": "{\"properties\":{\"x\":{\"type\":2}}}",
+      "instance": "{}",
+      "error": "portable_schema"
+    },
+    {
+      "schema": "{\"$defs\":{\"n\":{\"pattern\":\"(\"}}}",
+      "instance": "null",
+      "error": "portable_pattern"
+    }
+  ],
+  "contracts": [
+    {
+      "name": "Descriptor",
+      "source": "{\"contract_profile\": \"skulk.portable/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}",
+      "canonical": "{\"annotations\":{},\"behavior\":\"read\",\"contract_profile\":\"skulk.portable/1\",\"description\":\"Synthetic contract qualification\",\"id\":\"example.echo\",\"input_chunk_schema\":null,\"input_schema\":{\"additionalProperties\":false,\"type\":\"object\"},\"io_mode\":\"unary\",\"output_chunk_schema\":null,\"output_schema\":null,\"profile_digest\":\"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\",\"title\":\"Echo\",\"version\":\"1.0.0\"}",
+      "digest": "1fe1df7b8345925f883ccbc735ddb3d67c5807f0bc727049cb97d0a61d4b2f01"
+    },
+    {
+      "name": "ContractEnvelope",
+      "source": "{\"contract_profile\": \"skulk.portable/1\", \"protocol\": 5, \"descriptors\": [{\"contract_profile\": \"skulk.portable/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}], \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}",
+      "canonical": "{\"configuration_schema\":null,\"contract_profile\":\"skulk.portable/1\",\"descriptors\":[{\"annotations\":{},\"behavior\":\"read\",\"contract_profile\":\"skulk.portable/1\",\"description\":\"Synthetic contract qualification\",\"id\":\"example.echo\",\"input_chunk_schema\":null,\"input_schema\":{\"additionalProperties\":false,\"type\":\"object\"},\"io_mode\":\"unary\",\"output_chunk_schema\":null,\"output_schema\":null,\"profile_digest\":\"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\",\"title\":\"Echo\",\"version\":\"1.0.0\"}],\"profile_digest\":\"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\",\"protocol\":5}",
+      "digest": "1fef2736a15514dd20801af76f8dcc11d11e60f3413e277d84daebb00e444a01"
+    },
+    {
+      "name": "ContractEnvelope",
+      "source": "{\"contract_profile\": \"skulk.portable/1\", \"protocol\": 3, \"descriptors\": [{\"contract_profile\": \"skulk.portable/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}], \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}",
+      "error": "portable_protocol"
+    },
+    {
+      "name": "ContractEnvelope",
+      "source": "{\"contract_profile\": \"skulk.portable/1\", \"protocol\": 4, \"descriptors\": [{\"contract_profile\": \"skulk.portable/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}], \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}",
+      "error": "portable_protocol"
+    },
+    {
+      "name": "ContractEnvelope",
+      "source": "{\"contract_profile\": \"skulk.portable/1\", \"protocol\": 6, \"descriptors\": [{\"contract_profile\": \"skulk.portable/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}], \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}",
+      "error": "portable_protocol"
+    },
+    {
+      "name": "Descriptor",
+      "source": "{\"contract_profile\": \"unknown/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}",
+      "error": "portable_profile"
+    },
+    {
+      "name": "Descriptor",
+      "source": "{\"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}",
+      "error": "portable_profile"
+    },
+    {
+      "name": "Descriptor",
+      "source": "{\"contract_profile\": \"skulk.portable/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"io_mode\": \"server_streaming\", \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}",
+      "error": "portable_contract"
+    },
+    {
+      "name": "ContractEnvelope",
+      "source": "{\"contract_profile\": \"skulk.portable/1\", \"protocol\": 5, \"descriptors\": [{\"contract_profile\": \"skulk.portable/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}, {\"contract_profile\": \"skulk.portable/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}], \"profile_digest\": \"ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3\"}",
+      "error": "portable_contract"
+    },
+    {
+      "name": "Descriptor",
+      "source": "{\"contract_profile\": \"skulk.portable/1\", \"id\": \"example.echo\", \"version\": \"1.0.0\", \"title\": \"Echo\", \"description\": \"Synthetic contract qualification\", \"behavior\": \"read\", \"input_schema\": {\"type\": \"object\", \"additionalProperties\": false}, \"profile_digest\": \"0000000000000000000000000000000000000000000000000000000000000000\"}",
+      "error": "portable_profile"
+    }
+  ],
+  "profile_digest": "ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3"
+}

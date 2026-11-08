@@ -1,0 +1,20 @@
+{
+  "name": "@foxlight/skulk-capability-kernel-qualification",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.18.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.consumer.json && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3",
+    "@types/node": "22.18.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

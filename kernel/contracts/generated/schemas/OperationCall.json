@@ -1,0 +1,70 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "description": "One verb of the operation contract; the dispatcher checks authority.",
+  "properties": {
+    "input": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Input"
+    },
+    "offset": {
+      "anyOf": [
+        {
+          "maximum": 9007199254740992,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Offset"
+    },
+    "op": {
+      "enum": [
+        "start",
+        "status",
+        "cancel",
+        "list",
+        "log",
+        "plan"
+      ],
+      "title": "Op",
+      "type": "string"
+    },
+    "operation_id": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:@-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Operation Id"
+    }
+  },
+  "required": [
+    "op"
+  ],
+  "title": "OperationCall",
+  "type": "object"
+}

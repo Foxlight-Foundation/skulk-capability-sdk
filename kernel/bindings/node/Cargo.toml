@@ -1,0 +1,27 @@
+[package]
+name = "skulk-capability-node"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+publish = false
+license-file = "../../LICENSE.md"
+
+[lib]
+name = "skulk_capability_node"
+crate-type = ["cdylib"]
+
+[dependencies]
+skulk-capability-kernel = { path = "../.." }
+napi = { version = "=3.14.2", default-features = false, features = ["napi8", "tokio_rt"] }
+napi-derive = "=3.6.12"
+
+[lints.rust]
+# napi-rs generates its FFI registration inside explicitly allowed macros.
+# Authored unsafe remains denied; the shared kernel retains forbid.
+unsafe_code = "deny"
+
+[lints.clippy]
+all = "warn"
+
+[build-dependencies]
+napi-build = "=2.6.0"

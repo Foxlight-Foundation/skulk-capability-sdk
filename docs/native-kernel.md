@@ -45,3 +45,54 @@ covers descriptors and optional configuration schema; installed host/startup
 negotiation, author/client interfaces and protected-state migration require
 their own acceptance. The existing Python SDK does not switch profiles when
 these sources or qualification artifacts are built.
+
+## Managed installation and inherited startup candidate
+
+The separate [`skulk.managed/1` specification](../kernel/contracts/managed-v1.json)
+adds native `Manifest` and `Startup` admission. It embeds a portable/1 contract
+envelope instead of redefining descriptor/schema semantics. The original
+portable fingerprint, canonical bytes and 1,959-case corpus remain unchanged.
+Every managed record declares protocol five and the exact managed specification
+fingerprint. Older or mismatched readers must refuse it before child execution.
+
+Manifests bind bundle/version, relative artifact entry, exact executable digest
+and arguments, compatibility
+requirements, lifecycle/operation bounds, operator surfaces, credential *names*,
+runtime dependency roots and Steward exposure classifications. Native admission
+rejects duplicate identities, unsupported nested schemas, mismatched behavior,
+undeclared operation bounds and unsafe paths. Classification labels describe the
+contract; they do not grant permission to execute it. The host must additionally
+validate its own supported profile/version, publisher signatures, current trust,
+selected runtime and original caller authority before effects.
+
+Startup binds the **full** normalized manifest digest and the resolved absolute
+entry path, private sockets, runtime
+identities and schema-validated settings. Streaming requires its declared media
+socket. Raw input and escaped canonical output each have a 262,144-byte record
+bound; settings retain the portable 65,536-byte bound. These are metadata bounds,
+not request-count or model output-token ceilings.
+
+**Startup contains secrets.** Keep it on protected inherited IPC; do not publish,
+log or include it in status/diagnostics. Native refusal messages never echo its
+values. The manifest may be signed/public; startup is not public release metadata.
+Its digest binds bytes, and is not a credential or execution authorization.
+
+Python exposes `managed_profile_digest`, `managed_contract_json` and
+`managed_contract_digest`. TypeScript exposes `ManagedContract` and
+`managedProfileDigest` from the native portable facade. Both delegate to the same
+Rust implementation. Independent synthetic managed vectors are exercised through
+Rust and the separately installed Python/Node artifacts on each CI platform.
+There is no language-level fallback validator.
+
+The immutable original export receipt is now
+[`KERNEL-INITIAL-EXPORT.json`](../KERNEL-INITIAL-EXPORT.json).
+[`KERNEL-SOURCE-MANIFEST.json`](../KERNEL-SOURCE-MANIFEST.json) separately pins the
+explicitly maintained public files. Its audit preserves the original receipt and
+refuses undeclared source or changed current hashes; source review establishes
+the public changes. This allows public development without relabelling new code
+as byte-identical to its initial private export.
+
+These exports establish native **record admission**. Normal signed owner/Core
+installation, startup negotiation, application migration and SDK 1.0 installed
+acceptance remain separate gates. Building these artifacts does not change any
+installed capability or select this profile for the existing Python SDK.

@@ -3,6 +3,18 @@
 from collections.abc import Awaitable
 from typing import Literal
 
+def managed_profile_digest() -> str:
+    """Fingerprint the managed installation/startup specification."""
+    ...
+
+def managed_contract_json(name: Literal["Manifest", "Startup"], source: str) -> bytes:
+    """Normalize native managed records; startup bytes may contain secrets."""
+    ...
+
+def managed_contract_digest(name: Literal["Manifest", "Startup"], source: str) -> str:
+    """Bind the complete managed record to its profile/model domain."""
+    ...
+
 def portable_profile_digest() -> str:
     """Return the shared packaged normative profile fingerprint."""
     ...

@@ -6,6 +6,8 @@ on:
     paths:
       - kernel/**
       - KERNEL-SOURCE-MANIFEST.json
+      - KERNEL-INITIAL-EXPORT.json
+      - tools/check_managed_profile.py
       - tools/check_kernel_export.py
       - tools/qualify_kernel.py
       - tools/check_portable_profile.py
@@ -44,4 +46,5 @@ jobs:
           path: |
             .runtime/native-qualification/report.json
             .runtime/native-qualification/portable-*.json
+            .runtime/native-qualification/managed-*.json
           retention-days: 14

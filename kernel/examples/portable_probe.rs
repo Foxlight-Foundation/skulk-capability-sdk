@@ -3,7 +3,7 @@
 use std::io::{self, BufRead};
 
 use serde_json::{Value, json};
-use skulk_capability_kernel::portable;
+use skulk_capability_kernel::{managed, portable};
 
 fn evaluate(request: &Value) -> Result<Value, portable::PortableError> {
     let source = request["source"].as_str().expect("probe source");
@@ -14,6 +14,12 @@ fn evaluate(request: &Value) -> Result<Value, portable::PortableError> {
         "schema" => Ok(
             json!({"valid": portable::Schema::new(request["definition"].as_str().expect("probe definition"))?.matches(source)?}),
         ),
+        "managed" => {
+            let name = request["name"].as_str().expect("probe root");
+            Ok(
+                json!({"canonical":String::from_utf8(managed::validate_contract_json(name,source)?).expect("ASCII JSON"),"digest":managed::contract_digest(name,source)?}),
+            )
+        }
         "contract" => {
             let name = request["name"].as_str().expect("probe root");
             Ok(

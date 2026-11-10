@@ -51,3 +51,35 @@ export class PortableSchema {
   /** Return a normal match/mismatch; malformed or over-budget JSON throws. */
   matches(source: string): boolean { return this.#compiled.matches(source); }
 }
+
+/** Managed records have a separate fingerprint; portable descriptor identity stays frozen. */
+export const MANAGED_PROFILE = 'skulk.managed/1' as const;
+/** Managed record roots participate in the full identity domain. */
+export type ManagedContractName = 'Manifest' | 'Startup';
+/** Return the exact managed installation/startup profile fingerprint. */
+export function managedProfileDigest(): string { return native.managedProfileDigest(); }
+
+/** Immutable native-admitted managed record. Startup bytes may contain secrets.
+ * Keep startup records on private inherited IPC; never log or publish them.
+ * Admission validates structure, not signatures, trust or execution authority.
+ */
+export class ManagedContract {
+  readonly #canonical: Uint8Array;
+  readonly digest: string;
+  readonly name: ManagedContractName;
+
+  private constructor(name: ManagedContractName, source: string) {
+    this.name = name;
+    this.#canonical = native.managedContractJson(name, source);
+    this.digest = native.managedContractDigest(name, source);
+    Object.freeze(this);
+  }
+
+  /** Validate defaults, full identity binding, configuration and startup constraints. */
+  static fromJson(name: ManagedContractName, source: string): ManagedContract {
+    return new ManagedContract(name, source);
+  }
+
+  /** Copy bytes without permitting mutation of the native-admitted identity. */
+  canonical(): Uint8Array { return Uint8Array.from(this.#canonical); }
+}

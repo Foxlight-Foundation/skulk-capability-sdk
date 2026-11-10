@@ -7,7 +7,8 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use skulk_capability_kernel::{
-    binding, codec, contracts, journal, operation_logs, operations, portable, schema, streams,
+    binding, codec, contracts, journal, managed, operation_logs, operations, portable, schema,
+    streams,
 };
 
 /// Private qualification surface; source text preserves wide JSON numbers.
@@ -32,6 +33,38 @@ fn schema_matches_installed(
             .map(|schema| schema.matches(&instance))
             .map_err(|_| PyValueError::new_err("invalid payload schema"))
     })
+}
+
+/// Exact managed installation-profile fingerprint; no authorization effects.
+#[pyfunction]
+fn managed_profile_digest() -> &'static str {
+    managed::profile_digest()
+}
+
+/// Native admission of a managed manifest or private inherited startup record.
+#[pyfunction]
+fn managed_contract_json<'py>(
+    py: Python<'py>,
+    name: &str,
+    source: &Bound<'py, PyString>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    let source = portable_text(source)?;
+    let bytes = py
+        .detach(|| managed::validate_contract_json(name, &source))
+        .map_err(portable_error)?;
+    Ok(PyBytes::new(py, &bytes))
+}
+
+/// Full managed identity; never truncate or treat a digest as caller authority.
+#[pyfunction]
+fn managed_contract_digest(
+    py: Python<'_>,
+    name: &str,
+    source: &Bound<'_, PyString>,
+) -> PyResult<String> {
+    let source = portable_text(source)?;
+    py.detach(|| managed::contract_digest(name, &source))
+        .map_err(portable_error)
 }
 
 /// SDK 1.0 candidate canonical JSON; no legacy numeric or surrogate kinds.
@@ -448,6 +481,9 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(portable_contract_digest, module)?)?;
     module.add_function(wrap_pyfunction!(portable_schema_matches, module)?)?;
     module.add_function(wrap_pyfunction!(portable_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(managed_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(managed_contract_json, module)?)?;
+    module.add_function(wrap_pyfunction!(managed_contract_digest, module)?)?;
     module.add_class::<PortableSchema>()?;
     module.add_class::<NativeAuthorContract>()?;
     module.add_function(wrap_pyfunction!(input_digest, module)?)?;

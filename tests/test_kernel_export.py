@@ -13,11 +13,18 @@ import pytest
 def exported_source(tmp_path: Path) -> Path:
     """Copy only the reviewed source set, excluding build caches and runtimes."""
     source = Path(__file__).resolve().parents[1]
-    manifest = json.loads((source / "KERNEL-SOURCE-MANIFEST.json").read_text())
+    manifest = json.loads((source / "KERNEL-INITIAL-EXPORT.json").read_text())
+    maintained = json.loads((source / "KERNEL-SOURCE-MANIFEST.json").read_text())
     names = (
         set(manifest["files"])
+        | set(maintained["maintained_files"])
         | set(manifest["generated_files"])
-        | {"LICENSE.md", "KERNEL-SOURCE-MANIFEST.json", "tools/check_kernel_export.py"}
+        | {
+            "LICENSE.md",
+            "KERNEL-SOURCE-MANIFEST.json",
+            "KERNEL-INITIAL-EXPORT.json",
+            "tools/check_kernel_export.py",
+        }
     )
     for name in names:
         destination = tmp_path / name
@@ -43,7 +50,7 @@ def test_source_archive_needs_no_owner_or_git_history(exported_source: Path) -> 
     assert not (exported_source / ".git").exists()
     result = run_export_check(exported_source)
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["source_files"] == 95
+    assert json.loads(result.stdout)["source_files"] == 102
 
 
 def test_undeclared_kernel_source_refuses(exported_source: Path) -> None:
@@ -59,7 +66,7 @@ def test_relabelled_source_change_refuses(exported_source: Path) -> None:
     name = "kernel/src/portable.rs"
     path = exported_source / name
     path.write_bytes(path.read_bytes() + b"\n// changed synthetic export\n")
-    manifest_path = exported_source / "KERNEL-SOURCE-MANIFEST.json"
+    manifest_path = exported_source / "KERNEL-INITIAL-EXPORT.json"
     manifest = json.loads(manifest_path.read_text())
     manifest["files"][name]["exported_sha256"] = hashlib.sha256(
         path.read_bytes()
@@ -67,4 +74,15 @@ def test_relabelled_source_change_refuses(exported_source: Path) -> None:
     manifest_path.write_text(json.dumps(manifest))
     result = run_export_check(exported_source)
     assert result.returncode != 0
-    assert "Qualified kernel implementation changed" in result.stderr
+    assert "Initial kernel export" in result.stderr
+
+
+def test_maintained_source_requires_explicit_current_identity(
+    exported_source: Path,
+) -> None:
+    """Public development does not allow silently changed current source."""
+    path = exported_source / "kernel/src/managed.rs"
+    path.write_bytes(path.read_bytes() + b"\n// synthetic mutation\n")
+    result = run_export_check(exported_source)
+    assert result.returncode != 0
+    assert "Maintained public kernel source identity differs" in result.stderr

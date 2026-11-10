@@ -345,6 +345,36 @@ def main() -> None:
         raise ValueError("Unexpected npm archive record")
     package = npm_output / str(packed[0]["filename"])
     inspect_npm(package)
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_managed_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"managed-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    managed_reports = [
+        json.loads((OUTPUT / f"managed-{backend}.json").read_text())
+        for backend in ["rust", "python", "node"]
+    ]
+    for current in managed_reports[1:]:
+        for field in [
+            "profile",
+            "profile_digest",
+            "cases",
+            "input_sha256",
+            "observations",
+        ]:
+            if current[field] != managed_reports[0][field]:
+                raise ValueError("Complete managed observations differ")
     reports = [
         json.loads((OUTPUT / f"portable-{backend}.json").read_text())
         for backend in ["rust", "python", "node"]
@@ -372,6 +402,10 @@ def main() -> None:
         "profile": reports[0]["profile"],
         "profile_digest": reports[0]["profile_digest"],
         "cases_per_backend": reports[0]["cases"],
+        "managed_profile": managed_reports[0]["profile"],
+        "managed_profile_digest": managed_reports[0]["profile_digest"],
+        "managed_cases_per_backend": managed_reports[0]["cases"],
+        "managed_input_sha256": managed_reports[0]["input_sha256"],
         "input_sha256": reports[0]["input_sha256"],
         "wheel": {
             "name": wheel.name,

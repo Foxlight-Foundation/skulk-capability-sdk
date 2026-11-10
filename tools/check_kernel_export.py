@@ -109,6 +109,31 @@ SOURCE_FILES = frozenset(
         "tools/portable_profile_cases.py",
     ]
 )
+
+MAINTAINED_FILES = frozenset(
+    [
+        "kernel/bindings/node/loader.d.cts",
+        "kernel/bindings/node/portable.ts",
+        "kernel/bindings/node/src/lib.rs",
+        "kernel/bindings/node/tests/managed.test.mjs",
+        "kernel/bindings/node/tests/portable-consumer.ts",
+        "kernel/bindings/node/tools/portable_probe.mjs",
+        "kernel/bindings/python/_skulk_capability_kernel.pyi",
+        "kernel/bindings/python/src/lib.rs",
+        "kernel/bindings/python/tests/test_native_managed.py",
+        "kernel/contracts/managed-v1-cases.json",
+        "kernel/contracts/managed-v1.json",
+        "kernel/examples/portable_probe.rs",
+        "kernel/src/lib.rs",
+        "kernel/src/managed.rs",
+        "kernel/tests/managed.rs",
+        "tools/check_managed_profile.py",
+    ]
+)
+INITIAL_EXPORT_SHA256 = (
+    "a1ac2c9ceb511c2250e7f63e9f8a010ecbddf010d9d4ef7e436a3ccb7c0d9a62"
+)
+
 GENERATED_FILES = frozenset({"kernel/README.md"})
 BUILD_DIRECTORIES = frozenset(
     {
@@ -174,6 +199,16 @@ class KernelExport(BaseModel):
     generated_files: dict[str, str]
 
 
+class PublicMaintenance(BaseModel):
+    """Reviewed public changes, distinct from immutable private-export evidence."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    format: Literal[2]
+    initial_export_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    scope: str
+    maintained_files: dict[str, str]
+
+
 def _kernel_files() -> set[str]:
     """Find source files in a checkout or an anonymous source archive."""
     if (ROOT / ".git").exists():
@@ -211,20 +246,36 @@ def _kernel_files() -> set[str]:
 
 def validate_source() -> dict[str, str | int]:
     """Refuse undeclared kernel files, changed code or non-MIT license copies."""
-    manifest = KernelExport.model_validate_json(
+    maintenance = PublicMaintenance.model_validate_json(
         (ROOT / "KERNEL-SOURCE-MANIFEST.json").read_bytes()
     )
+    original = (ROOT / "KERNEL-INITIAL-EXPORT.json").read_bytes()
+    if (
+        maintenance.initial_export_sha256 != INITIAL_EXPORT_SHA256
+        or hashlib.sha256(original).hexdigest() != INITIAL_EXPORT_SHA256
+        or frozenset(maintenance.maintained_files) != MAINTAINED_FILES
+    ):
+        raise ValueError("Initial kernel export or reviewed maintenance set differs")
+    manifest = KernelExport.model_validate_json(original)
     if (
         frozenset(manifest.files) != SOURCE_FILES
         or frozenset(manifest.generated_files) != GENERATED_FILES
     ):
         raise ValueError("Kernel source export differs from the reviewed positive list")
     expected_kernel = {
-        name for name in SOURCE_FILES if name.startswith("kernel/")
+        name for name in SOURCE_FILES | MAINTAINED_FILES if name.startswith("kernel/")
     } | GENERATED_FILES
     if _kernel_files() != expected_kernel:
         raise ValueError("Undeclared kernel source files")
+    for name, digest in maintenance.maintained_files.items():
+        path = ROOT / name
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("Maintained kernel source must be a regular file")
+        if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            raise ValueError("Maintained public kernel source identity differs")
     for name, record in manifest.files.items():
+        if name in MAINTAINED_FILES:
+            continue
         path = ROOT / name
         if path.is_symlink() or not path.is_file():
             raise ValueError("Kernel source must be a regular file")
@@ -264,7 +315,9 @@ def validate_source() -> dict[str, str | int]:
     if fingerprint != manifest.profile_digest:
         raise ValueError("Kernel profile differs from the qualified source")
     return {
-        "source_files": len(manifest.files),
+        "source_files": len(SOURCE_FILES | MAINTAINED_FILES),
+        "initial_export_sha256": INITIAL_EXPORT_SHA256,
+        "maintained_files": len(MAINTAINED_FILES),
         "profile": manifest.profile,
         "profile_digest": fingerprint,
     }

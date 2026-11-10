@@ -1,6 +1,6 @@
 // Maintainer-only adapter: the same candidate facade used by the Node tests.
 import {createInterface} from 'node:readline';
-import {PortableContract, PortableSchema, canonicalPortableJson} from '../dist/portable.js';
+import {ManagedContract, PortableContract, PortableSchema, canonicalPortableJson} from '../dist/portable.js';
 
 for await (const line of createInterface({input: process.stdin, crlfDelay: Infinity})) {
   const request = JSON.parse(line);
@@ -10,6 +10,9 @@ for await (const line of createInterface({input: process.stdin, crlfDelay: Infin
       response = {canonical: Buffer.from(canonicalPortableJson(request.source)).toString('ascii')};
     } else if (request.operation === 'schema') {
       response = {valid: new PortableSchema(request.definition).matches(request.source)};
+    } else if (request.operation === 'managed') {
+      const record = ManagedContract.fromJson(request.name, request.source);
+      response = {canonical: Buffer.from(record.canonical()).toString('ascii'), digest: record.digest};
     } else if (request.operation === 'contract') {
       const record = PortableContract.fromJson(request.name, request.source);
       response = {canonical: Buffer.from(record.canonical()).toString('ascii'), digest: record.digest};

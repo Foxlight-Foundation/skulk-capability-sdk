@@ -40,6 +40,9 @@ declare class NativeOperationRunner {
   respond(id: number, response: string): boolean;
 }
 declare const native: {
+  managedProfileDigest(): string;
+  managedContractJson(name: 'Manifest' | 'Startup', source: string): Buffer;
+  managedContractDigest(name: 'Manifest' | 'Startup', source: string): string;
   portableProfileDigest(): string;
   PortableSchema: typeof PortableSchema;
   portableCanonicalJson(source: string): Buffer;

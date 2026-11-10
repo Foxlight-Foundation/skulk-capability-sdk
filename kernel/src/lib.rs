@@ -8,6 +8,7 @@ pub mod codec;
 pub mod contracts;
 #[cfg(unix)]
 pub mod journal;
+pub mod managed;
 pub mod portable;
 mod portable_json;
 mod portable_schema;

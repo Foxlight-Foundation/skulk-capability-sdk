@@ -6,7 +6,8 @@ use napi::bindgen_prelude::{Buffer, Utf16String};
 use napi::{Error, Result, Status};
 use napi_derive::napi;
 use skulk_capability_kernel::{
-    binding, codec, contracts, journal, operation_logs, operations, portable, schema, streams,
+    binding, codec, contracts, journal, managed, operation_logs, operations, portable, schema,
+    streams,
 };
 
 /// Private qualification surface; source text avoids JavaScript number narrowing.
@@ -23,6 +24,28 @@ pub fn schema_matches_installed(definition: String, instance: String) -> Result<
     schema::Schema::installed(&definition)
         .map(|schema| schema.matches(&instance))
         .map_err(|_| Error::new(Status::InvalidArg, "invalid payload schema"))
+}
+
+/// Exact managed installation-profile fingerprint; no authorization effects.
+#[napi]
+pub fn managed_profile_digest() -> String {
+    managed::profile_digest().into()
+}
+
+/// Native admission of a managed manifest or private inherited startup record.
+#[napi]
+pub fn managed_contract_json(name: String, source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    managed::validate_contract_json(&name, &source)
+        .map(Buffer::from)
+        .map_err(portable_error)
+}
+
+/// Full managed identity; never truncate or treat a digest as caller authority.
+#[napi]
+pub fn managed_contract_digest(name: String, source: Utf16String) -> Result<String> {
+    let source = portable_text(source)?;
+    managed::contract_digest(&name, &source).map_err(portable_error)
 }
 
 /// SDK 1.0 candidate canonical JSON with one bounded numeric meaning.

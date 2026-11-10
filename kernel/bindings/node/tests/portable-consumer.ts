@@ -13,3 +13,15 @@ const contract = PortableContract.fromJson('Descriptor', JSON.stringify({
 const digest: string = contract.digest;
 const canonical: Uint8Array = contract.canonical();
 void [matches, bytes, digest, canonical];
+
+// Managed records are a separate type/profile, preserving portable identities.
+import {ManagedContract, managedProfileDigest} from '../dist/portable.js';
+const managedFingerprint: string = managedProfileDigest();
+function admittedManifest(source: string): Uint8Array {
+  const manifest = ManagedContract.fromJson('Manifest', source);
+  const fullIdentity: string = manifest.digest;
+  void fullIdentity;
+  return manifest.canonical();
+}
+void managedFingerprint;
+void admittedManifest;

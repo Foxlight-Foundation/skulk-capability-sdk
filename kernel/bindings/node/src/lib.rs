@@ -6,8 +6,8 @@ use napi::bindgen_prelude::{Buffer, Utf16String};
 use napi::{Error, Result, Status};
 use napi_derive::napi;
 use skulk_capability_kernel::{
-    binding, codec, contracts, handshake, journal, managed, operation_logs, operations, portable,
-    schema, streams, transport,
+    binding, codec, composition, contracts, handshake, journal, managed, operation_logs,
+    operations, portable, schema, streams, transport,
 };
 
 /// Private qualification surface; source text avoids JavaScript number narrowing.
@@ -30,6 +30,65 @@ pub fn schema_matches_installed(definition: String, instance: String) -> Result<
 #[napi]
 pub fn managed_profile_digest() -> String {
     managed::profile_digest().into()
+}
+
+/// Pure composition fingerprint, independently versioned from native transport.
+#[napi]
+pub fn composition_profile_digest() -> String {
+    composition::profile_digest().into()
+}
+
+/// Admit metadata structurally without establishing host provenance.
+#[napi]
+pub fn composition_contract_json(name: String, source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    composition::Record::from_json(&name, &source)
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(|error| Error::new(Status::InvalidArg, error.to_string()))
+}
+
+/// Intersect host-owned active parent and live policy; never dispatch or replay.
+#[napi]
+pub fn admit_delegation_json(
+    parent: Utf16String,
+    request: Utf16String,
+    policy: Utf16String,
+    executor: Utf16String,
+    request_bytes: Buffer,
+    now_unix_ms: f64,
+    scope_id: Utf16String,
+) -> Result<Buffer> {
+    let parent = portable_text(parent)?;
+    let request = portable_text(request)?;
+    let policy = portable_text(policy)?;
+    let executor = portable_text(executor)?;
+    let scope_id = portable_text(scope_id)?;
+    if !now_unix_ms.is_finite()
+        || now_unix_ms.fract() != 0.0
+        || !(1.0..=9_007_199_254_740_991.0).contains(&now_unix_ms)
+    {
+        return Err(Error::new(
+            Status::InvalidArg,
+            "composition_expired: deadline is unavailable",
+        ));
+    }
+    let result = (|| {
+        let parent = composition::Record::from_json("Context", &parent)?;
+        let request = composition::Record::from_json("DelegateRequest", &request)?;
+        let policy = composition::Record::from_json("Policy", &policy)?;
+        composition::admit(
+            &parent,
+            &request,
+            &policy,
+            &executor,
+            &request_bytes,
+            now_unix_ms as u64,
+            &scope_id,
+        )
+    })();
+    result
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(|error| Error::new(Status::InvalidArg, error.to_string()))
 }
 
 /// Native admission of a managed manifest or private inherited startup record.

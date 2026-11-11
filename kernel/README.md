@@ -73,3 +73,11 @@ The new pure/native interfaces do not install a capability, grant inference
 permissions, identify the original caller or qualify normal signed owner/Core
 startup. Signed acquisition, protected inherited startup, coordinated first-party
 state preservation and installed qualification remain separate gates.
+
+## Host-owned composition candidate
+
+Native 0.5.0rc1 adds independent `skulk.composition/1` records and pure
+delegation attenuation through Rust and both compiled language bindings. Read
+the [composition contract](../docs/native-composition.md) for authority ownership,
+exact request binding, privacy, deadline and replay obligations. This does not
+extend frozen native transport records or qualify runtime delegation/migration.

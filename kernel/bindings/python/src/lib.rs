@@ -7,8 +7,8 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use skulk_capability_kernel::{
-    binding, codec, contracts, handshake, journal, managed, operation_logs, operations, portable,
-    schema, streams, transport,
+    binding, codec, composition, contracts, handshake, journal, managed, operation_logs,
+    operations, portable, schema, streams, transport,
 };
 
 /// Private qualification surface; source text preserves wide JSON numbers.
@@ -39,6 +39,76 @@ fn schema_matches_installed(
 #[pyfunction]
 fn managed_profile_digest() -> &'static str {
     managed::profile_digest()
+}
+
+/// The independent composition fingerprint grants no caller authority.
+#[pyfunction]
+fn composition_profile_digest() -> &'static str {
+    composition::profile_digest()
+}
+
+/// Immutable caller metadata, without diagnostic serialization or content digest.
+#[pyclass(frozen, module = "_skulk_capability_kernel")]
+struct CompositionContract {
+    record: composition::Record,
+}
+
+#[pymethods]
+impl CompositionContract {
+    /// Parse structurally; the host must establish active-scope provenance.
+    #[staticmethod]
+    fn from_json(py: Python<'_>, name: &str, source: &Bound<'_, PyString>) -> PyResult<Self> {
+        let source = portable_text(source)?;
+        let record = py
+            .detach(|| composition::Record::from_json(name, &source))
+            .map_err(|error| PyValueError::new_err(error.to_string()))?;
+        Ok(Self { record })
+    }
+
+    /// Public kind only, without caller, scope or request identity.
+    #[getter]
+    fn name(&self) -> &'static str {
+        self.record.name()
+    }
+
+    /// Explicitly copy sensitive canonical bytes for protected host IPC.
+    fn canonical<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, self.record.canonical())
+    }
+
+    /// Attenuate with host observations; no registry lookup, replay or dispatch.
+    // Separate arguments make host observations explicit at the FFI boundary.
+    #[allow(clippy::too_many_arguments)]
+    fn admit(
+        &self,
+        py: Python<'_>,
+        request: &Self,
+        policy: &Self,
+        executor: &Bound<'_, PyString>,
+        request_bytes: Vec<u8>,
+        now_unix_ms: u64,
+        scope_id: &str,
+    ) -> PyResult<Self> {
+        let executor = portable_text(executor)?;
+        let record = py
+            .detach(|| {
+                composition::admit(
+                    &self.record,
+                    &request.record,
+                    &policy.record,
+                    &executor,
+                    &request_bytes,
+                    now_unix_ms,
+                    scope_id,
+                )
+            })
+            .map_err(|error| PyValueError::new_err(error.to_string()))?;
+        Ok(Self { record })
+    }
+
+    fn __repr__(&self) -> String {
+        format!("CompositionContract({})", self.record.name())
+    }
 }
 
 /// Native admission of a managed manifest or private inherited startup record.
@@ -602,6 +672,8 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(portable_schema_matches, module)?)?;
     module.add_function(wrap_pyfunction!(portable_profile_digest, module)?)?;
     module.add_function(wrap_pyfunction!(managed_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(composition_profile_digest, module)?)?;
+    module.add_class::<CompositionContract>()?;
     module.add_function(wrap_pyfunction!(handshake_profile_digest, module)?)?;
     module.add_class::<ManagedContract>()?;
     module.add_class::<HandshakeContract>()?;

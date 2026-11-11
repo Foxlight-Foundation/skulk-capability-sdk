@@ -159,6 +159,31 @@ class HandshakeContract:
     def name(self) -> Literal["Hello", "StreamHello"]: ...
     def canonical(self) -> bytes: ...
 
+def composition_profile_digest() -> str:
+    """Fingerprint pure attenuation; this does not grant caller authority."""
+    ...
+
+class CompositionContract:
+    """Immutable sensitive caller metadata with no bearer-grant semantics."""
+    @staticmethod
+    def from_json(
+        name: Literal["Context", "DelegateRequest", "Policy"], source: str
+    ) -> CompositionContract: ...
+    @property
+    def name(self) -> Literal["Context", "DelegateRequest", "Policy"]: ...
+    def canonical(self) -> bytes: ...
+    def admit(
+        self,
+        request: CompositionContract,
+        policy: CompositionContract,
+        executor: str,
+        request_bytes: bytes,
+        now_unix_ms: int,
+        scope_id: str,
+    ) -> CompositionContract:
+        """Attenuate host observations without activating or executing the scope."""
+        ...
+
 def transport_profile_digest() -> str:
     """Fingerprint protocol-five framing independently of author contracts."""
     ...

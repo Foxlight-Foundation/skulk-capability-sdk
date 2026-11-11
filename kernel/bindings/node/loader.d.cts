@@ -46,6 +46,9 @@ declare class NativeControl {
   close(): Promise<void>;
 }
 declare const native: {
+  compositionProfileDigest(): string;
+  compositionContractJson(name: 'Context' | 'DelegateRequest' | 'Policy', source: string): Buffer;
+  admitDelegationJson(parent: string, request: string, policy: string, executor: string, requestBytes: Buffer, nowUnixMs: number, scopeId: string): Buffer;
   transportProfileDigest(): string;
   encodePortableControl(source: string): Buffer;
   decodePortableControl(packet: Buffer): Buffer;

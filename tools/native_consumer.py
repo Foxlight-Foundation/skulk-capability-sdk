@@ -92,7 +92,7 @@ def verify_install(wheel: Path, package: Path, output: Path) -> None:
     )
     if not facade.is_file():
         raise ValueError("Installed Node facade is absent")
-    for kind in ["portable", "managed", "handshake", "transport"]:
+    for kind in ["portable", "managed", "handshake", "transport", "composition"]:
         for backend in ["python", "node"]:
             command = [
                 sys.executable,
@@ -106,7 +106,7 @@ def verify_install(wheel: Path, package: Path, output: Path) -> None:
             if backend == "node":
                 command += ["--node-facade", str(facade)]
             _run(command, python_env)
-    for kind in ["portable", "managed", "handshake", "transport"]:
+    for kind in ["portable", "managed", "handshake", "transport", "composition"]:
         expected = json.loads((output / f"{kind}-rust.json").read_text())
         for backend in ["python", "node"]:
             observed = json.loads((work / f"{kind}-{backend}.json").read_text())

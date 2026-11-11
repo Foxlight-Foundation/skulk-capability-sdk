@@ -376,6 +376,38 @@ def main() -> None:
             ),
             end="",
         )
+    print(
+        run(
+            [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "composition_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_composition_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"composition-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    composition_report = json.loads((OUTPUT / "composition-rust.json").read_text())
     transport_report = json.loads((OUTPUT / "transport-rust.json").read_text())
     handshake_report = json.loads((OUTPUT / "handshake-rust.json").read_text())
     report = {
@@ -391,6 +423,10 @@ def main() -> None:
         "profile": reports[0]["profile"],
         "profile_digest": reports[0]["profile_digest"],
         "cases_per_backend": reports[0]["cases"],
+        "composition_profile": composition_report["profile"],
+        "composition_profile_digest": composition_report["profile_digest"],
+        "composition_cases_per_backend": composition_report["cases"],
+        "composition_input_sha256": composition_report["input_sha256"],
         "transport_profile": transport_report["profile"],
         "transport_profile_digest": transport_report["profile_digest"],
         "transport_cases_per_backend": transport_report["cases"],

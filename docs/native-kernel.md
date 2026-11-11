@@ -104,3 +104,7 @@ prereleases remain separate from normal signed owner/Core adoption.
 The [native author records and protocol-five handshake](native-handshake.md)
 candidate provides immutable handles and explicit startup/call binding. The
 existing protocol-four stream transport retains its declared contract.
+
+The [host-owned composition candidate](native-composition.md) adds independently
+versioned pure delegation attenuation without extending issued transport records
+or granting caller authority. Normal runtime adoption remains separately gated.

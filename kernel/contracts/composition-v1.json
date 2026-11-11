@@ -1,0 +1,330 @@
+{
+  "$defs": {
+    "Target": {
+      "additionalProperties": false,
+      "properties": {
+        "behavior": {
+          "enum": [
+            "read",
+            "governed"
+          ]
+        },
+        "capability_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "descriptor_revision": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "processing_domain": {
+          "enum": [
+            "local",
+            "private_site",
+            "external"
+          ]
+        },
+        "version": {
+          "maxLength": 64,
+          "pattern": "^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "capability_id",
+        "version",
+        "descriptor_revision",
+        "processing_domain",
+        "behavior"
+      ],
+      "type": "object"
+    }
+  },
+  "canonicalization": "skulk.portable-json/1",
+  "limits": {
+    "allowed_targets": 64,
+    "ancestry": 8,
+    "record_bytes": 262144,
+    "request_bytes": 16777216
+  },
+  "models": {
+    "Context": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_processing_domains": {
+          "items": {
+            "enum": [
+              "local",
+              "private_site",
+              "external"
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "allowed_targets": {
+          "items": {
+            "$ref": "#/$defs/Target"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "ancestry": {
+          "items": {
+            "$ref": "#/$defs/Target"
+          },
+          "maxItems": 8,
+          "type": "array"
+        },
+        "caller_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "caller_kind": {
+          "enum": [
+            "operator",
+            "client",
+            "service"
+          ]
+        },
+        "contract_profile": {
+          "const": "skulk.composition/1"
+        },
+        "deadline_unix_ms": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "executor": {
+          "$ref": "#/$defs/Target"
+        },
+        "issuer_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "context"
+        },
+        "parent_scope_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policy_revision": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 1
+        },
+        "request_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "root_scope_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "scope_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "scope_id",
+        "root_scope_id",
+        "parent_scope_id",
+        "caller_id",
+        "caller_kind",
+        "issuer_node_id",
+        "executor",
+        "request_sha256",
+        "policy_revision",
+        "allowed_targets",
+        "allowed_processing_domains",
+        "ancestry",
+        "deadline_unix_ms"
+      ],
+      "type": "object"
+    },
+    "DelegateRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_profile": {
+          "const": "skulk.composition/1"
+        },
+        "deadline_unix_ms": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "destination": {
+          "$ref": "#/$defs/Target"
+        },
+        "kind": {
+          "const": "delegate"
+        },
+        "parent_request_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "parent_scope_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 1
+        },
+        "request_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "request_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "request_id",
+        "parent_scope_id",
+        "parent_request_sha256",
+        "destination",
+        "request_sha256",
+        "deadline_unix_ms"
+      ],
+      "type": "object"
+    },
+    "Policy": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_processing_domains": {
+          "items": {
+            "enum": [
+              "local",
+              "private_site",
+              "external"
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "allowed_targets": {
+          "items": {
+            "$ref": "#/$defs/Target"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "caller_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "caller_kind": {
+          "enum": [
+            "operator",
+            "client",
+            "service"
+          ]
+        },
+        "contract_profile": {
+          "const": "skulk.composition/1"
+        },
+        "deadline_unix_ms": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "issuer_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "policy"
+        },
+        "policy_revision": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 1
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "caller_id",
+        "caller_kind",
+        "issuer_node_id",
+        "policy_revision",
+        "allowed_targets",
+        "allowed_processing_domains",
+        "deadline_unix_ms"
+      ],
+      "type": "object"
+    }
+  },
+  "profile": "skulk.composition/1",
+  "protocol": 1,
+  "semantics": [
+    "Context and Policy must come from host-owned authenticated active-call and live policy state. Parsing caller-supplied records never establishes authority.",
+    "A host atomically resolves the live parent scope under the authenticated executor connection, reserves a parent-scoped one-use request_id, and owns cancellation, revocation, disconnect, expiry and uncertain execution. Pure admission does not consume a grant, execute or permit replay.",
+    "Delegation compares the authenticated executor with the parent executor and binds both parent scope and parent request. It hashes the actual destination request bytes; hashes are wire-byte identities, not JSON semantic identities.",
+    "The live exact destination must appear in both parent and current policy targets. The live policy must bind the same original caller id, kind and issuer as the parent. Its revision must equal the parent revision; changed policy requires a fresh host admission.",
+    "Caller id, caller kind, issuer and root scope remain unchanged. Child scope is a fresh host-generated random identity, distinct from parent/root/request identities. The host must also prevent collisions with previous scopes.",
+    "Child targets and processing domains are intersections of parent and current policy, deadlines can only shorten, and ancestors/current executor cannot be reentered by changing descriptor revision or version.",
+    "This profile permits delegated read behavior only. Governed effects require a separately qualified approval authority; matching a target or claiming a task never grants it.",
+    "Context is sensitive caller metadata, not a bearer credential. Do not log or replicate it, request hashes or scope-derived identities. Provider credentials and host signing keys never enter these records.",
+    "Independent record protocol1 does not extend frozen native transport1/protocol5. A native host adapter must explicitly negotiate a compatible composition transport before sending these records."
+  ]
+}

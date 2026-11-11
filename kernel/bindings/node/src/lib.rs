@@ -7,7 +7,7 @@ use napi::{Error, Result, Status};
 use napi_derive::napi;
 use skulk_capability_kernel::{
     binding, codec, contracts, handshake, journal, managed, operation_logs, operations, portable,
-    schema, streams,
+    schema, streams, transport,
 };
 
 /// Private qualification surface; source text avoids JavaScript number narrowing.
@@ -376,7 +376,7 @@ impl NativeStream {
         packet
             .map(|packet| {
                 Ok(NativePacket {
-                    projection: packet.projection_json().map_err(stream_error)?,
+                    projection: self.inner.projection(&packet).map_err(stream_error)?,
                     media: Buffer::from(packet.media),
                 })
             })
@@ -384,12 +384,19 @@ impl NativeStream {
     }
     /// Validate and send output, retaining its terminal until callback cleanup.
     #[napi]
-    pub async fn send_output(&self, projection: String, media: Buffer) -> Result<()> {
+    pub async fn send_output(&self, projection: Utf16String, media: Buffer) -> Result<()> {
         if media.len() > streams::MAX_MEDIA_BYTES {
             return Err(stream_error(streams::StreamError::MediaBound));
         }
-        let packet =
-            streams::Packet::from_projection(&projection, media.to_vec()).map_err(stream_error)?;
+        let projection = if self.inner.is_portable() {
+            portable_text(projection)?
+        } else {
+            String::from_utf16_lossy(projection.as_ref())
+        };
+        let packet = self
+            .inner
+            .packet(&projection, media.to_vec())
+            .map_err(stream_error)?;
         self.inner.send_output(packet).await.map_err(stream_error)
     }
     /// Publish terminal plus end after the facade has closed its iterator.
@@ -566,5 +573,106 @@ pub fn operation_runner(
     Ok(NativeOperationRunner {
         inner,
         _ownership: journal.journal.ownership.clone(),
+    })
+}
+
+/// Independent protocol-five control/media fingerprint.
+#[napi]
+pub fn transport_profile_digest() -> String {
+    transport::profile_digest().into()
+}
+/// Encode a closed native-admitted control; host authority is separate.
+#[napi]
+pub fn encode_portable_control(source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    transport::Control::from_json(&source)
+        .map(|control| Buffer::from(transport::encode_control(&control)))
+        .map_err(stream_error)
+}
+/// Return canonical control bytes after complete framing and profile checks.
+#[napi]
+pub fn decode_portable_control(bytes: Buffer) -> Result<Buffer> {
+    transport::decode_control(&bytes)
+        .map(|control| Buffer::from(control.canonical()))
+        .map_err(stream_error)
+}
+/// Frame portable scalar JSON and a separate bounded binary attachment.
+#[napi]
+pub fn encode_portable_packet(projection: Utf16String, media: Buffer) -> Result<Buffer> {
+    if media.len() > streams::MAX_MEDIA_BYTES {
+        return Err(stream_error(streams::StreamError::MediaBound));
+    }
+    let projection = portable_text(projection)?;
+    transport::packet(&projection, media.to_vec())
+        .and_then(|packet| transport::encode_packet(&packet))
+        .map(Buffer::from)
+        .map_err(stream_error)
+}
+/// No legacy transport fallback is permitted.
+#[napi]
+pub fn decode_portable_packet(bytes: Buffer) -> Result<NativePacket> {
+    let packet = transport::decode_packet(&bytes).map_err(stream_error)?;
+    Ok(NativePacket {
+        projection: transport::projection(&packet).map_err(stream_error)?,
+        media: Buffer::from(packet.media),
+    })
+}
+/// Derive endpoint and hello from native-admitted startup, never arbitrary hello text.
+#[napi]
+pub async fn open_portable_stream(
+    startup: Utf16String,
+    call_id: String,
+    mode: String,
+    seconds: f64,
+) -> Result<NativeStream> {
+    let startup =
+        managed::Record::from_json("Startup", &portable_text(startup)?).map_err(portable_error)?;
+    let mode = streams::Mode::parse(&mode).map_err(stream_error)?;
+    let session = streams::Session::open_portable(&startup, &call_id, mode, seconds)
+        .await
+        .map_err(stream_error)?;
+    Ok(NativeStream {
+        inner: Arc::new(session),
+    })
+}
+/// Protected native control channel; interrupted I/O invalidates subsequent work.
+#[napi]
+pub struct NativeControl {
+    inner: Arc<transport::Channel>,
+}
+#[napi]
+impl NativeControl {
+    /// Receive owned native-admitted canonical bytes.
+    #[napi]
+    pub async fn receive(&self) -> Result<Buffer> {
+        self.inner
+            .receive()
+            .await
+            .map(|record| Buffer::from(record.canonical()))
+            .map_err(stream_error)
+    }
+    /// Validate then send under the channel's single absolute deadline.
+    #[napi]
+    pub async fn send(&self, source: Utf16String) -> Result<()> {
+        let control =
+            transport::Control::from_json(&portable_text(source)?).map_err(stream_error)?;
+        self.inner.send(&control).await.map_err(stream_error)
+    }
+    /// Await task/socket teardown without replaying outstanding work.
+    #[napi]
+    pub async fn close(&self) {
+        self.inner.close().await;
+    }
+}
+/// Open only the startup-bound endpoint; host signature/caller checks are separate.
+#[napi]
+pub async fn open_portable_control(startup: Utf16String, seconds: f64) -> Result<NativeControl> {
+    let startup =
+        managed::Record::from_json("Startup", &portable_text(startup)?).map_err(portable_error)?;
+    let channel = transport::Channel::connect(&startup, seconds)
+        .await
+        .map_err(stream_error)?;
+    Ok(NativeControl {
+        inner: Arc::new(channel),
     })
 }

@@ -106,6 +106,21 @@ def main() -> None:
     print(
         run(
             [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "transport_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
+    print(
+        run(
+            [
                 sys.executable,
                 "-m",
                 "tools.check_portable_profile",
@@ -345,6 +360,23 @@ def main() -> None:
             ),
             end="",
         )
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_transport_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"transport-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    transport_report = json.loads((OUTPUT / "transport-rust.json").read_text())
     handshake_report = json.loads((OUTPUT / "handshake-rust.json").read_text())
     report = {
         "scope": (
@@ -359,6 +391,10 @@ def main() -> None:
         "profile": reports[0]["profile"],
         "profile_digest": reports[0]["profile_digest"],
         "cases_per_backend": reports[0]["cases"],
+        "transport_profile": transport_report["profile"],
+        "transport_profile_digest": transport_report["profile_digest"],
+        "transport_cases_per_backend": transport_report["cases"],
+        "transport_input_sha256": transport_report["input_sha256"],
         "handshake_profile": handshake_report["profile"],
         "handshake_profile_digest": handshake_report["profile_digest"],
         "handshake_cases_per_backend": handshake_report["cases"],

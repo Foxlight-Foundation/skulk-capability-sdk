@@ -34,3 +34,14 @@ const handshakeFingerprint: string = handshakeProfileDigest();
 void [handshake, bound, handshakeFingerprint];
 // @ts-expect-error only the two explicit handshake roots are admitted
 HandshakeContract.fromJson('Startup', '{}');
+
+import {transportProfileDigest, encodePortableControl, decodePortableControl, encodePortablePacket, decodePortablePacket, openPortableStream, openPortableControl} from '../dist/portable.js';
+const wireFingerprint: string = transportProfileDigest();
+const controlBytes: Uint8Array = encodePortableControl('{}');
+const controlJson: Uint8Array = decodePortableControl(controlBytes);
+const wireBytes: Uint8Array = encodePortablePacket('{}', new Uint8Array());
+const decoded: {projection: string; media: Uint8Array} = decodePortablePacket(wireBytes);
+function typedChannels(startup: ManagedContract) {
+  return [openPortableStream(startup, 'call', 'bidirectional', 5), openPortableControl(startup, 5)];
+}
+void [wireFingerprint, controlJson, decoded, typedChannels];

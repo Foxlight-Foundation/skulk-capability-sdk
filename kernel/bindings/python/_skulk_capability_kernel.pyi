@@ -158,3 +158,41 @@ class HandshakeContract:
     @property
     def name(self) -> Literal["Hello", "StreamHello"]: ...
     def canonical(self) -> bytes: ...
+
+def transport_profile_digest() -> str:
+    """Fingerprint protocol-five framing independently of author contracts."""
+    ...
+
+def encode_portable_control(source: str) -> bytes:
+    """Admit and frame a closed protocol-five control record."""
+    ...
+
+def decode_portable_control(packet: bytes) -> bytes:
+    """Return owned canonical control bytes; no legacy fallback."""
+    ...
+
+def encode_portable_packet(projection: str, media: bytes) -> bytes:
+    """Frame portable projection text and bounded binary attachment bytes."""
+    ...
+
+def decode_portable_packet(packet: bytes) -> tuple[str, bytes]:
+    """Return portable canonical metadata and exact media bytes."""
+    ...
+
+def open_portable_stream(
+    startup: ManagedContract, call_id: str, mode: str, seconds: float
+) -> Awaitable[NativeStream]:
+    """Derive endpoint/hello from admitted startup; share native lifecycle."""
+    ...
+
+class NativeControl:
+    """Native protected channel; interrupted I/O fences all later work."""
+    def receive(self) -> Awaitable[bytes]: ...
+    def send(self, source: str) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+def open_portable_control(
+    startup: ManagedContract, seconds: float
+) -> Awaitable[NativeControl]:
+    """Open only the startup endpoint; execution admission remains host-owned."""
+    ...

@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use skulk_capability_kernel::{
     binding, codec, contracts, handshake, journal, managed, operation_logs, operations, portable,
-    schema, streams,
+    schema, streams, transport,
 };
 
 /// Private qualification surface; source text preserves wide JSON numbers.
@@ -615,6 +615,14 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<NativeOperationRunner>()?;
     module.add_function(wrap_pyfunction!(operation_runner, module)?)?;
     module.add_function(wrap_pyfunction!(open_stream, module)?)?;
+    module.add_function(wrap_pyfunction!(transport_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(encode_portable_control, module)?)?;
+    module.add_function(wrap_pyfunction!(decode_portable_control, module)?)?;
+    module.add_function(wrap_pyfunction!(encode_portable_packet, module)?)?;
+    module.add_function(wrap_pyfunction!(decode_portable_packet, module)?)?;
+    module.add_function(wrap_pyfunction!(open_portable_stream, module)?)?;
+    module.add_function(wrap_pyfunction!(open_portable_control, module)?)?;
+    module.add_class::<NativeControl>()?;
     module.add_function(wrap_pyfunction!(encode_stream_packet, module)?)?;
     module.add_function(wrap_pyfunction!(decode_stream_packet, module)?)?;
     Ok(())
@@ -670,7 +678,7 @@ impl NativeStream {
             let packet = session.next_input().await.map_err(stream_error)?;
             match packet {
                 Some(packet) => Ok(Some((
-                    packet.projection_json().map_err(stream_error)?,
+                    session.projection(&packet).map_err(stream_error)?,
                     Python::attach(|py| PyBytes::new(py, &packet.media).unbind()),
                 ))),
                 None => Ok(None),
@@ -687,7 +695,9 @@ impl NativeStream {
         if media.as_bytes().len() > streams::MAX_MEDIA_BYTES {
             return Err(stream_error(streams::StreamError::MediaBound));
         }
-        let packet = streams::Packet::from_projection(projection, media.as_bytes().to_vec())
+        let packet = self
+            .inner
+            .packet(projection, media.as_bytes().to_vec())
             .map_err(stream_error)?;
         let session = self.inner.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
@@ -880,5 +890,150 @@ fn operation_runner(
     Ok(NativeOperationRunner {
         inner,
         _ownership: ownership,
+    })
+}
+
+/// Independent fingerprint for protocol-five control and binary framing.
+#[pyfunction]
+fn transport_profile_digest() -> &'static str {
+    transport::profile_digest()
+}
+/// Encode one closed control record; host execution admission remains separate.
+#[pyfunction]
+fn encode_portable_control<'py>(
+    py: Python<'py>,
+    source: &Bound<'_, PyString>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    let source = portable_text(source)?;
+    let bytes = py
+        .detach(|| {
+            transport::Control::from_json(&source)
+                .map(|control| transport::encode_control(&control))
+        })
+        .map_err(stream_error)?;
+    Ok(PyBytes::new(py, &bytes))
+}
+/// Return an owned canonical copy after complete length/profile validation.
+#[pyfunction]
+fn decode_portable_control<'py>(
+    py: Python<'py>,
+    bytes: &Bound<'_, PyBytes>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    let control = transport::decode_control(bytes.as_bytes()).map_err(stream_error)?;
+    Ok(PyBytes::new(py, control.canonical()))
+}
+/// Admit portable projection text before framing a separate bounded binary buffer.
+#[pyfunction]
+fn encode_portable_packet<'py>(
+    py: Python<'py>,
+    projection: &Bound<'_, PyString>,
+    media: &Bound<'_, PyBytes>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    if media.as_bytes().len() > streams::MAX_MEDIA_BYTES {
+        return Err(stream_error(streams::StreamError::MediaBound));
+    }
+    let projection = portable_text(projection)?;
+    let packet = transport::packet(&projection, media.as_bytes().to_vec()).map_err(stream_error)?;
+    let bytes = py
+        .detach(|| transport::encode_packet(&packet))
+        .map_err(stream_error)?;
+    Ok(PyBytes::new(py, &bytes))
+}
+/// Decode only protocol-five bytes; legacy readers are never a fallback.
+#[pyfunction]
+fn decode_portable_packet<'py>(
+    py: Python<'py>,
+    bytes: &Bound<'_, PyBytes>,
+) -> PyResult<(String, Bound<'py, PyBytes>)> {
+    let packet = transport::decode_packet(bytes.as_bytes()).map_err(stream_error)?;
+    Ok((
+        transport::projection(&packet).map_err(stream_error)?,
+        PyBytes::new(py, &packet.media),
+    ))
+}
+/// Open the startup-bound stream endpoint, deriving its hello in native code.
+#[pyfunction]
+fn open_portable_stream<'py>(
+    py: Python<'py>,
+    startup: &ManagedContract,
+    call_id: String,
+    mode: String,
+    seconds: f64,
+) -> PyResult<Bound<'py, PyAny>> {
+    let record = managed::Record::from_json(
+        startup.record.name(),
+        std::str::from_utf8(startup.record.canonical())
+            .map_err(|_| stream_error(streams::StreamError::InvalidFrame))?,
+    )
+    .map_err(portable_error)?;
+    let mode = streams::Mode::parse(&mode).map_err(stream_error)?;
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let session = streams::Session::open_portable(&record, &call_id, mode, seconds)
+            .await
+            .map_err(stream_error)?;
+        Ok(NativeStream {
+            inner: Arc::new(session),
+        })
+    })
+}
+/// Protected native control channel with poisoned-channel cancellation semantics.
+#[pyclass(module = "_skulk_capability_kernel")]
+struct NativeControl {
+    inner: Arc<transport::Channel>,
+}
+#[pymethods]
+impl NativeControl {
+    /// Receive admitted canonical bytes; interrupted reads close this channel.
+    fn receive<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let record = channel.receive().await.map_err(stream_error)?;
+            Ok(Python::attach(|py| {
+                PyBytes::new(py, record.canonical()).unbind()
+            }))
+        })
+    }
+    /// Validate and send a control; no inference authority is created by sending.
+    fn send<'py>(
+        &self,
+        py: Python<'py>,
+        source: &Bound<'_, PyString>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let source = portable_text(source)?;
+        let control = transport::Control::from_json(&source).map_err(stream_error)?;
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            channel.send(&control).await.map_err(stream_error)
+        })
+    }
+    /// Await native timer/socket teardown from the language-owned finally path.
+    fn close<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            channel.close().await;
+            Ok(())
+        })
+    }
+}
+/// Derive the endpoint/hello from an admitted startup; host trust remains separate.
+#[pyfunction]
+fn open_portable_control<'py>(
+    py: Python<'py>,
+    startup: &ManagedContract,
+    seconds: f64,
+) -> PyResult<Bound<'py, PyAny>> {
+    let record = managed::Record::from_json(
+        startup.record.name(),
+        std::str::from_utf8(startup.record.canonical())
+            .map_err(|_| stream_error(streams::StreamError::InvalidFrame))?,
+    )
+    .map_err(portable_error)?;
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let channel = transport::Channel::connect(&record, seconds)
+            .await
+            .map_err(stream_error)?;
+        Ok(NativeControl {
+            inner: Arc::new(channel),
+        })
     })
 }

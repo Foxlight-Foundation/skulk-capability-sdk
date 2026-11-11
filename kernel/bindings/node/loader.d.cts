@@ -39,7 +39,20 @@ declare class NativeOperationRunner {
   nextRequest(): Promise<string | null>;
   respond(id: number, response: string): boolean;
 }
+declare class NativeControl {
+  private constructor();
+  receive(): Promise<Buffer>;
+  send(source: string): Promise<void>;
+  close(): Promise<void>;
+}
 declare const native: {
+  transportProfileDigest(): string;
+  encodePortableControl(source: string): Buffer;
+  decodePortableControl(packet: Buffer): Buffer;
+  encodePortablePacket(projection: string, media: Buffer): Buffer;
+  decodePortablePacket(packet: Buffer): NativePacket;
+  openPortableStream(startup: string, callId: string, mode: string, seconds: number): Promise<NativeStream>;
+  openPortableControl(startup: string, seconds: number): Promise<NativeControl>;
   handshakeProfileDigest(): string;
   handshakeContractJson(name: 'Hello' | 'StreamHello', source: string): Buffer;
   managedHelloJson(name: 'Manifest' | 'Startup', startup: string, callId?: string): Buffer;

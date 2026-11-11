@@ -112,6 +112,16 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/src/transport.rs",
+        "kernel/src/streams.rs",
+        "kernel/contracts/transport-v1.json",
+        "kernel/contracts/transport-v1-cases.json",
+        "kernel/tests/transport.rs",
+        "kernel/examples/transport_probe.rs",
+        "kernel/bindings/node/tests/transport.test.mjs",
+        "kernel/bindings/node/tools/transport_probe.mjs",
+        "kernel/bindings/python/tests/test_native_transport.py",
+        "tools/check_transport_profile.py",
         "kernel/src/portable.rs",
         "kernel/src/handshake.rs",
         "kernel/contracts/handshake-v1.json",

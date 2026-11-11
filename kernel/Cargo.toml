@@ -4,7 +4,7 @@ resolver = "3"
 
 [package]
 name = "skulk-capability-kernel"
-version = "0.3.0-rc.1"
+version = "0.4.0-rc.1"
 edition = "2024"
 rust-version = "1.94"
 publish = false

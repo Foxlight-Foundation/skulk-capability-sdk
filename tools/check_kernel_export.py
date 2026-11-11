@@ -112,6 +112,15 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/src/composition.rs",
+        "kernel/contracts/composition-v1.json",
+        "kernel/contracts/composition-v1-cases.json",
+        "kernel/tests/composition.rs",
+        "kernel/examples/composition_probe.rs",
+        "kernel/bindings/python/tests/test_native_composition.py",
+        "kernel/bindings/node/tests/composition.test.mjs",
+        "kernel/bindings/node/tools/composition_probe.mjs",
+        "tools/check_composition_profile.py",
         "kernel/src/transport.rs",
         "kernel/src/streams.rs",
         "kernel/contracts/transport-v1.json",

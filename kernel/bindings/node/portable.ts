@@ -135,6 +135,42 @@ export class HandshakeContract {
   [inspect.custom](): string { return `HandshakeContract(${this.name})`; }
 }
 
+/** Pure composition profile; independent of issued transport/startup contracts. */
+export const COMPOSITION_PROFILE = 'skulk.composition/1' as const;
+/** Closed composition metadata kinds; parsing never establishes provenance. */
+export type CompositionContractName = 'Context' | 'DelegateRequest' | 'Policy';
+/** Return the complete pure-attenuation fingerprint. */
+export function compositionProfileDigest(): string { return native.compositionProfileDigest(); }
+/** Immutable sensitive caller metadata. Hosts own active scope and replay state. */
+export class CompositionContract {
+  readonly #canonical: Uint8Array;
+  readonly name: CompositionContractName;
+  private constructor(name: CompositionContractName, source: string) {
+    this.name = name;
+    this.#canonical = native.compositionContractJson(name, source);
+    Object.freeze(this);
+  }
+  /** Structural validation alone grants no execution rights. */
+  static fromJson(name: CompositionContractName, source: string): CompositionContract {
+    return new CompositionContract(name, source);
+  }
+  /** Explicit copy for protected IPC; no caller metadata in incidental encoding. */
+  canonical(): Uint8Array { return Uint8Array.from(this.#canonical); }
+  toJSON(): {name: CompositionContractName} { return {name: this.name}; }
+  [inspect.custom](): string { return `CompositionContract(${this.name})`; }
+  /** Pure attenuation against host observations; does not reserve or execute. */
+  admit(request: CompositionContract, policy: CompositionContract, executor: string,
+        requestBytes: Uint8Array, nowUnixMs: number, scopeId: string): CompositionContract {
+    const source = native.admitDelegationJson(
+      Buffer.from(this.#canonical).toString('utf8'),
+      Buffer.from(request.#canonical).toString('utf8'),
+      Buffer.from(policy.#canonical).toString('utf8'), executor,
+      Buffer.from(requestBytes), nowUnixMs, scopeId,
+    );
+    return CompositionContract.fromJson('Context', Buffer.from(source).toString('utf8'));
+  }
+}
+
 /** Explicit wire profile, separately fingerprinted from descriptors and startup. */
 export const TRANSPORT_PROFILE = 'skulk.transport/1' as const;
 /** Return the complete native protocol-five wire fingerprint. */

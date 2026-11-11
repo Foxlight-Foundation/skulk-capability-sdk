@@ -5,6 +5,7 @@
 //! surrogate code points; normal JSON serializers are not substitutes for it.
 
 pub mod codec;
+pub mod composition;
 pub mod contracts;
 pub mod handshake;
 #[cfg(unix)]

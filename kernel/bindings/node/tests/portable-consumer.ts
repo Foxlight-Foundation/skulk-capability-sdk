@@ -45,3 +45,16 @@ function typedChannels(startup: ManagedContract) {
   return [openPortableStream(startup, 'call', 'bidirectional', 5), openPortableControl(startup, 5)];
 }
 void [wireFingerprint, controlJson, decoded, typedChannels];
+
+// Caller metadata is explicitly typed and never a substitute for host authority.
+import {CompositionContract, compositionProfileDigest} from '../dist/portable.js';
+const compositionFingerprint: string = compositionProfileDigest();
+const parentContext = CompositionContract.fromJson('Context', '{}');
+const delegation = CompositionContract.fromJson('DelegateRequest', '{}');
+const currentPolicy = CompositionContract.fromJson('Policy', '{}');
+const childContext: CompositionContract = parentContext.admit(
+  delegation, currentPolicy, '{}', new Uint8Array(), 1000, '0'.repeat(64),
+);
+void [compositionFingerprint, childContext];
+// @ts-expect-error author invocation records cannot be reinterpreted as context
+CompositionContract.fromJson('Invoke', '{}');

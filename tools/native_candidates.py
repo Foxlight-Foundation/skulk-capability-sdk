@@ -87,6 +87,7 @@ def _identity(*args: str) -> str:
 
 def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
     """Require complete, identical observations across all three native backends."""
+    from tools.check_composition_profile import fixture as composition_fixture
     from tools.check_handshake_profile import fixture as handshake_fixture
     from tools.check_managed_profile import fixture as managed_fixture
     from tools.check_transport_profile import fixture as transport_fixture
@@ -99,6 +100,7 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
         ("managed", "managed-v1-cases.json"),
         ("handshake", "handshake-v1-cases.json"),
         ("transport", "transport-v1-cases.json"),
+        ("composition", "composition-v1-cases.json"),
     ]:
         fixture = json.loads((ROOT / "kernel/contracts" / source_name).read_bytes())
         if kind == "portable":
@@ -126,6 +128,8 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
                 else handshake_fixture()
                 if kind == "handshake"
                 else transport_fixture()
+                if kind == "transport"
+                else composition_fixture()
             )
             expected_input = hashlib.sha256(
                 "\n".join(
@@ -215,7 +219,9 @@ def create_bundle(output: Path) -> Path:
     evidence = {
         path.name: path.read_bytes()
         for path in output.glob("*-*.json")
-        if path.name.startswith(("portable-", "managed-", "handshake-", "transport-"))
+        if path.name.startswith(
+            ("portable-", "managed-", "handshake-", "transport-", "composition-")
+        )
     }
     validate_corpora(evidence)
     archive = output / f"native-candidate-{family}.zip"
@@ -240,7 +246,7 @@ def read_bundle(
     with zipfile.ZipFile(path) as zipped:
         entries = zipped.infolist()
         if (
-            len(entries) != 17
+            len(entries) != 20
             or sum(e.file_size for e in entries) > 2 * MAX_ASSET_BYTES
         ):
             raise ValueError("Native candidate bundle inventory differs")
@@ -275,7 +281,7 @@ def read_bundle(
         bundle.npm.name,
         *[
             f"{kind}-{backend}.json"
-            for kind in ["portable", "managed", "handshake", "transport"]
+            for kind in ["portable", "managed", "handshake", "transport", "composition"]
             for backend in ["rust", "python", "node"]
         ],
     }

@@ -12,22 +12,18 @@ import shutil
 import subprocess
 import sys
 import sysconfig
-import tarfile
-import zipfile
 from pathlib import Path
 from typing import cast
 
-from check_kernel_export import validate_source
+from tools.check_kernel_export import validate_source
+from tools.native_candidates import create_bundle
+from tools.native_consumer import verify_install
+from tools.native_notices import NOTICE, render
+from tools.native_packages import inspect_npm, inspect_wheel
 
 ROOT = Path(__file__).resolve().parents[1]
 NODE = ROOT / "kernel/bindings/node"
 OUTPUT = ROOT / ".runtime/native-qualification"
-FACADE = (
-    b"from ._skulk_capability_kernel import *\n\n"
-    b"__doc__ = _skulk_capability_kernel.__doc__\n"
-    b'if hasattr(_skulk_capability_kernel, "__all__"):\n'
-    b"    __all__ = _skulk_capability_kernel.__all__"
-)
 
 
 def run(args: list[str], env: dict[str, str], cwd: Path = ROOT) -> str:
@@ -43,68 +39,11 @@ def run(args: list[str], env: dict[str, str], cwd: Path = ROOT) -> str:
     return result.stdout
 
 
-def inspect_wheel(path: Path) -> None:
-    """Allow only native implementation, declarations, one import shim and metadata."""
-    approved = {
-        "_skulk_capability_kernel/__init__.py",
-        "_skulk_capability_kernel/__init__.pyi",
-        "_skulk_capability_kernel/_skulk_capability_kernel.abi3.so",
-        "_skulk_capability_kernel/py.typed",
-        "skulk_capability_kernel-0.1.0.dist-info/METADATA",
-        "skulk_capability_kernel-0.1.0.dist-info/WHEEL",
-        "skulk_capability_kernel-0.1.0.dist-info/RECORD",
-        "skulk_capability_kernel-0.1.0.dist-info/licenses/LICENSE.md",
-    }
-    with zipfile.ZipFile(path) as archive:
-        if set(archive.namelist()) != approved:
-            raise ValueError("unexpected native wheel contents")
-        if archive.read("_skulk_capability_kernel/__init__.py") != FACADE:
-            raise ValueError("unexpected readable native implementation")
-        for name in archive.namelist():
-            inspect_paths(archive.read(name))
-
-
-def inspect_paths(data: bytes) -> None:
-    """Refuse local source identity in text metadata and stripped binary strings."""
-    for marker in [
-        str(ROOT).encode(),
-        str(Path.home()).encode(),
-        b"file:///",
-        b"/Users/",
-        b"/home/runner/",
-    ]:
-        if marker in data:
-            raise ValueError("build-host path leaked into native artifact")
-
-
-def inspect_npm(path: Path) -> None:
-    """A positive list excludes native source, test fixtures and build material."""
-    approved = {
-        "package/package.json",
-        "package/dist/codec.js",
-        "package/dist/codec.d.ts",
-        "package/dist/portable.js",
-        "package/dist/portable.d.ts",
-        "package/dist/kernel.node",
-        "package/dist/loader.cjs",
-        "package/dist/loader.d.cts",
-        "package/dist/LICENSE.md",
-    }
-    with tarfile.open(path, "r:gz") as archive:
-        if {member.name for member in archive.getmembers()} != approved:
-            raise ValueError("unexpected native npm contents")
-        for member in archive.getmembers():
-            if not member.isfile():
-                raise ValueError("non-file native npm member")
-            source = archive.extractfile(member)
-            if source is None:
-                raise ValueError("unreadable native npm member")
-            inspect_paths(source.read())
-
-
 def main() -> None:
     """Build native artifacts, enforce their contents and compare every outcome."""
     source = validate_source()
+    if NOTICE.read_bytes() != render():
+        raise ValueError("Native dependency notices differ")
     if sys.platform not in {"darwin", "linux"}:
         raise ValueError("Native qualification requires macOS or Linux")
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -307,6 +246,7 @@ def main() -> None:
     for name in ["loader.cjs", "loader.d.cts"]:
         shutil.copyfile(NODE / name, NODE / "dist" / name)
     shutil.copyfile(ROOT / "kernel/LICENSE.md", NODE / "dist/LICENSE.md")
+    shutil.copyfile(NOTICE, NODE / "dist/THIRD_PARTY_NOTICES.txt")
     print(run(["npm", "test"], env, NODE), end="")
     print(
         run(
@@ -418,6 +358,8 @@ def main() -> None:
         "runtime_adoption": False,
     }
     (OUTPUT / "report.json").write_text(json.dumps(report, indent=2) + "\n")
+    verify_install(wheel, package, OUTPUT)
+    print(create_bundle(OUTPUT))
     print(json.dumps(report))
 
 

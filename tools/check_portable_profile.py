@@ -63,6 +63,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--backend", choices=["rust", "python", "node"], default="rust")
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--node-facade", type=Path)
     arguments = parser.parse_args()
     inputs = cases()
     if arguments.backend == "python":
@@ -78,6 +79,8 @@ def main() -> None:
             if arguments.backend == "rust"
             else ["node", str(ROOT / "kernel/bindings/node/tools/portable_probe.mjs")]
         )
+        if arguments.backend == "node" and arguments.node_facade:
+            command.append(arguments.node_facade.resolve().as_uri())
         results = external(command, inputs)
     if len(results) != len(inputs):
         raise ValueError("probe observation count differs")

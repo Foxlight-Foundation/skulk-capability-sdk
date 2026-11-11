@@ -96,3 +96,7 @@ These exports establish native **record admission**. Normal signed owner/Core
 installation, startup negotiation, application migration and SDK 1.0 installed
 acceptance remain separate gates. Building these artifacts does not change any
 installed capability or select this profile for the existing Python SDK.
+
+The [native candidate pipeline](native-candidates.md) stages versioned, audited
+prebuilt packages and verifies offline installation without a compiler. These
+prereleases remain separate from normal signed owner/Core adoption.

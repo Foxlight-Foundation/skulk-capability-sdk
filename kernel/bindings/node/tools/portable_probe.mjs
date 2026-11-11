@@ -1,6 +1,6 @@
 // Maintainer-only adapter: the same candidate facade used by the Node tests.
 import {createInterface} from 'node:readline';
-import {ManagedContract, PortableContract, PortableSchema, canonicalPortableJson} from '../dist/portable.js';
+const {ManagedContract, PortableContract, PortableSchema, canonicalPortableJson} = await import(process.argv[2] ?? new URL('../dist/portable.js', import.meta.url).href);
 
 for await (const line of createInterface({input: process.stdin, crlfDelay: Infinity})) {
   const request = JSON.parse(line);

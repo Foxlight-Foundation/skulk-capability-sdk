@@ -37,6 +37,7 @@ include = ["/skulk_capability_sdk", "/LICENSE.md", "/README.md", "/SOURCE-MANIFE
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests", "packages/tools/tests"]
+pythonpath = ["."]
 
 [tool.basedpyright]
 typeCheckingMode = "strict"

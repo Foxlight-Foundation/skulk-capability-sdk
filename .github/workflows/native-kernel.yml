@@ -8,6 +8,7 @@ on:
       - KERNEL-SOURCE-MANIFEST.json
       - KERNEL-INITIAL-EXPORT.json
       - tools/check_managed_profile.py
+      - tools/native_*.py
       - tools/check_kernel_export.py
       - tools/qualify_kernel.py
       - tools/check_portable_profile.py
@@ -36,7 +37,7 @@ jobs:
       - run: rustup toolchain install 1.94.1 --profile minimal --component clippy,rustfmt
       - run: rustup override set 1.94.1
       - run: uv sync --frozen --all-packages --no-editable
-      - run: uv run --no-sync python tools/qualify_kernel.py
+      - run: uv run --no-sync python -m tools.qualify_kernel
       - run: git diff --exit-code
       - uses: actions/upload-artifact@v4
         if: always()
@@ -47,4 +48,6 @@ jobs:
             .runtime/native-qualification/report.json
             .runtime/native-qualification/portable-*.json
             .runtime/native-qualification/managed-*.json
+            .runtime/native-qualification/native-candidate-*.zip
+            .runtime/native-qualification/compiler-free-install.json
           retention-days: 14

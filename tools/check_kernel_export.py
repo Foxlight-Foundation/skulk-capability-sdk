@@ -112,24 +112,41 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/Cargo.lock",
+        "kernel/Cargo.toml",
+        "kernel/README.md",
+        "kernel/bindings/node/Cargo.toml",
         "kernel/bindings/node/loader.d.cts",
+        "kernel/bindings/node/package-lock.json",
+        "kernel/bindings/node/package.json",
         "kernel/bindings/node/portable.ts",
         "kernel/bindings/node/src/lib.rs",
         "kernel/bindings/node/tests/managed.test.mjs",
         "kernel/bindings/node/tests/portable-consumer.ts",
         "kernel/bindings/node/tools/portable_probe.mjs",
+        "kernel/bindings/python/Cargo.toml",
+        "kernel/bindings/python/THIRD_PARTY_NOTICES.txt",
         "kernel/bindings/python/_skulk_capability_kernel.pyi",
+        "kernel/bindings/python/pyproject.toml",
         "kernel/bindings/python/src/lib.rs",
         "kernel/bindings/python/tests/test_native_managed.py",
         "kernel/contracts/managed-v1-cases.json",
         "kernel/contracts/managed-v1.json",
+        "kernel/dependency-notices.json",
         "kernel/examples/portable_probe.rs",
         "kernel/src/lib.rs",
         "kernel/src/managed.rs",
         "kernel/tests/managed.rs",
         "tools/check_managed_profile.py",
+        "tools/check_portable_profile.py",
+        "tools/native_candidates.py",
+        "tools/native_consumer.py",
+        "tools/native_notices.py",
+        "tools/native_packages.py",
+        "tools/qualify_kernel.py",
     ]
 )
+
 INITIAL_EXPORT_SHA256 = (
     "a1ac2c9ceb511c2250e7f63e9f8a010ecbddf010d9d4ef7e436a3ccb7c0d9a62"
 )
@@ -299,6 +316,8 @@ def validate_source() -> dict[str, str | int]:
         ):
             raise ValueError("Qualified kernel implementation changed")
     for name, digest in manifest.generated_files.items():
+        if name in MAINTAINED_FILES:
+            continue
         if hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != digest:
             raise ValueError("Generated kernel reference differs")
     license_bytes = (ROOT / "LICENSE.md").read_bytes()

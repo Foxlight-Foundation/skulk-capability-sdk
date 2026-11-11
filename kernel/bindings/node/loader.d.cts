@@ -40,6 +40,10 @@ declare class NativeOperationRunner {
   respond(id: number, response: string): boolean;
 }
 declare const native: {
+  handshakeProfileDigest(): string;
+  handshakeContractJson(name: 'Hello' | 'StreamHello', source: string): Buffer;
+  managedHelloJson(name: 'Manifest' | 'Startup', startup: string, callId?: string): Buffer;
+  managedAdmitHelloJson(name: 'Manifest' | 'Startup', startup: string, source: string, callId?: string): Buffer;
   managedProfileDigest(): string;
   managedContractJson(name: 'Manifest' | 'Startup', source: string): Buffer;
   managedContractDigest(name: 'Manifest' | 'Startup', source: string): string;

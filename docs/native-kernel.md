@@ -100,3 +100,7 @@ installed capability or select this profile for the existing Python SDK.
 The [native candidate pipeline](native-candidates.md) stages versioned, audited
 prebuilt packages and verifies offline installation without a compiler. These
 prereleases remain separate from normal signed owner/Core adoption.
+
+The [native author records and protocol-five handshake](native-handshake.md)
+candidate provides immutable handles and explicit startup/call binding. The
+existing protocol-four stream transport retains its declared contract.

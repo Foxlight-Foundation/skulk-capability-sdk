@@ -7,8 +7,8 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use skulk_capability_kernel::{
-    binding, codec, contracts, journal, managed, operation_logs, operations, portable, schema,
-    streams,
+    binding, codec, contracts, handshake, journal, managed, operation_logs, operations, portable,
+    schema, streams,
 };
 
 /// Private qualification surface; source text preserves wide JSON numbers.
@@ -137,6 +137,126 @@ fn portable_text(source: &Bound<'_, PyString>) -> PyResult<String> {
 #[pyfunction]
 fn portable_profile_digest() -> &'static str {
     portable::profile_digest()
+}
+
+/// Exact fingerprint of the explicit protocol-five handshake specification.
+#[pyfunction]
+fn handshake_profile_digest() -> &'static str {
+    handshake::profile_digest()
+}
+
+/// Immutable native-owned manifest/startup handle; repr never exposes contents.
+#[pyclass(frozen, module = "_skulk_capability_kernel")]
+struct ManagedContract {
+    record: managed::Record,
+}
+
+#[pymethods]
+impl ManagedContract {
+    /// Admit profile-bound author bytes without a language-validator fallback.
+    #[staticmethod]
+    fn from_json(
+        py: Python<'_>,
+        name: &Bound<'_, PyString>,
+        source: &Bound<'_, PyString>,
+    ) -> PyResult<Self> {
+        let name = portable_text(name)?;
+        let source = portable_text(source)?;
+        let record = py
+            .detach(|| managed::Record::from_json(&name, &source))
+            .map_err(portable_error)?;
+        Ok(Self { record })
+    }
+
+    /// Public model kind; no startup credentials are projected.
+    #[getter]
+    fn name(&self) -> &'static str {
+        self.record.name()
+    }
+
+    /// Full profile/model-domain identity; never a legacy truncated revision.
+    #[getter]
+    fn digest(&self) -> &str {
+        self.record.digest()
+    }
+
+    /// Explicitly export an owned copy for protected IPC or signed metadata.
+    fn canonical<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, self.record.canonical())
+    }
+
+    /// Derive control hello, or a stream hello for a separately admitted call.
+    #[pyo3(signature = (call_id=None))]
+    fn hello(
+        &self,
+        py: Python<'_>,
+        call_id: Option<&Bound<'_, PyString>>,
+    ) -> PyResult<HandshakeContract> {
+        let call_id = call_id.map(portable_text).transpose()?;
+        let record = py
+            .detach(|| handshake::from_startup(&self.record, call_id.as_deref()))
+            .map_err(portable_error)?;
+        Ok(HandshakeContract { record })
+    }
+
+    /// Bind an incoming hello to this expected startup and optional call.
+    #[pyo3(signature = (source, call_id=None))]
+    fn admit_hello(
+        &self,
+        py: Python<'_>,
+        source: &Bound<'_, PyString>,
+        call_id: Option<&Bound<'_, PyString>>,
+    ) -> PyResult<HandshakeContract> {
+        let source = portable_text(source)?;
+        let call_id = call_id.map(portable_text).transpose()?;
+        let record = py
+            .detach(|| handshake::admit(&self.record, &source, call_id.as_deref()))
+            .map_err(portable_error)?;
+        Ok(HandshakeContract { record })
+    }
+
+    fn __repr__(&self) -> String {
+        format!("ManagedContract({})", self.record.name())
+    }
+}
+
+/// Immutable handshake handle; structural admission alone grants no authority.
+#[pyclass(frozen, module = "_skulk_capability_kernel")]
+struct HandshakeContract {
+    record: handshake::Record,
+}
+
+#[pymethods]
+impl HandshakeContract {
+    /// Parse an explicit protocol-five hello; startup binding is a separate step.
+    #[staticmethod]
+    fn from_json(
+        py: Python<'_>,
+        name: &Bound<'_, PyString>,
+        source: &Bound<'_, PyString>,
+    ) -> PyResult<Self> {
+        let name = portable_text(name)?;
+        let source = portable_text(source)?;
+        let record = py
+            .detach(|| handshake::Record::from_json(&name, &source))
+            .map_err(portable_error)?;
+        Ok(Self { record })
+    }
+
+    /// Public record kind with no credential-bearing values.
+    #[getter]
+    fn name(&self) -> &'static str {
+        self.record.name()
+    }
+
+    /// Explicitly copy credential-bearing wire bytes for the protected channel.
+    fn canonical<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, self.record.canonical())
+    }
+
+    fn __repr__(&self) -> String {
+        format!("HandshakeContract({})", self.record.name())
+    }
 }
 
 /// Reusable immutable compiled schema shared safely by concurrent handlers.
@@ -482,6 +602,9 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(portable_schema_matches, module)?)?;
     module.add_function(wrap_pyfunction!(portable_profile_digest, module)?)?;
     module.add_function(wrap_pyfunction!(managed_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(handshake_profile_digest, module)?)?;
+    module.add_class::<ManagedContract>()?;
+    module.add_class::<HandshakeContract>()?;
     module.add_function(wrap_pyfunction!(managed_contract_json, module)?)?;
     module.add_function(wrap_pyfunction!(managed_contract_digest, module)?)?;
     module.add_class::<PortableSchema>()?;

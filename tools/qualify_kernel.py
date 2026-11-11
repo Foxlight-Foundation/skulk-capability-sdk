@@ -329,6 +329,23 @@ def main() -> None:
         ]:
             if current[field] != reports[0][field]:
                 raise ValueError("Complete portable observations differ")
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_handshake_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"handshake-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    handshake_report = json.loads((OUTPUT / "handshake-rust.json").read_text())
     report = {
         "scope": (
             "Shared-kernel/native ABI qualification; not installed SDK 1.0 acceptance"
@@ -342,6 +359,10 @@ def main() -> None:
         "profile": reports[0]["profile"],
         "profile_digest": reports[0]["profile_digest"],
         "cases_per_backend": reports[0]["cases"],
+        "handshake_profile": handshake_report["profile"],
+        "handshake_profile_digest": handshake_report["profile_digest"],
+        "handshake_cases_per_backend": handshake_report["cases"],
+        "handshake_input_sha256": handshake_report["input_sha256"],
         "managed_profile": managed_reports[0]["profile"],
         "managed_profile_digest": managed_reports[0]["profile_digest"],
         "managed_cases_per_backend": managed_reports[0]["cases"],

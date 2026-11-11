@@ -6,8 +6,8 @@ use napi::bindgen_prelude::{Buffer, Utf16String};
 use napi::{Error, Result, Status};
 use napi_derive::napi;
 use skulk_capability_kernel::{
-    binding, codec, contracts, journal, managed, operation_logs, operations, portable, schema,
-    streams,
+    binding, codec, contracts, handshake, journal, managed, operation_logs, operations, portable,
+    schema, streams,
 };
 
 /// Private qualification surface; source text avoids JavaScript number narrowing.
@@ -46,6 +46,53 @@ pub fn managed_contract_json(name: String, source: Utf16String) -> Result<Buffer
 pub fn managed_contract_digest(name: String, source: Utf16String) -> Result<String> {
     let source = portable_text(source)?;
     managed::contract_digest(&name, &source).map_err(portable_error)
+}
+
+/// Exact explicit protocol-five handshake profile fingerprint.
+#[napi]
+pub fn handshake_profile_digest() -> String {
+    handshake::profile_digest().into()
+}
+
+/// Parse a handshake structurally without treating it as a bound peer.
+#[napi]
+pub fn handshake_contract_json(name: String, source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    handshake::Record::from_json(&name, &source)
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(portable_error)
+}
+
+/// Derive a handshake from a native-admitted expected private startup.
+#[napi]
+pub fn managed_hello_json(
+    name: String,
+    startup: Utf16String,
+    call_id: Option<Utf16String>,
+) -> Result<Buffer> {
+    let startup = portable_text(startup)?;
+    let call_id = call_id.map(portable_text).transpose()?;
+    managed::Record::from_json(&name, &startup)
+        .and_then(|record| handshake::from_startup(&record, call_id.as_deref()))
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(portable_error)
+}
+
+/// Bind full public identities and the token to the expected startup/call.
+#[napi]
+pub fn managed_admit_hello_json(
+    name: String,
+    startup: Utf16String,
+    source: Utf16String,
+    call_id: Option<Utf16String>,
+) -> Result<Buffer> {
+    let startup = portable_text(startup)?;
+    let source = portable_text(source)?;
+    let call_id = call_id.map(portable_text).transpose()?;
+    managed::Record::from_json(&name, &startup)
+        .and_then(|record| handshake::admit(&record, &source, call_id.as_deref()))
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(portable_error)
 }
 
 /// SDK 1.0 candidate canonical JSON with one bounded numeric meaning.

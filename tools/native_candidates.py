@@ -85,8 +85,9 @@ def _identity(*args: str) -> str:
     ).strip()
 
 
-def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, Corpus]:
+def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
     """Require complete, identical observations across all three native backends."""
+    from tools.check_handshake_profile import fixture as handshake_fixture
     from tools.check_managed_profile import fixture as managed_fixture
     from tools.portable_profile_cases import cases
     from tools.portable_profile_cases import fixture as portable_fixture
@@ -95,6 +96,7 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, Corpus]:
     for kind, source_name in [
         ("portable", "portable-v1-cases.json"),
         ("managed", "managed-v1-cases.json"),
+        ("handshake", "handshake-v1-cases.json"),
     ]:
         fixture = json.loads((ROOT / "kernel/contracts" / source_name).read_bytes())
         if kind == "portable":
@@ -116,7 +118,7 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, Corpus]:
             if fixture["profile_digest"] != portable_fixture().profile_digest:
                 raise ValueError("Portable fixture identity differs")
         else:
-            managed = managed_fixture()
+            managed = managed_fixture() if kind == "managed" else handshake_fixture()
             expected_input = hashlib.sha256(
                 "\n".join(
                     json.dumps(c.request(), sort_keys=True) for c in managed.cases
@@ -159,7 +161,7 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, Corpus]:
             ):
                 raise ValueError("Candidate backend observations differ")
         qualified.append(reports[0])
-    return qualified[0], qualified[1]
+    return tuple(qualified)
 
 
 def create_bundle(output: Path) -> Path:
@@ -205,7 +207,7 @@ def create_bundle(output: Path) -> Path:
     evidence = {
         path.name: path.read_bytes()
         for path in output.glob("*-*.json")
-        if path.name.startswith(("portable-", "managed-"))
+        if path.name.startswith(("portable-", "managed-", "handshake-"))
     }
     validate_corpora(evidence)
     archive = output / f"native-candidate-{family}.zip"
@@ -224,13 +226,13 @@ def create_bundle(output: Path) -> Path:
 
 def read_bundle(
     path: Path, source: str
-) -> tuple[Bundle, dict[str, bytes], tuple[Corpus, Corpus]]:
+) -> tuple[Bundle, dict[str, bytes], tuple[Corpus, ...]]:
     """Refuse foreign, dirty, incomplete, oversized or substituted platform assets."""
     asset_digest(path)
     with zipfile.ZipFile(path) as zipped:
         entries = zipped.infolist()
         if (
-            len(entries) != 11
+            len(entries) != 14
             or sum(e.file_size for e in entries) > 2 * MAX_ASSET_BYTES
         ):
             raise ValueError("Native candidate bundle inventory differs")
@@ -265,7 +267,7 @@ def read_bundle(
         bundle.npm.name,
         *[
             f"{kind}-{backend}.json"
-            for kind in ["portable", "managed"]
+            for kind in ["portable", "managed", "handshake"]
             for backend in ["rust", "python", "node"]
         ],
     }

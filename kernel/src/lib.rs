@@ -6,6 +6,7 @@
 
 pub mod codec;
 pub mod contracts;
+pub mod handshake;
 #[cfg(unix)]
 pub mod journal;
 pub mod managed;

@@ -3,7 +3,7 @@
 use std::io::{self, BufRead};
 
 use serde_json::{Value, json};
-use skulk_capability_kernel::{managed, portable};
+use skulk_capability_kernel::{handshake, managed, portable};
 
 fn evaluate(request: &Value) -> Result<Value, portable::PortableError> {
     let source = request["source"].as_str().expect("probe source");
@@ -19,6 +19,22 @@ fn evaluate(request: &Value) -> Result<Value, portable::PortableError> {
             Ok(
                 json!({"canonical":String::from_utf8(managed::validate_contract_json(name,source)?).expect("ASCII JSON"),"digest":managed::contract_digest(name,source)?}),
             )
+        }
+        "handshake" => {
+            let record = if request["action"] == "parse" {
+                handshake::Record::from_json(request["name"].as_str().expect("probe name"), source)?
+            } else {
+                let startup = managed::Record::from_json(
+                    "Startup",
+                    request["startup"].as_str().expect("probe startup"),
+                )?;
+                if request["action"] == "create" {
+                    handshake::from_startup(&startup, request["call_id"].as_str())?
+                } else {
+                    handshake::admit(&startup, source, request["call_id"].as_str())?
+                }
+            };
+            Ok(json!({"canonical":std::str::from_utf8(record.canonical()).expect("ASCII JSON")}))
         }
         "contract" => {
             let name = request["name"].as_str().expect("probe root");

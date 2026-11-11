@@ -14,8 +14,24 @@ from .portable_profile_cases import Response
 ROOT = Path(__file__).resolve().parents[1]
 
 
+class ManagedHandle(Protocol):
+    """Actual immutable compiled author record, not a Python validator."""
+
+    @property
+    def digest(self) -> str: ...
+    def canonical(self) -> bytes: ...
+
+
+class ManagedFactory(Protocol):
+    """Factory provided by the independently installed native extension."""
+
+    def from_json(self, name: str, source: str) -> ManagedHandle: ...
+
+
 class Native(Protocol):
     """The installed native managed ABI, including negative root-name tests."""
+
+    ManagedContract: ManagedFactory
 
     def managed_profile_digest(self) -> str: ...
     def managed_contract_json(self, name: str, source: str) -> bytes: ...
@@ -63,10 +79,8 @@ def fixture() -> Fixture:
 def python_case(native: Native, case: ManagedCase) -> Response:
     """Exercise only the installed ABI; native refusals never echo input data."""
     try:
-        return Response(
-            canonical=native.managed_contract_json(case.name, case.source).decode(),
-            digest=native.managed_contract_digest(case.name, case.source),
-        )
+        record = native.ManagedContract.from_json(case.name, case.source)
+        return Response(canonical=record.canonical().decode(), digest=record.digest)
     except ValueError as error:
         code = str(error).split(":", 1)[0]
         if not code.startswith("portable_") or "synthetic-do-not-echo-secret" in str(

@@ -273,3 +273,44 @@ fn startup_semantics(value: &Value) -> Result<(), PortableError> {
     }
     Ok(())
 }
+
+/// Immutable native-admitted author record; startup bytes may contain credentials.
+/// No Debug implementation is provided because diagnostics must not expose them.
+pub struct Record {
+    name: &'static str,
+    canonical: Vec<u8>,
+    digest: String,
+}
+
+impl Record {
+    /// Normalize once and retain its full profile/model-domain identity.
+    pub fn from_json(name: &str, source: &str) -> Result<Self, PortableError> {
+        let canonical = validate_contract_json(name, source)?;
+        let mut domain = format!("{PROFILE}/{name}\0").into_bytes();
+        domain.extend(&canonical);
+        Ok(Self {
+            name: if name == "Manifest" {
+                "Manifest"
+            } else {
+                "Startup"
+            },
+            digest: codec::sha256(&domain),
+            canonical,
+        })
+    }
+
+    /// Return the public record kind without credential fields.
+    pub fn name(&self) -> &'static str {
+        self.name
+    }
+
+    /// Return the complete native identity, never a truncated legacy revision.
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    /// Borrow immutable bytes; bindings return copies rather than native storage.
+    pub fn canonical(&self) -> &[u8] {
+        &self.canonical
+    }
+}

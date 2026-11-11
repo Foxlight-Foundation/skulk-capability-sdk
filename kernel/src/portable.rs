@@ -57,6 +57,8 @@ pub enum PortableError {
     Profile,
     #[error("portable_protocol: unsupported author protocol")]
     Protocol,
+    #[error("portable_binding: handshake does not match expected startup or call")]
+    Binding,
 }
 
 pub(super) fn specification() -> &'static Value {

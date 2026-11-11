@@ -112,6 +112,14 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/src/portable.rs",
+        "kernel/src/handshake.rs",
+        "kernel/contracts/handshake-v1.json",
+        "kernel/contracts/handshake-v1-cases.json",
+        "kernel/tests/handshake.rs",
+        "kernel/bindings/python/tests/test_native_handshake.py",
+        "kernel/bindings/node/tests/handshake.test.mjs",
+        "tools/check_handshake_profile.py",
         "kernel/Cargo.lock",
         "kernel/Cargo.toml",
         "kernel/README.md",

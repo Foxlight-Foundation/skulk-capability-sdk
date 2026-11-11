@@ -25,3 +25,12 @@ function admittedManifest(source: string): Uint8Array {
 }
 void managedFingerprint;
 void admittedManifest;
+
+// New handshake handles remain explicit and distinct from legacy stream I/O.
+import {HandshakeContract, handshakeProfileDigest} from '../dist/portable.js';
+const handshake: HandshakeContract = ManagedContract.fromJson('Startup', '{}').hello();
+const bound: HandshakeContract = ManagedContract.fromJson('Startup', '{}').admitHello('{}', 'call');
+const handshakeFingerprint: string = handshakeProfileDigest();
+void [handshake, bound, handshakeFingerprint];
+// @ts-expect-error only the two explicit handshake roots are admitted
+HandshakeContract.fromJson('Startup', '{}');

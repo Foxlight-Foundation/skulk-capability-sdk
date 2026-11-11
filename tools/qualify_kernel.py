@@ -407,6 +407,38 @@ def main() -> None:
             ),
             end="",
         )
+    print(
+        run(
+            [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "calls_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_calls_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"calls-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    calls_report = json.loads((OUTPUT / "calls-rust.json").read_text())
     composition_report = json.loads((OUTPUT / "composition-rust.json").read_text())
     transport_report = json.loads((OUTPUT / "transport-rust.json").read_text())
     handshake_report = json.loads((OUTPUT / "handshake-rust.json").read_text())
@@ -423,6 +455,10 @@ def main() -> None:
         "profile": reports[0]["profile"],
         "profile_digest": reports[0]["profile_digest"],
         "cases_per_backend": reports[0]["cases"],
+        "calls_profile": calls_report["profile"],
+        "calls_profile_digest": calls_report["profile_digest"],
+        "calls_cases_per_backend": calls_report["cases"],
+        "calls_input_sha256": calls_report["input_sha256"],
         "composition_profile": composition_report["profile"],
         "composition_profile_digest": composition_report["profile_digest"],
         "composition_cases_per_backend": composition_report["cases"],

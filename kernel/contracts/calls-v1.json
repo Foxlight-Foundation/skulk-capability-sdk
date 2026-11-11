@@ -1,0 +1,510 @@
+{
+  "profile": "skulk.calls/1",
+  "protocol": 1,
+  "canonicalization": "skulk.portable-json/1",
+  "composition_profile": "skulk.composition/1",
+  "protected_hello_profile": "skulk.handshake/1",
+  "media_profile": "skulk.transport/1",
+  "limits": {
+    "metadata_bytes": 262144,
+    "payload_bytes": 16777216,
+    "unary_seconds": 30,
+    "stream_seconds": 300
+  },
+  "framing": "u32 big-endian metadata length; canonical metadata UTF-8; exactly payload_size raw bytes. No trailing bytes. Both bounds apply before allocation.",
+  "semantics": [
+    "This explicit new control profile is selected only by an admitted signed runtime cohort; no automatic downgrade or profile guessing. Issued managed, handshake, media and control profiles are unchanged.",
+    "Invoke and delegate raw payloads must be portable JSON objects. Preserve their exact bytes and bind SHA-256 to the independently admitted composition context or delegate request. Canonicalizing metadata never reserializes payload bytes.",
+    "Context parsing grants no authority. Only the authenticated host active-scope registry may admit a root or delegation and must match original caller, live connection, local call, exact destination, policy, monotonic deadline and cancellation tree.",
+    "Parent-scoped delegation request_id is an increasing unsigned 64-bit sequence starting at one, encoded as 64 lowercase hexadecimal digits. Host permits at most one pending delegation per parent. Rejected admitted sequence numbers remain consumed; structural/racing requests do not advance it. No completed-ID ledger or total request allowance.",
+    "Result and delegate_result carry a portable JSON object payload on success, and zero payload bytes on a bounded non-null error. Error messages never carry raw provider detail.",
+    "Health, shutdown and cancel have zero payload bytes. Health surface identities and readiness keep the existing transport/1 semantics.",
+    "One pending root invocation per managed child remains the declared concurrency rule. Cancellation, invalid/partial I/O, unknown execution outcome or channel loss never authorize retry or effect replay.",
+    "A stream invocation negotiates its separate startup/call-bound media channel using the unchanged transport/1 framing and lifecycle. This control codec alone does not qualify stream routing or remote Fabric admission.",
+    "Destination io_mode is pinned by the exact signed descriptor revision. Unary delegation has one delegate_result. A streaming delegation either fails with delegate_result before starting or receives one delegate_started followed by one delegate_finished; the host enforces that state machine.",
+    "Only the host assigns delegate_started.media_call_id and binds its one-use media hello to the actual parent connection, parent call, request ID and active child scope. It must differ from the parent call ID. Frame parsing or a claimed media ID never establishes that binding.",
+    "A caller must not expose successful stream completion until the media terminal/end, delegate_finished and required handler cleanup agree. Native media alone does not establish completion of its delegated call. Parent completion/cancellation retires all active children; early stream abandonment cancels the parent in this profile. No uncertain execution is replayed.",
+    "The host clamps delegate_started.remaining_seconds to the active child monotonic budget. Callers additionally clamp against their existing parent budget and the supplied absolute deadline; a delayed control message cannot mint a fresh deadline."
+  ],
+  "controls": {
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.calls/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "health"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "nonce": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "surfaces": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "port": {
+                "maximum": 65535,
+                "minimum": 1024,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "surface_id": {
+                "pattern": "^[a-z][a-z0-9-]{0,31}$",
+                "type": "string"
+              },
+              "url": {
+                "maxLength": 512,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "surface_id",
+              "ready",
+              "port",
+              "url"
+            ],
+            "type": "object"
+          },
+          "maxItems": 4,
+          "type": "array"
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "kind",
+        "payload_size",
+        "nonce",
+        "ready",
+        "surfaces"
+      ]
+    },
+    "shutdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.calls/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "shutdown"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "kind",
+        "payload_size"
+      ]
+    },
+    "invoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.calls/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "invoke"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "call_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "mode": {
+          "enum": [
+            "unary",
+            "server_streaming",
+            "client_streaming",
+            "bidirectional"
+          ]
+        },
+        "context": {
+          "type": "object"
+        },
+        "remaining_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 300
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "kind",
+        "payload_size",
+        "call_id",
+        "mode",
+        "context",
+        "remaining_seconds"
+      ]
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.calls/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "result"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "call_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "error": {
+          "enum": [
+            null,
+            "invalid_payload",
+            "provider_error",
+            "timeout",
+            "denied",
+            "outcome_unknown",
+            "cancelled"
+          ]
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "kind",
+        "payload_size",
+        "call_id",
+        "error"
+      ]
+    },
+    "delegate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.calls/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "delegate"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "parent_call_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "request": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "kind",
+        "payload_size",
+        "parent_call_id",
+        "request"
+      ]
+    },
+    "delegate_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.calls/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "delegate_result"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "parent_call_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "error": {
+          "enum": [
+            null,
+            "invalid_payload",
+            "provider_error",
+            "timeout",
+            "denied",
+            "outcome_unknown",
+            "cancelled"
+          ]
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "kind",
+        "payload_size",
+        "parent_call_id",
+        "request_id",
+        "error"
+      ]
+    },
+    "cancel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.calls/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "cancel"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "call_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "kind",
+        "payload_size",
+        "call_id"
+      ]
+    },
+    "delegate_started": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.calls/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "delegate_started"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "parent_call_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "media_call_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "mode": {
+          "enum": [
+            "server_streaming",
+            "client_streaming",
+            "bidirectional"
+          ]
+        },
+        "deadline_unix_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "remaining_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 300
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "kind",
+        "payload_size",
+        "parent_call_id",
+        "request_id",
+        "media_call_id",
+        "mode",
+        "deadline_unix_ms",
+        "remaining_seconds"
+      ]
+    },
+    "delegate_finished": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.calls/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "delegate_finished"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "parent_call_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "error": {
+          "enum": [
+            null,
+            "invalid_payload",
+            "provider_error",
+            "timeout",
+            "denied",
+            "outcome_unknown",
+            "cancelled"
+          ]
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "kind",
+        "payload_size",
+        "parent_call_id",
+        "request_id",
+        "error"
+      ]
+    }
+  }
+}

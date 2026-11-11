@@ -7,7 +7,7 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use skulk_capability_kernel::{
-    binding, codec, composition, contracts, handshake, journal, managed, operation_logs,
+    binding, calls, codec, composition, contracts, handshake, journal, managed, operation_logs,
     operations, portable, schema, streams, transport,
 };
 
@@ -695,6 +695,12 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(open_portable_stream, module)?)?;
     module.add_function(wrap_pyfunction!(open_portable_control, module)?)?;
     module.add_class::<NativeControl>()?;
+    module.add_function(wrap_pyfunction!(calls_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(call_payload_size, module)?)?;
+    module.add_function(wrap_pyfunction!(encode_call_frame, module)?)?;
+    module.add_function(wrap_pyfunction!(decode_call_frame, module)?)?;
+    module.add_function(wrap_pyfunction!(open_call_control, module)?)?;
+    module.add_class::<NativeCallControl>()?;
     module.add_function(wrap_pyfunction!(encode_stream_packet, module)?)?;
     module.add_function(wrap_pyfunction!(decode_stream_packet, module)?)?;
     Ok(())
@@ -1105,6 +1111,124 @@ fn open_portable_control<'py>(
             .await
             .map_err(stream_error)?;
         Ok(NativeControl {
+            inner: Arc::new(channel),
+        })
+    })
+}
+
+/// Explicit composed-call fingerprint; parsing never authenticates a caller.
+#[pyfunction]
+fn calls_profile_digest() -> &'static str {
+    calls::profile_digest()
+}
+
+/// Admit bounded metadata before a host reads a body; not full frame admission.
+#[pyfunction]
+fn call_payload_size(py: Python<'_>, source: &Bound<'_, PyString>) -> PyResult<usize> {
+    let source = portable_text(source)?;
+    py.detach(|| calls::payload_size(&source))
+        .map_err(stream_error)
+}
+
+/// Preserve exact raw payload bytes while admitting closed composition metadata.
+#[pyfunction]
+fn encode_call_frame<'py>(
+    py: Python<'py>,
+    source: &Bound<'_, PyString>,
+    payload: &Bound<'_, PyBytes>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    let source = portable_text(source)?;
+    if payload.as_bytes().len() > calls::MAX_PAYLOAD_BYTES {
+        return Err(stream_error(streams::StreamError::HeaderBound));
+    }
+    let payload = payload.as_bytes().to_vec();
+    let bytes = py
+        .detach(|| calls::Frame::from_json(&source, payload).map(|frame| calls::encode(&frame)))
+        .map_err(stream_error)?;
+    Ok(PyBytes::new(py, &bytes))
+}
+
+/// Return defensive metadata/body copies from one complete admitted frame.
+#[pyfunction]
+fn decode_call_frame<'py>(
+    py: Python<'py>,
+    packet: &Bound<'_, PyBytes>,
+) -> PyResult<(Bound<'py, PyBytes>, Bound<'py, PyBytes>)> {
+    let bytes = packet.as_bytes();
+    let frame = py.detach(|| calls::decode(bytes)).map_err(stream_error)?;
+    Ok((
+        PyBytes::new(py, frame.metadata()),
+        PyBytes::new(py, frame.payload()),
+    ))
+}
+
+/// One startup-bound composed-call channel; no legacy profile guessing/fallback.
+#[pyclass(module = "_skulk_capability_kernel")]
+struct NativeCallControl {
+    inner: Arc<transport::Channel>,
+}
+
+#[pymethods]
+impl NativeCallControl {
+    /// Receive one compiled-admitted metadata/body pair under native I/O fences.
+    fn receive<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let frame = channel.receive_call().await.map_err(stream_error)?;
+            Ok(Python::attach(|py| {
+                (
+                    PyBytes::new(py, frame.metadata()).unbind(),
+                    PyBytes::new(py, frame.payload()).unbind(),
+                )
+            }))
+        })
+    }
+    /// Admit exact body binding, then await bounded backpressure without retries.
+    fn send<'py>(
+        &self,
+        py: Python<'py>,
+        source: &Bound<'_, PyString>,
+        payload: &Bound<'_, PyBytes>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let source = portable_text(source)?;
+        let bytes = payload.as_bytes();
+        if bytes.len() > calls::MAX_PAYLOAD_BYTES {
+            return Err(stream_error(streams::StreamError::HeaderBound));
+        }
+        let frame = py
+            .detach(|| calls::Frame::from_json(&source, bytes.to_vec()))
+            .map_err(stream_error)?;
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            channel.send_call(&frame).await.map_err(stream_error)
+        })
+    }
+    /// Fence pending operations and await native socket/timer cleanup.
+    fn close<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            channel.close().await;
+            Ok(())
+        })
+    }
+}
+
+/// Derive protected endpoint/hello natively; the host still admits current trust.
+#[pyfunction]
+fn open_call_control<'py>(
+    py: Python<'py>,
+    startup: &ManagedContract,
+    seconds: f64,
+) -> PyResult<Bound<'py, PyAny>> {
+    let source = std::str::from_utf8(startup.record.canonical())
+        .map_err(|_| stream_error(streams::StreamError::InvalidFrame))?;
+    let record =
+        managed::Record::from_json(startup.record.name(), source).map_err(portable_error)?;
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let channel = transport::Channel::connect(&record, seconds)
+            .await
+            .map_err(stream_error)?;
+        Ok(NativeCallControl {
             inner: Arc::new(channel),
         })
     })

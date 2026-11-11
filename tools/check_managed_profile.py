@@ -81,6 +81,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--backend", choices=["rust", "python", "node"], default="rust")
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--node-facade", type=Path)
     args = parser.parse_args()
     inputs = fixture()
     if args.backend == "python":
@@ -97,6 +98,8 @@ def main() -> None:
             else ["node", str(ROOT / "kernel/bindings/node/tools/portable_probe.mjs")]
         )
         # Reuse the bounded probe transport, without retyping the legacy corpus.
+        if args.backend == "node" and args.node_facade:
+            command.append(args.node_facade.resolve().as_uri())
         results = external_requests(command, inputs.cases)
     if len(results) != len(inputs.cases):
         raise ValueError("Managed observation count differs")

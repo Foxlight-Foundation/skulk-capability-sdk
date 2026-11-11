@@ -4,16 +4,17 @@ build-backend = "maturin"
 
 [project]
 name = "skulk-capability-kernel"
-version = "0.1.0"
+version = "0.2.0rc1"
 requires-python = ">=3.13"
 description = "Native capability kernel qualification package"
-license = { file = "LICENSE.md" }
+license = "MIT"
+license-files = ["LICENSE.md", "THIRD_PARTY_NOTICES.txt"]
 
 [tool.maturin]
 module-name = "_skulk_capability_kernel"
 strip = true
 
 # Keep build-host paths out of artifacts. Dependency evidence is
-# retained in Cargo.lock; the distribution NOTICE gate remains separate.
+# retained in Cargo.lock and the packaged third-party notices.
 [tool.maturin.sbom]
 rust = false

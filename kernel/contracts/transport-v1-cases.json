@@ -1,0 +1,471 @@
+{
+  "profile": "skulk.transport/1",
+  "profile_digest": "18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435",
+  "scope": "Independent synthetic full wire bytes and refusals; host execution/installation not qualified.",
+  "cases": [
+    {
+      "id": "invoke",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "0000016f7b2263616c6c5f6964223a2263616c6c222c226361706162696c6974795f6964223a226578616d706c65222c22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c2264657363726970746f725f7265766973696f6e223a2262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262222c226b696e64223a22696e766f6b65222c227061796c6f6164223a7b226f6e65223a312c2274657874223a225c75643833655c7564643861227d2c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a352c2272656d61696e696e675f7365636f6e6473223a352c2276657273696f6e223a22312e302e30227d"
+    },
+    {
+      "id": "stream_invoke",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"stream_invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "000001767b2263616c6c5f6964223a2263616c6c222c226361706162696c6974795f6964223a226578616d706c65222c22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c2264657363726970746f725f7265766973696f6e223a2262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262222c226b696e64223a2273747265616d5f696e766f6b65222c227061796c6f6164223a7b226f6e65223a312c2274657874223a225c75643833655c7564643861227d2c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a352c2272656d61696e696e675f7365636f6e6473223a352c2276657273696f6e223a22312e302e30227d"
+    },
+    {
+      "id": "result-success",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"result\", \"call_id\": \"call\", \"payload\": {}, \"error\": null}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "000000c47b2263616c6c5f6964223a2263616c6c222c22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226572726f72223a6e756c6c2c226b696e64223a22726573756c74222c227061796c6f6164223a7b7d2c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "result-failure",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"result\", \"call_id\": \"call\", \"payload\": null, \"error\": \"provider_error\"}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "000000d27b2263616c6c5f6964223a2263616c6c222c22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226572726f72223a2270726f76696465725f6572726f72222c226b696e64223a22726573756c74222c227061796c6f6164223a6e756c6c2c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "health",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"health\", \"nonce\": \"probe\", \"ready\": true, \"surfaces\": [{\"surface_id\": \"settings\", \"ready\": true, \"port\": 5423, \"url\": null}]}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "000001017b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226b696e64223a226865616c7468222c226e6f6e6365223a2270726f6265222c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a352c227265616479223a747275652c227375726661636573223a5b7b22706f7274223a353432332c227265616479223a747275652c22737572666163655f6964223a2273657474696e6773222c2275726c223a6e756c6c7d5d7d"
+    },
+    {
+      "id": "shutdown",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"shutdown\"}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "0000009b7b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226b696e64223a2273687574646f776e222c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "missing-protocol",
+      "action": "control",
+      "source": "{\"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "missing-contract_profile",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "missing-profile_digest",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "missing-kind",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "missing-call_id",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "missing-capability_id",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "missing-version",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "missing-descriptor_revision",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "missing-payload",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "missing-remaining_seconds",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-protocol-16",
+      "action": "control",
+      "source": "{\"protocol\": 4, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-profile_digest-17",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-descriptor_revision-18",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-descriptor_revision-19",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccZ\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-remaining_seconds-20",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 0}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-remaining_seconds-21",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 31}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-payload-22",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": [], \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-kind-23",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"surprise\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-extra-24",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"invoke\", \"call_id\": \"call\", \"capability_id\": \"example\", \"version\": \"1.0.0\", \"descriptor_revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"payload\": {\"text\": \"\\ud83e\\udd8a\", \"one\": 1.0}, \"remaining_seconds\": 5, \"extra\": \"synthetic-do-not-echo-secret\"}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "result-exclusive-False",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"result\", \"call_id\": \"call\", \"payload\": null, \"error\": null}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "result-exclusive-True",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"result\", \"call_id\": \"call\", \"payload\": {}, \"error\": \"timeout\"}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "health-duplicate",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"health\", \"nonce\": \"probe\", \"ready\": true, \"surfaces\": [{\"surface_id\": \"settings\", \"ready\": true, \"port\": 5423, \"url\": null}, {\"surface_id\": \"settings\", \"ready\": true, \"port\": 5423, \"url\": null}]}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "health-invalid-28",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"health\", \"nonce\": \"probe\", \"ready\": true, \"surfaces\": [{\"surface_id\": \"settings\", \"ready\": true, \"port\": null, \"url\": null}]}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "health-invalid-29",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"health\", \"nonce\": \"probe\", \"ready\": true, \"surfaces\": [{\"surface_id\": \"settings\", \"ready\": true, \"port\": 5423, \"url\": \"https://example.test/\"}]}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "health-invalid-30",
+      "action": "control",
+      "source": "{\"protocol\": 5, \"contract_profile\": \"skulk.transport/1\", \"profile_digest\": \"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\", \"kind\": \"health\", \"nonce\": \"probe\", \"ready\": true, \"surfaces\": [{\"surface_id\": \"settings\", \"ready\": true, \"port\": null, \"url\": \"http://example.test/\"}]}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-json-31",
+      "action": "control",
+      "source": "{\"protocol\":5,\"protocol\":5}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-json-32",
+      "action": "control",
+      "source": "{\"call_id\":\"call\",\"capability_id\":\"example\",\"contract_profile\":\"skulk.transport/1\",\"descriptor_revision\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"kind\":\"invoke\",\"payload\":{\"one\":9007199254740992,\"text\":\"\\ud83e\\udd8a\"},\"profile_digest\":\"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\",\"protocol\":5,\"remaining_seconds\":5,\"version\":\"1.0.0\"}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-json-33",
+      "action": "control",
+      "source": "{\"call_id\":\"call\",\"capability_id\":\"example\",\"contract_profile\":\"skulk.transport/1\",\"descriptor_revision\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"kind\":\"invoke\",\"payload\":{\"one\":NaN,\"text\":\"\\ud83e\\udd8a\"},\"profile_digest\":\"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\",\"protocol\":5,\"remaining_seconds\":5,\"version\":\"1.0.0\"}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-json-34",
+      "action": "control",
+      "source": "{\"call_id\":\"call\",\"capability_id\":\"example\",\"contract_profile\":\"skulk.transport/1\",\"descriptor_revision\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"kind\":\"invoke\",\"payload\":{\"one\":\"\\ud800\",\"text\":\"\\ud83e\\udd8a\"},\"profile_digest\":\"18e4096b5802dc4ff9c251b1819a0c5062d42713edd4e8fc30fa94224044b435\",\"protocol\":5,\"remaining_seconds\":5,\"version\":\"1.0.0\"}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "caller_to_provider-started",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"caller_to_provider\", \"sequence\": 0, \"kind\": \"started\"}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "0000012d7b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2263616c6c65725f746f5f70726f7669646572222c226572726f72223a6e756c6c2c226b696e64223a2273746172746564222c226d65646961223a6e756c6c2c227061796c6f6164223a6e756c6c2c2273657175656e6365223a302c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "caller_to_provider-chunk",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"caller_to_provider\", \"sequence\": 1, \"kind\": \"chunk\", \"payload\": {\"text\": \"fox\", \"one\": 1.0}}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "0000013d7b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2263616c6c65725f746f5f70726f7669646572222c226572726f72223a6e756c6c2c226b696e64223a226368756e6b222c226d65646961223a6e756c6c2c227061796c6f6164223a7b226f6e65223a312c2274657874223a22666f78227d2c2273657175656e6365223a312c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "caller_to_provider-completed",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"caller_to_provider\", \"sequence\": 2, \"kind\": \"completed\"}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "0000012f7b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2263616c6c65725f746f5f70726f7669646572222c226572726f72223a6e756c6c2c226b696e64223a22636f6d706c65746564222c226d65646961223a6e756c6c2c227061796c6f6164223a6e756c6c2c2273657175656e6365223a322c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "caller_to_provider-failed",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"caller_to_provider\", \"sequence\": 2, \"kind\": \"failed\", \"error\": {\"code\": \"provider_error\", \"message\": \"bounded\"}}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "000001557b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2263616c6c65725f746f5f70726f7669646572222c226572726f72223a7b22636f6465223a2270726f76696465725f6572726f72222c226d657373616765223a22626f756e646564227d2c226b696e64223a226661696c6564222c226d65646961223a6e756c6c2c227061796c6f6164223a6e756c6c2c2273657175656e6365223a322c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "caller_to_provider-cancelled",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"caller_to_provider\", \"sequence\": 2, \"kind\": \"cancelled\", \"error\": {\"code\": \"cancelled\", \"message\": \"bounded\"}}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "000001537b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2263616c6c65725f746f5f70726f7669646572222c226572726f72223a7b22636f6465223a2263616e63656c6c6564222c226d657373616765223a22626f756e646564227d2c226b696e64223a2263616e63656c6c6564222c226d65646961223a6e756c6c2c227061796c6f6164223a6e756c6c2c2273657175656e6365223a322c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "provider_to_caller-started",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 0, \"kind\": \"started\"}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "0000012d7b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c226572726f72223a6e756c6c2c226b696e64223a2273746172746564222c226d65646961223a6e756c6c2c227061796c6f6164223a6e756c6c2c2273657175656e6365223a302c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "provider_to_caller-chunk",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 1, \"kind\": \"chunk\", \"payload\": {\"text\": \"fox\", \"one\": 1.0}}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "0000013d7b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c226572726f72223a6e756c6c2c226b696e64223a226368756e6b222c226d65646961223a6e756c6c2c227061796c6f6164223a7b226f6e65223a312c2274657874223a22666f78227d2c2273657175656e6365223a312c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "provider_to_caller-completed",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 2, \"kind\": \"completed\"}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "0000012f7b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c226572726f72223a6e756c6c2c226b696e64223a22636f6d706c65746564222c226d65646961223a6e756c6c2c227061796c6f6164223a6e756c6c2c2273657175656e6365223a322c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "provider_to_caller-failed",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 2, \"kind\": \"failed\", \"error\": {\"code\": \"provider_error\", \"message\": \"bounded\"}}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "000001557b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c226572726f72223a7b22636f6465223a2270726f76696465725f6572726f72222c226d657373616765223a22626f756e646564227d2c226b696e64223a226661696c6564222c226d65646961223a6e756c6c2c227061796c6f6164223a6e756c6c2c2273657175656e6365223a322c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "provider_to_caller-cancelled",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 2, \"kind\": \"cancelled\", \"error\": {\"code\": \"cancelled\", \"message\": \"bounded\"}}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "000001537b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c226572726f72223a7b22636f6465223a2263616e63656c6c6564222c226d657373616765223a22626f756e646564227d2c226b696e64223a2263616e63656c6c6564222c226d65646961223a6e756c6c2c227061796c6f6164223a6e756c6c2c2273657175656e6365223a322c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "binary-inline",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 1, \"kind\": \"chunk\", \"media\": {\"kind\": \"inline\", \"media_type\": \"audio/pcm\", \"timestamp_seconds\": 1.0}}",
+      "media_hex": "00ff7f80",
+      "valid": true,
+      "wire_hex": "000001af7b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c22646972656374696f6e223a2270726f76696465725f746f5f63616c6c6572222c226572726f72223a6e756c6c2c226b696e64223a226368756e6b222c226d65646961223a7b226368616e6e656c73223a6e756c6c2c22636f646563223a6e756c6c2c226475726174696f6e5f7365636f6e6473223a6e756c6c2c226b696e64223a22696e6c696e65222c226d656469615f74797065223a22617564696f2f70636d222c2273616d706c655f72617465223a6e756c6c2c2274696d657374616d705f7365636f6e6473223a317d2c227061796c6f6164223a6e756c6c2c2273657175656e6365223a312c2273796e746865746963223a66616c73657d2c226d656469615f73697a65223a342c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d00ff7f80"
+    },
+    {
+      "id": "end",
+      "action": "packet",
+      "source": "{\"kind\": \"end\", \"call_id\": \"call\"}",
+      "media_hex": "",
+      "valid": true,
+      "wire_hex": "000000c07b22636f6e74726163745f70726f66696c65223a22736b756c6b2e7472616e73706f72742f31222c226672616d65223a7b2263616c6c5f6964223a2263616c6c222c226b696e64223a22656e64227d2c226d656469615f73697a65223a302c2270726f66696c655f646967657374223a2231386534303936623538303264633466663963323531623138313961306335303632643432373133656464346538666333306661393432323430343462343335222c2270726f746f636f6c223a357d"
+    },
+    {
+      "id": "bad-packet-call_id47",
+      "action": "packet",
+      "source": "{\"call_id\": \"bad call\", \"direction\": \"provider_to_caller\", \"sequence\": 1, \"kind\": \"chunk\", \"media\": {\"kind\": \"inline\", \"media_type\": \"audio/pcm\", \"timestamp_seconds\": 1.0}}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-packet-sequence48",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 9007199254740992, \"kind\": \"chunk\", \"media\": {\"kind\": \"inline\", \"media_type\": \"audio/pcm\", \"timestamp_seconds\": 1.0}}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-packet-synthetic49",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 1, \"kind\": \"chunk\", \"media\": {\"kind\": \"inline\", \"media_type\": \"audio/pcm\", \"timestamp_seconds\": 1.0}, \"synthetic\": 0}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-packet-synthetic50",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 1, \"kind\": \"chunk\", \"media\": {\"kind\": \"inline\", \"media_type\": \"audio/pcm\", \"timestamp_seconds\": 1.0}, \"synthetic\": true}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-packet-direction51",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"other\", \"sequence\": 1, \"kind\": \"chunk\", \"media\": {\"kind\": \"inline\", \"media_type\": \"audio/pcm\", \"timestamp_seconds\": 1.0}}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-packet-extra52",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 1, \"kind\": \"chunk\", \"media\": {\"kind\": \"inline\", \"media_type\": \"audio/pcm\", \"timestamp_seconds\": 1.0}, \"extra\": \"synthetic-do-not-echo-secret\"}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "bad-packet-error53",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"provider_to_caller\", \"sequence\": 1, \"kind\": \"chunk\", \"media\": {\"kind\": \"inline\", \"media_type\": \"audio/pcm\", \"timestamp_seconds\": 1.0}, \"error\": {\"code\": \"cancelled\", \"message\": \"x\"}}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "end-with-data",
+      "action": "packet",
+      "source": "{\"kind\": \"end\", \"call_id\": \"call\"}",
+      "media_hex": "78",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "invalid-frame-55",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"caller_to_provider\", \"sequence\": 0, \"kind\": \"chunk\", \"payload\": {}}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "invalid-frame-56",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"caller_to_provider\", \"sequence\": 1, \"kind\": \"started\"}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    },
+    {
+      "id": "invalid-frame-57",
+      "action": "packet",
+      "source": "{\"call_id\": \"call\", \"direction\": \"caller_to_provider\", \"sequence\": 1, \"kind\": \"chunk\"}",
+      "media_hex": "",
+      "valid": false,
+      "wire_hex": null
+    }
+  ]
+}

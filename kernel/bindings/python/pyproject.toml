@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "skulk-capability-kernel"
-version = "0.3.0rc1"
+version = "0.4.0rc1"
 requires-python = ">=3.13"
 description = "Native capability kernel qualification package"
 license = "MIT"

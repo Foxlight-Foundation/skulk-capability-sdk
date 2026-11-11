@@ -8,6 +8,7 @@ on:
       - KERNEL-SOURCE-MANIFEST.json
       - KERNEL-INITIAL-EXPORT.json
       - tools/check_handshake_profile.py
+      - tools/check_transport_profile.py
       - tools/check_managed_profile.py
       - tools/native_*.py
       - tools/check_kernel_export.py
@@ -50,6 +51,7 @@ jobs:
             .runtime/native-qualification/portable-*.json
             .runtime/native-qualification/managed-*.json
             .runtime/native-qualification/handshake-*.json
+            .runtime/native-qualification/transport-*.json
             .runtime/native-qualification/native-candidate-*.zip
             .runtime/native-qualification/compiler-free-install.json
           retention-days: 14

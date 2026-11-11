@@ -134,3 +134,48 @@ export class HandshakeContract {
   /** Native token and identity fields never appear in routine Node inspection. */
   [inspect.custom](): string { return `HandshakeContract(${this.name})`; }
 }
+
+/** Explicit wire profile, separately fingerprinted from descriptors and startup. */
+export const TRANSPORT_PROFILE = 'skulk.transport/1' as const;
+/** Return the complete native protocol-five wire fingerprint. */
+export function transportProfileDigest(): string { return native.transportProfileDigest(); }
+/** Admit and frame closed native protocol-five control text. */
+export function encodePortableControl(source: string): Uint8Array { return native.encodePortableControl(source); }
+/** Return a canonical copy after complete control framing validation. */
+export function decodePortableControl(bytes: Uint8Array): Uint8Array { return native.decodePortableControl(Buffer.from(bytes)); }
+/** Frame portable scalar JSON and a separate bounded raw attachment. */
+export function encodePortablePacket(projection: string, media: Uint8Array): Uint8Array { return native.encodePortablePacket(projection, Buffer.from(media)); }
+/** Return exact media and native canonical metadata without a JS validator. */
+export function decodePortablePacket(bytes: Uint8Array): {projection: string; media: Uint8Array} { return native.decodePortablePacket(Buffer.from(bytes)); }
+/** Canonical projection and separately owned raw binary bytes. */
+export interface PortablePacket {readonly projection: string; readonly media: Uint8Array;}
+/** The handler owns iterator cleanup and closes the native session from finally. */
+export interface PortableStream {
+  nextInput(): Promise<PortablePacket | null>;
+  sendOutput(projection: string, media: Uint8Array): Promise<void>;
+  finish(): Promise<void>;
+  close(): Promise<void>;
+}
+/** Cancellation or invalid/partial I/O fences every later control operation. */
+export interface PortableControl {
+  receive(): Promise<Uint8Array>;
+  send(source: string): Promise<void>;
+  close(): Promise<void>;
+}
+/** Open the exact startup endpoint and derive its native-bound hello. The host
+ * separately owns current trust, original caller and one-use call admission. */
+export async function openPortableStream(startup: ManagedContract, callId: string, mode: 'server_streaming' | 'client_streaming' | 'bidirectional', seconds: number): Promise<PortableStream> {
+  if (startup.name !== 'Startup') throw new TypeError('startup record required');
+  const session = await native.openPortableStream(Buffer.from(startup.canonical()).toString('utf8'), callId, mode, seconds);
+  return Object.freeze({
+    nextInput: () => session.nextInput(),
+    sendOutput: (projection: string, media: Uint8Array) => session.sendOutput(projection, Buffer.from(media)),
+    finish: () => session.finish(),
+    close: () => session.close(),
+  });
+}
+/** Native channel owns deadlines and uncertain I/O; close it from finally. */
+export function openPortableControl(startup: ManagedContract, seconds: number): Promise<PortableControl> {
+  if (startup.name !== 'Startup') throw new TypeError('startup record required');
+  return native.openPortableControl(Buffer.from(startup.canonical()).toString('utf8'), seconds);
+}

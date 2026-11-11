@@ -17,6 +17,7 @@ use tokio::task::JoinHandle;
 use tokio::time::{Instant, timeout_at};
 
 use crate::codec::{self, Value};
+use crate::{handshake, managed, transport};
 
 /// Existing protocol-4 JSON header ceiling.
 pub const MAX_HEADER_BYTES: usize = 65_536;
@@ -580,11 +581,32 @@ impl Lifecycle {
     }
 }
 
+#[derive(Clone, Copy)]
+enum Wire {
+    Legacy,
+    Portable,
+}
+impl Wire {
+    async fn read(self, reader: &mut (impl AsyncRead + Unpin)) -> Result<Packet> {
+        match self {
+            Self::Legacy => read_packet(reader).await,
+            Self::Portable => transport::read_packet(reader).await,
+        }
+    }
+    async fn write(self, writer: &mut (impl AsyncWrite + Unpin), packet: &Packet) -> Result<()> {
+        match self {
+            Self::Legacy => write_packet(writer, packet).await,
+            Self::Portable => transport::write_packet(writer, packet).await,
+        }
+    }
+}
+
 /// Native asynchronous transport owner. Iterator execution is language-owned;
 /// `finish` is called only after its cleanup has completed. Drop aborts owned
 /// tasks/sockets; explicit `close` awaits their teardown. Health uses no session
 /// locks and remains independent of a blocked input/output/handler operation.
 pub struct Session {
+    wire: Wire,
     state: Arc<Mutex<Lifecycle>>,
     input: AsyncMutex<(mpsc::Receiver<Packet>, bool)>,
     writer: Arc<AsyncMutex<OwnedWriteHalf>>,
@@ -603,6 +625,60 @@ impl Session {
         mode: Mode,
         seconds: f64,
     ) -> Result<Self> {
+        let hello = validate_hello(hello, call_id)?;
+        Self::connect(socket, hello, call_id, mode, seconds, Wire::Legacy).await
+    }
+    /// Derive the stream endpoint and hello from one admitted startup. The host
+    /// still owns original caller, signed selection and one-use call admission.
+    pub async fn open_portable(
+        startup: &managed::Record,
+        call_id: &str,
+        mode: Mode,
+        seconds: f64,
+    ) -> Result<Self> {
+        let hello = handshake::from_startup(startup, Some(call_id))
+            .map_err(|_| StreamError::InvalidFrame)?;
+        let value: serde_json::Value =
+            serde_json::from_slice(startup.canonical()).map_err(|_| StreamError::InvalidFrame)?;
+        let socket = value["stream_socket"]
+            .as_str()
+            .ok_or(StreamError::InvalidFrame)?;
+        Self::connect(
+            socket,
+            hello.canonical().to_vec(),
+            call_id,
+            mode,
+            seconds,
+            Wire::Portable,
+        )
+        .await
+    }
+    /// Select language conversion without replacing legacy codec behavior.
+    pub fn is_portable(&self) -> bool {
+        matches!(self.wire, Wire::Portable)
+    }
+    /// Admit binding output using the session's explicit protocol, never a fallback.
+    pub fn packet(&self, projection: &str, media: Vec<u8>) -> Result<Packet> {
+        match self.wire {
+            Wire::Legacy => Packet::from_projection(projection, media),
+            Wire::Portable => transport::packet(projection, media),
+        }
+    }
+    /// Return the canonical projection belonging to this session's number profile.
+    pub fn projection(&self, packet: &Packet) -> Result<String> {
+        match self.wire {
+            Wire::Legacy => packet.projection_json(),
+            Wire::Portable => transport::projection(packet),
+        }
+    }
+    async fn connect(
+        socket: &str,
+        hello: Vec<u8>,
+        call_id: &str,
+        mode: Mode,
+        seconds: f64,
+        wire: Wire,
+    ) -> Result<Self> {
         if !seconds.is_finite()
             || !(0.0..=300.0).contains(&seconds)
             || seconds == 0.0
@@ -611,7 +687,6 @@ impl Session {
             return Err(StreamError::InvalidFrame);
         }
         let deadline = Instant::now() + Duration::from_secs_f64(seconds);
-        let hello = validate_hello(hello, call_id)?;
         let stream = timeout_at(deadline, UnixStream::connect(socket))
             .await
             .map_err(|_| StreamError::Timeout)?
@@ -643,7 +718,7 @@ impl Session {
         let receive = tokio::spawn(async move {
             let result = timeout_at(deadline, async {
                 loop {
-                    let packet = read_packet(&mut reader).await?;
+                    let packet = wire.read(&mut reader).await?;
                     reader_state
                         .lock()
                         .map_err(|_| StreamError::Closed)?
@@ -668,6 +743,7 @@ impl Session {
             let _ = timer_writer.lock().await.shutdown().await;
         });
         Ok(Self {
+            wire,
             state,
             input: AsyncMutex::new((receiver, false)),
             writer,
@@ -710,6 +786,10 @@ impl Session {
         result
     }
     async fn send_output_inner(&self, packet: Packet) -> Result<()> {
+        // Direct Rust callers cannot bypass the selected protocol's admission.
+        if let Wire::Portable = self.wire {
+            transport::encode_packet(&packet)?;
+        }
         // The writer gate also serializes the sequence transition and prevents
         // concurrent binding calls from placing chunks after the cleanup ack.
         let mut failures = self.failures.subscribe();
@@ -722,7 +802,7 @@ impl Session {
         if let Some(packet) = packet {
             let result = tokio::select! { biased;
                 _=failures.changed()=>{ self.alive()?; Err(StreamError::Closed) },
-                result=timeout_at(self.deadline,write_packet(&mut *writer,&packet))=>result.map_err(|_|StreamError::Timeout)?,
+                result=timeout_at(self.deadline,self.wire.write(&mut *writer,&packet))=>result.map_err(|_|StreamError::Timeout)?,
             };
             if let Err(error) = result {
                 fail(&self.state, &self.failures, error);
@@ -771,8 +851,8 @@ impl Session {
         let result = tokio::select! { biased;
             _=failures.changed()=>{ self.alive()?; Err(StreamError::Closed) },
             result=timeout_at(self.deadline,async {
-                write_packet(&mut *writer,&terminal).await?;
-                write_packet(&mut *writer,&end).await
+                self.wire.write(&mut *writer,&terminal).await?;
+                self.wire.write(&mut *writer,&end).await
             })=>result.map_err(|_|StreamError::Timeout)?,
         };
         if let Err(error) = result {

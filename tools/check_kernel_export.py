@@ -112,6 +112,15 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/src/calls.rs",
+        "kernel/contracts/calls-v1.json",
+        "kernel/contracts/calls-v1-cases.json",
+        "kernel/tests/calls.rs",
+        "kernel/examples/calls_probe.rs",
+        "kernel/bindings/python/tests/test_native_calls.py",
+        "kernel/bindings/node/tests/calls.test.mjs",
+        "kernel/bindings/node/tools/calls_probe.mjs",
+        "tools/check_calls_profile.py",
         "kernel/src/composition.rs",
         "kernel/contracts/composition-v1.json",
         "kernel/contracts/composition-v1-cases.json",

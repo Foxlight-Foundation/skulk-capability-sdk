@@ -73,3 +73,11 @@ it as a prerelease. Never overwrite an issued asset/tag or promote a candidate
 to a stable SDK claim. Read back the public tag and manifest/assets anonymously,
 verify every digest and exercise the downloaded packages on the actual host.
 Normal signed installation and protected-state migration remain separate gates.
+
+The native 0.6 source candidate adds the explicit
+[composed-call profile](native-calls.md). Its candidate inventory requires six
+complete independent corpora in Rust, Python and Node, including exact raw-body
+binding and separate call metadata framing. The offline compiler-free package
+check repeats all six profiles in both installed language bindings. This source
+candidate does not change the published 0.4 cohort or select a runtime for an
+existing application.

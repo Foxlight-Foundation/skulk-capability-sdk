@@ -475,6 +475,54 @@ impl Channel {
         fence.completed = true;
         result
     }
+    /// Read only the explicitly selected calls profile with the same I/O fences.
+    pub async fn receive_call(&self) -> Result<crate::calls::Frame> {
+        let mut fence = ChannelFence {
+            state: &self.state,
+            completed: false,
+        };
+        let mut failure = self.state.failures.subscribe();
+        self.state.alive()?;
+        let result = tokio::select! {biased;
+            _=failure.changed()=>Err(StreamError::Closed),
+            result=timeout_at(Instant::now()+self.state.budget,async {
+                let mut reader=self.state.reader.lock().await;
+                self.state.alive()?;
+                crate::calls::read(&mut *reader).await
+            })=>result.map_err(|_|StreamError::Timeout)?,
+        };
+        if result.is_err() {
+            self.state.fail();
+        } else {
+            self.state.activity.send_replace(Instant::now());
+        }
+        fence.completed = true;
+        result
+    }
+    /// Send only the explicitly selected calls profile; never downgrade a frame.
+    pub async fn send_call(&self, frame: &crate::calls::Frame) -> Result<()> {
+        let mut fence = ChannelFence {
+            state: &self.state,
+            completed: false,
+        };
+        let mut failure = self.state.failures.subscribe();
+        self.state.alive()?;
+        let result = tokio::select! {biased;
+            _=failure.changed()=>Err(StreamError::Closed),
+            result=timeout_at(Instant::now()+self.state.budget,async {
+                let mut writer=self.state.writer.lock().await;
+                self.state.alive()?;
+                crate::calls::write(&mut *writer,frame).await
+            })=>result.map_err(|_|StreamError::Timeout)?,
+        };
+        if result.is_err() {
+            self.state.fail();
+        } else {
+            self.state.activity.send_replace(Instant::now());
+        }
+        fence.completed = true;
+        result
+    }
     /// Fence pending operations, shut down the socket and await the owned timer.
     pub async fn close(&self) {
         self.state.fail();

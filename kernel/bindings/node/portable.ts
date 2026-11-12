@@ -215,3 +215,36 @@ export function openPortableControl(startup: ManagedContract, seconds: number): 
   if (startup.name !== 'Startup') throw new TypeError('startup record required');
   return native.openPortableControl(Buffer.from(startup.canonical()).toString('utf8'), seconds);
 }
+
+/** Independently versioned composed-call framing, separate from existing media. */
+export const CALLS_PROFILE = 'skulk.calls/1' as const;
+/** Complete native fingerprint; validation alone grants no invocation authority. */
+export function callsProfileDigest(): string { return native.callsProfileDigest(); }
+/** Admit metadata before body allocation; this is not complete frame admission. */
+export function callPayloadSize(source: string): number { return native.callPayloadSize(source); }
+/** Separate canonical metadata and exact raw body; no implicit content encoding. */
+export interface CallFrame {readonly metadata: Uint8Array; readonly payload: Uint8Array;}
+/** Native admission binds request bytes without a JavaScript validator fallback. */
+export function encodeCallFrame(source: string, payload: Uint8Array): Uint8Array {
+  return native.encodeCallFrame(source, Buffer.from(payload));
+}
+/** Reject malformed/trailing frames and return defensive copies of their bytes. */
+export function decodeCallFrame(packet: Uint8Array): CallFrame {
+  return native.decodeCallFrame(Buffer.from(packet));
+}
+/** Native channel owns backpressure, partial-I/O poisoning and timer cleanup. */
+export interface CallControl {
+  receive(): Promise<CallFrame>;
+  send(source: string, payload: Uint8Array): Promise<void>;
+  close(): Promise<void>;
+}
+/** Select this profile explicitly from an admitted runtime; never autodetect it. */
+export async function openCallControl(startup: ManagedContract, seconds: number): Promise<CallControl> {
+  if (startup.name !== 'Startup') throw new TypeError('startup record required');
+  const channel = await native.openCallControl(Buffer.from(startup.canonical()).toString('utf8'), seconds);
+  return Object.freeze({
+    receive: () => channel.receive(),
+    send: (source: string, payload: Uint8Array) => channel.send(source, Buffer.from(payload)),
+    close: () => channel.close(),
+  });
+}

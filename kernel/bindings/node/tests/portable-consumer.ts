@@ -58,3 +58,17 @@ const childContext: CompositionContract = parentContext.admit(
 void [compositionFingerprint, childContext];
 // @ts-expect-error author invocation records cannot be reinterpreted as context
 CompositionContract.fromJson('Invoke', '{}');
+
+// Composed-call wire metadata and raw bodies stay separate and explicitly typed.
+import {callsProfileDigest, callPayloadSize, encodeCallFrame, decodeCallFrame, openCallControl} from '../dist/portable.js';
+import type {CallFrame, CallControl} from '../dist/portable.js';
+const callsFingerprint: string = callsProfileDigest();
+const callBodySize: number = callPayloadSize('{}');
+const callBytes: Uint8Array = encodeCallFrame('{}', new Uint8Array());
+const callFrame: CallFrame = decodeCallFrame(callBytes);
+function typedCallChannel(startup: ManagedContract): Promise<CallControl> {
+  return openCallControl(startup, 5);
+}
+void [callsFingerprint, callBodySize, callFrame, typedCallChannel];
+// @ts-expect-error raw call bodies are byte buffers, never implicit JSON strings
+encodeCallFrame('{}', 'body');

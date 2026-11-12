@@ -221,3 +221,31 @@ def open_portable_control(
 ) -> Awaitable[NativeControl]:
     """Open only the startup endpoint; execution admission remains host-owned."""
     ...
+
+def calls_profile_digest() -> str:
+    """Fingerprint explicit composed-call framing; not caller authority."""
+    ...
+
+def call_payload_size(source: str) -> int:
+    """Admit metadata for a bounded host read; complete frame admission is mandatory."""
+    ...
+
+def encode_call_frame(source: str, payload: bytes) -> bytes:
+    """Bind closed metadata to exact raw request bytes through the native codec."""
+    ...
+
+def decode_call_frame(packet: bytes) -> tuple[bytes, bytes]:
+    """Return separate owned canonical metadata and exact body bytes."""
+    ...
+
+class NativeCallControl:
+    """Startup-bound compiled call I/O; any interrupted operation fences reuse."""
+    def receive(self) -> Awaitable[tuple[bytes, bytes]]: ...
+    def send(self, source: str, payload: bytes) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+def open_call_control(
+    startup: ManagedContract, seconds: float
+) -> Awaitable[NativeCallControl]:
+    """Derive endpoint/hello natively; host separately authenticates and authorizes."""
+    ...

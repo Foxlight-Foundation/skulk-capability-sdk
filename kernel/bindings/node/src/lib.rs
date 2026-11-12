@@ -6,7 +6,7 @@ use napi::bindgen_prelude::{Buffer, Utf16String};
 use napi::{Error, Result, Status};
 use napi_derive::napi;
 use skulk_capability_kernel::{
-    binding, codec, composition, contracts, handshake, journal, managed, operation_logs,
+    binding, calls, codec, composition, contracts, handshake, journal, managed, operation_logs,
     operations, portable, schema, streams, transport,
 };
 
@@ -732,6 +732,97 @@ pub async fn open_portable_control(startup: Utf16String, seconds: f64) -> Result
         .await
         .map_err(stream_error)?;
     Ok(NativeControl {
+        inner: Arc::new(channel),
+    })
+}
+
+/// Independent composed-call profile; metadata validation grants no authority.
+#[napi]
+pub fn calls_profile_digest() -> String {
+    calls::profile_digest().into()
+}
+
+/// Admit metadata before host body allocation; complete framing remains required.
+#[napi]
+pub fn call_payload_size(source: Utf16String) -> Result<u32> {
+    calls::payload_size(&portable_text(source)?)
+        .map(|size| size as u32)
+        .map_err(stream_error)
+}
+
+/// Validate metadata/body binding and preserve exact request bytes.
+#[napi]
+pub fn encode_call_frame(source: Utf16String, payload: Buffer) -> Result<Buffer> {
+    if payload.len() > calls::MAX_PAYLOAD_BYTES {
+        return Err(stream_error(streams::StreamError::HeaderBound));
+    }
+    calls::Frame::from_json(&portable_text(source)?, payload.to_vec())
+        .map(|frame| Buffer::from(calls::encode(&frame)))
+        .map_err(stream_error)
+}
+
+/// Defensive copies from one complete native-admitted frame.
+#[napi(object)]
+pub struct CallFrame {
+    /// Canonical closed metadata; copying it does not establish host authority.
+    pub metadata: Buffer,
+    /// Exact separately owned raw JSON body, without implicit reserialization.
+    pub payload: Buffer,
+}
+
+/// Refuse malformed framing before exposing separately owned bytes.
+#[napi]
+pub fn decode_call_frame(packet: Buffer) -> Result<CallFrame> {
+    let frame = calls::decode(&packet).map_err(stream_error)?;
+    Ok(CallFrame {
+        metadata: Buffer::from(frame.metadata()),
+        payload: Buffer::from(frame.payload()),
+    })
+}
+
+/// One startup-bound composed-call channel with native uncertain-I/O fencing.
+#[napi]
+pub struct NativeCallControl {
+    inner: Arc<transport::Channel>,
+}
+
+#[napi]
+impl NativeCallControl {
+    /// Receive closed metadata and exact body; never guess an older profile.
+    #[napi]
+    pub async fn receive(&self) -> Result<CallFrame> {
+        let frame = self.inner.receive_call().await.map_err(stream_error)?;
+        Ok(CallFrame {
+            metadata: Buffer::from(frame.metadata()),
+            payload: Buffer::from(frame.payload()),
+        })
+    }
+    /// Validate exact byte binding then await bounded backpressure without replay.
+    #[napi]
+    pub async fn send(&self, source: Utf16String, payload: Buffer) -> Result<()> {
+        if payload.len() > calls::MAX_PAYLOAD_BYTES {
+            return Err(stream_error(streams::StreamError::HeaderBound));
+        }
+        let frame = calls::Frame::from_json(&portable_text(source)?, payload.to_vec())
+            .map_err(stream_error)?;
+        self.inner.send_call(&frame).await.map_err(stream_error)
+    }
+    /// Fence pending operations and await native socket/timer cleanup.
+    #[napi]
+    pub async fn close(&self) {
+        self.inner.close().await;
+    }
+}
+
+/// Derive endpoint/hello natively; trusted host root admission remains separate.
+#[napi]
+pub async fn open_call_control(startup: Utf16String, seconds: f64) -> Result<NativeCallControl> {
+    let startup =
+        managed::Record::from_json("Startup", &portable_text(startup)?).map_err(portable_error)?;
+    let channel = transport::Channel::connect(&startup, seconds)
+        .await
+        .map_err(stream_error)?;
+    Ok(NativeCallControl {
         inner: Arc::new(channel),
     })
 }

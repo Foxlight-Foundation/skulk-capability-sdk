@@ -45,7 +45,19 @@ declare class NativeControl {
   send(source: string): Promise<void>;
   close(): Promise<void>;
 }
+interface CallFrame {metadata: Buffer; payload: Buffer;}
+declare class NativeCallControl {
+  private constructor();
+  receive(): Promise<CallFrame>;
+  send(source: string, payload: Buffer): Promise<void>;
+  close(): Promise<void>;
+}
 declare const native: {
+  callsProfileDigest(): string;
+  callPayloadSize(source: string): number;
+  encodeCallFrame(source: string, payload: Buffer): Buffer;
+  decodeCallFrame(packet: Buffer): CallFrame;
+  openCallControl(startup: string, seconds: number): Promise<NativeCallControl>;
   compositionProfileDigest(): string;
   compositionContractJson(name: 'Context' | 'DelegateRequest' | 'Policy', source: string): Buffer;
   admitDelegationJson(parent: string, request: string, policy: string, executor: string, requestBytes: Buffer, nowUnixMs: number, scopeId: string): Buffer;

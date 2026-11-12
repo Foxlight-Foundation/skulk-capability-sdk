@@ -81,3 +81,9 @@ delegation attenuation through Rust and both compiled language bindings. Read
 the [composition contract](../docs/native-composition.md) for authority ownership,
 exact request binding, privacy, deadline and replay obligations. This does not
 extend frozen native transport records or qualify runtime delegation/migration.
+
+The composed-call candidate is documented in [native calls](../docs/native-calls.md).
+Its explicit `skulk.calls/1` framing preserves raw body bytes separately from
+canonical metadata, binds composition request hashes, and shares the protected
+native channel's lifecycle. It does not extend the issued transport profile or
+establish authenticated host authority by parsing a context.

@@ -4,6 +4,8 @@
 //! profile is deliberately Python-compatible, including numeric kinds and
 //! surrogate code points; normal JSON serializers are not substitutes for it.
 
+#[cfg(unix)]
+pub mod calls;
 pub mod codec;
 pub mod composition;
 pub mod contracts;

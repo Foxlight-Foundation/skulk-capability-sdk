@@ -386,3 +386,93 @@ export class CompositionV2Contract {
     return CompositionV2Contract.fromJson('Context', Buffer.from(source).toString('utf8'));
   }
 }
+
+/** Explicit nullable authority deadlines have a separate negotiated identity. */
+export const COMPOSITION_V3_PROFILE = 'skulk.composition/3' as const;
+/** Fingerprint inference authority rules; a parsed record is never a credential. */
+export function compositionV3ProfileDigest(): string { return native.compositionV3ProfileDigest(); }
+/** Immutable sensitive caller metadata. Hosts own active scope and replay state. */
+export class CompositionV3Contract {
+  readonly #canonical: Uint8Array;
+  readonly name: CompositionContractName;
+  private constructor(name: CompositionContractName, source: string) {
+    this.name = name;
+    this.#canonical = native.compositionV3ContractJson(name, source);
+    Object.freeze(this);
+  }
+  /** Structural validation alone grants no execution rights. */
+  static fromJson(name: CompositionContractName, source: string): CompositionV3Contract {
+    return new CompositionV3Contract(name, source);
+  }
+  /** Explicit copy for protected IPC; no caller metadata in incidental encoding. */
+  canonical(): Uint8Array { return Uint8Array.from(this.#canonical); }
+  toJSON(): {name: CompositionContractName} { return {name: this.name}; }
+  [inspect.custom](): string { return `CompositionV3Contract(${this.name})`; }
+  /** Pure attenuation against host observations; does not reserve or execute. */
+  admit(request: CompositionV3Contract, policy: CompositionV3Contract, executor: string,
+        requestBytes: Uint8Array, nowUnixMs: number, scopeId: string): CompositionV3Contract {
+    const source = native.admitDelegationV3Json(
+      Buffer.from(this.#canonical).toString('utf8'),
+      Buffer.from(request.#canonical).toString('utf8'),
+      Buffer.from(policy.#canonical).toString('utf8'), executor,
+      Buffer.from(requestBytes), nowUnixMs, scopeId,
+    );
+    return CompositionV3Contract.fromJson('Context', Buffer.from(source).toString('utf8'));
+  }
+}
+
+/** Explicit wire profile, separately fingerprinted from descriptors and startup. */
+export const TRANSPORT_V2_PROFILE = 'skulk.transport/2' as const;
+/** Return the complete native protocol-six wire fingerprint. */
+export function transportV2ProfileDigest(): string { return native.transportV2ProfileDigest(); }
+/** Admit and frame closed native protocol-six control text. */
+export function encodeTransportV2Control(source: string): Uint8Array { return native.encodeTransportV2Control(source); }
+/** Return a canonical copy after complete control framing validation. */
+export function decodeTransportV2Control(bytes: Uint8Array): Uint8Array { return native.decodeTransportV2Control(Buffer.from(bytes)); }
+/** Frame portable scalar JSON and a separate bounded raw attachment. */
+export function encodeTransportV2Packet(projection: string, media: Uint8Array): Uint8Array { return native.encodeTransportV2Packet(projection, Buffer.from(media)); }
+/** Return exact media and native canonical metadata without a JS validator. */
+export function decodeTransportV2Packet(bytes: Uint8Array): {projection: string; media: Uint8Array} { return native.decodeTransportV2Packet(Buffer.from(bytes)); }
+/** Open the exact startup endpoint and derive its native-bound hello. The host
+ * separately owns current trust, original caller and one-use call admission. */
+export async function openTransportV2Stream(startup: ManagedV2Contract, callId: string, mode: 'server_streaming' | 'client_streaming' | 'bidirectional', seconds: number | null = null): Promise<PortableStream> {
+  if (startup.name !== 'Startup') throw new TypeError('startup record required');
+  const session = await native.openTransportV2Stream(Buffer.from(startup.canonical()).toString('utf8'), callId, mode, seconds);
+  return Object.freeze({
+    nextInput: () => session.nextInput(),
+    sendOutput: (projection: string, media: Uint8Array) => session.sendOutput(projection, Buffer.from(media)),
+    finish: () => session.finish(),
+    close: () => session.close(),
+  });
+}
+/** Native channel owns deadlines and uncertain I/O; close it from finally. */
+export function openTransportV2Control(startup: ManagedV2Contract, seconds: number): Promise<PortableControl> {
+  if (startup.name !== 'Startup') throw new TypeError('startup record required');
+  return native.openTransportV2Control(Buffer.from(startup.canonical()).toString('utf8'), seconds);
+}
+
+
+/** Independently versioned composed-call framing, separate from existing media. */
+export const CALLS_V2_PROFILE = 'skulk.calls/2' as const;
+/** Complete native fingerprint; validation alone grants no invocation authority. */
+export function callsV2ProfileDigest(): string { return native.callsV2ProfileDigest(); }
+/** Admit metadata before body allocation; this is not complete frame admission. */
+export function callV2PayloadSize(source: string): number { return native.callV2PayloadSize(source); }
+/** Native admission binds request bytes without a JavaScript validator fallback. */
+export function encodeCallV2Frame(source: string, payload: Uint8Array): Uint8Array {
+  return native.encodeCallV2Frame(source, Buffer.from(payload));
+}
+/** Reject malformed/trailing frames and return defensive copies of their bytes. */
+export function decodeCallV2Frame(packet: Uint8Array): CallFrame {
+  return native.decodeCallV2Frame(Buffer.from(packet));
+}
+/** Select this profile explicitly from an admitted runtime; never autodetect it. */
+export async function openCallV2Control(startup: ManagedV2Contract, seconds: number): Promise<CallControl> {
+  if (startup.name !== 'Startup') throw new TypeError('startup record required');
+  const channel = await native.openCallV2Control(Buffer.from(startup.canonical()).toString('utf8'), seconds);
+  return Object.freeze({
+    receive: () => channel.receive(),
+    send: (source: string, payload: Uint8Array) => channel.send(source, Buffer.from(payload)),
+    close: () => channel.close(),
+  });
+}

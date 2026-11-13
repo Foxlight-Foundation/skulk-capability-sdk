@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .check_composition_profile import Factory
 
 ROOT = Path(__file__).resolve().parents[1]
-Kind = Literal["inference-author", "inference-composition"]
+Kind = Literal["inference-author", "inference-composition", "inference-execution"]
 
 
 class Observation(BaseModel):
@@ -30,6 +30,7 @@ class Case(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
     identity: str = Field(alias="id")
+    profile: Literal["skulk.composition/3"] | None = None
     action: Literal["parse", "admit", "author"]
     name: str
     source: str
@@ -45,7 +46,7 @@ class Case(BaseModel):
 
     def request(self) -> dict[str, str | int]:
         """Supply identical complete probe input without expected outcomes."""
-        return {
+        request: dict[str, str | int] = {
             "action": self.action,
             "name": self.name,
             "source": self.source,
@@ -56,6 +57,9 @@ class Case(BaseModel):
             "now_unix_ms": self.now_unix_ms,
             "scope_id": self.scope_id,
         }
+        if self.profile is not None:
+            request["profile"] = self.profile
+        return request
 
     def expected(self) -> Observation:
         """Read an independently authored full canonical/digest/refusal golden."""
@@ -68,7 +72,7 @@ class Fixture(BaseModel):
     """Both exact semantic profile identities and their complete synthetic corpus."""
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-    profile: Literal["skulk.composition/2"]
+    profile: Literal["skulk.composition/2", "skulk.composition/3"]
     profile_digest: str
     author_profile: Literal["skulk.portable/2"]
     author_profile_digest: str
@@ -80,6 +84,9 @@ class Native(Protocol):
     """Compiled profile-two ABI, never a Python permission implementation."""
 
     CompositionV2Contract: Factory
+    CompositionV3Contract: Factory
+
+    def composition_v3_profile_digest(self) -> str: ...
 
     def composition_v2_profile_digest(self) -> str: ...
     def portable_v2_profile_digest(self) -> str: ...
@@ -87,10 +94,14 @@ class Native(Protocol):
     def portable_v2_contract_digest(self, name: str, source: str) -> str: ...
 
 
-def fixture() -> Fixture:
+def fixture(execution: bool = False) -> Fixture:
     """Read only packaged synthetic witnesses; never open account or runtime state."""
     return Fixture.model_validate_json(
-        (ROOT / "kernel/contracts/inference-v2-cases.json").read_bytes()
+        (
+            ROOT
+            / "kernel/contracts"
+            / ("inference-v3-cases.json" if execution else "inference-v2-cases.json")
+        ).read_bytes()
     )
 
 
@@ -98,14 +109,14 @@ def selected_cases(kind: Kind) -> tuple[Case, ...]:
     """Partition independent goldens by the exact profile they exercise."""
     return tuple(
         case
-        for case in fixture().cases
+        for case in fixture(kind == "inference-execution").cases
         if (case.action == "author") == (kind == "inference-author")
     )
 
 
 def profile_identity(kind: Kind) -> tuple[str, str]:
     """Return the declared profile and frozen semantic fingerprint for a partition."""
-    inputs = fixture()
+    inputs = fixture(kind == "inference-execution")
     return (
         (inputs.author_profile, inputs.author_profile_digest)
         if kind == "inference-author"
@@ -123,10 +134,15 @@ def python_case(native: Native, case: Case) -> Observation:
                 ).decode(),
                 digest=native.portable_v2_contract_digest(case.name, case.source),
             )
-        record = native.CompositionV2Contract.from_json(case.name, case.source)
+        factory = (
+            native.CompositionV3Contract
+            if case.profile
+            else native.CompositionV2Contract
+        )
+        record = factory.from_json(case.name, case.source)
         if case.action == "admit":
-            parent = native.CompositionV2Contract.from_json("Context", case.parent)
-            policy = native.CompositionV2Contract.from_json("Policy", case.policy)
+            parent = factory.from_json("Context", case.parent)
+            policy = factory.from_json("Policy", case.policy)
             record = parent.admit(
                 record,
                 policy,
@@ -152,18 +168,25 @@ def main() -> None:
     parser.add_argument("--report", type=Path)
     parser.add_argument("--node-facade", type=Path)
     parser.add_argument(
-        "--kind", choices=["inference-author", "inference-composition"], required=True
+        "--kind",
+        choices=["inference-author", "inference-composition", "inference-execution"],
+        required=True,
     )
     args = parser.parse_args()
-    inputs = fixture()
     kind = cast(Kind, args.kind)
+    inputs = fixture(kind == "inference-execution")
     cases = selected_cases(kind)
     profile, digest = profile_identity(kind)
     encoded = "\n".join(json.dumps(c.request(), sort_keys=True) for c in cases)
     if args.backend == "python":
         native = cast(Native, importlib.import_module("_skulk_capability_kernel"))
         if (
-            native.composition_v2_profile_digest() != inputs.profile_digest
+            (
+                native.composition_v3_profile_digest()
+                if kind == "inference-execution"
+                else native.composition_v2_profile_digest()
+            )
+            != inputs.profile_digest
             or native.portable_v2_profile_digest() != inputs.author_profile_digest
         ):
             raise ValueError("Installed inference profiles differ")

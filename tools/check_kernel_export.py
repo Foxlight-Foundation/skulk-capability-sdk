@@ -112,6 +112,22 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/bindings/node/tests/execution-transport.test.mjs",
+        "kernel/bindings/node/tests/execution-calls.test.mjs",
+        "kernel/bindings/python/tests/test_native_execution_transport.py",
+        "kernel/bindings/python/tests/test_native_execution_calls.py",
+        "kernel/tests/inference_sessions.rs",
+        "kernel/tests/inference_wire.rs",
+        "kernel/tests/composition_execution.rs",
+        "kernel/src/transport_v2.rs",
+        "kernel/src/calls_v2.rs",
+        "kernel/src/composition_v3.rs",
+        "kernel/contracts/transport-v2-cases.json",
+        "kernel/contracts/transport-v2.json",
+        "kernel/contracts/calls-v2-cases.json",
+        "kernel/contracts/calls-v2.json",
+        "kernel/contracts/inference-v3-cases.json",
+        "kernel/contracts/composition-v3.json",
         "kernel/contracts/managed-v2.json",
         "kernel/contracts/handshake-v2.json",
         "kernel/contracts/managed-v2-cases.json",

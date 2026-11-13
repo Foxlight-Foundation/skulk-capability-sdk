@@ -4,11 +4,14 @@ for await (const line of createInterface({input:process.stdin,crlfDelay:Infinity
   let response;
   try {
     const request=JSON.parse(line);
+    if (request.profile !== undefined && request.profile !== 'skulk.calls/2') throw new Error('unsupported profile');
+    const encode = request.profile ? native.encodeCallV2Frame : native.encodeCallFrame;
+    const decode = request.profile ? native.decodeCallV2Frame : native.decodeCallFrame;
     let wire;
-    if(request.action==='encode') wire=native.encodeCallFrame(request.source,Buffer.from(request.payload_hex,'hex'));
+    if(request.action==='encode') wire=encode(request.source,Buffer.from(request.payload_hex,'hex'));
     else {
-      const frame=native.decodeCallFrame(Buffer.from(request.packet_hex,'hex'));
-      wire=native.encodeCallFrame(Buffer.from(frame.metadata).toString('utf8'),frame.payload);
+      const frame=decode(Buffer.from(request.packet_hex,'hex'));
+      wire=encode(Buffer.from(frame.metadata).toString('utf8'),frame.payload);
     }
     response={canonical:Buffer.from(wire).toString('hex'),error:null};
   } catch {response={canonical:null,error:'calls_invalid'};}

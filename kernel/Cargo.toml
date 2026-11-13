@@ -4,7 +4,7 @@ resolver = "3"
 
 [package]
 name = "skulk-capability-kernel"
-version = "0.7.0-rc.2"
+version = "0.7.0-rc.3"
 edition = "2024"
 rust-version = "1.94"
 publish = false
@@ -28,6 +28,7 @@ unicode-normalization = "=0.1.23"
 tokio = { version = "=1.53.2", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros"] }
 
 [dev-dependencies]
+tokio = { version = "=1.53.2", features = ["test-util"] }
 serde_json = { version = "=1.0.151", features = ["arbitrary_precision"] }
 tempfile = "=3.27.0"
 

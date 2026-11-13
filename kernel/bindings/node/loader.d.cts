@@ -53,6 +53,23 @@ declare class NativeCallControl {
   close(): Promise<void>;
 }
 declare const native: {
+  callsV2ProfileDigest(): string;
+  callV2PayloadSize(source: string): number;
+  encodeCallV2Frame(source: string, payload: Buffer): Buffer;
+  decodeCallV2Frame(packet: Buffer): CallFrame;
+  openCallV2Control(startup: string, seconds: number): Promise<NativeCallControl>;
+  /** Explicit inference-aware structural admission, never caller authority. */
+  compositionV3ProfileDigest(): string;
+  compositionV3ContractJson(name: 'Context' | 'DelegateRequest' | 'Policy', source: string): Buffer;
+  admitDelegationV3Json(parent: string, request: string, policy: string, executor: string, requestBytes: Buffer, nowUnixMs: number, scopeId: string): Buffer;
+  transportV2ProfileDigest(): string;
+  encodeTransportV2Control(source: string): Buffer;
+  decodeTransportV2Control(packet: Buffer): Buffer;
+  encodeTransportV2Packet(projection: string, media: Buffer): Buffer;
+  decodeTransportV2Packet(packet: Buffer): NativePacket;
+  openTransportV2Stream(startup: string, callId: string, mode: string, seconds: number | null): Promise<NativeStream>;
+  openTransportV2Control(startup: string, seconds: number): Promise<NativeControl>;
+
   callsProfileDigest(): string;
   callPayloadSize(source: string): number;
   encodeCallFrame(source: string, payload: Buffer): Buffer;

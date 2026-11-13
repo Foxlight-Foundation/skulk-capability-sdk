@@ -6,9 +6,12 @@
 
 #[cfg(unix)]
 pub mod calls;
+#[cfg(unix)]
+pub mod calls_v2;
 pub mod codec;
 pub mod composition;
 pub mod composition_v2;
+pub mod composition_v3;
 pub mod contracts;
 pub mod handshake;
 pub mod handshake_v2;
@@ -43,3 +46,5 @@ pub mod operation_logs;
 
 #[cfg(unix)]
 pub mod transport;
+#[cfg(unix)]
+pub mod transport_v2;

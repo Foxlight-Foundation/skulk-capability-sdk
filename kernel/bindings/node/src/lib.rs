@@ -6,9 +6,9 @@ use napi::bindgen_prelude::{Buffer, Utf16String};
 use napi::{Error, Result, Status};
 use napi_derive::napi;
 use skulk_capability_kernel::{
-    binding, calls, codec, composition, composition_v2, contracts, handshake, handshake_v2,
-    journal, managed, managed_v2, operation_logs, operations, portable, portable_v2, schema,
-    streams, transport,
+    binding, calls, calls_v2, codec, composition, composition_v2, composition_v3, contracts,
+    handshake, handshake_v2, journal, managed, managed_v2, operation_logs, operations, portable,
+    portable_v2, schema, streams, transport, transport_v2,
 };
 
 /// Private qualification surface; source text avoids JavaScript number narrowing.
@@ -157,6 +157,65 @@ pub fn admit_delegation_v2_json(
         .map_err(|error| Error::new(Status::InvalidArg, error.to_string()))
 }
 
+/// Pure composition fingerprint, independently versioned from native transport.
+#[napi]
+pub fn composition_v3_profile_digest() -> String {
+    composition_v3::profile_digest().into()
+}
+
+/// Admit metadata structurally without establishing host provenance.
+#[napi]
+pub fn composition_v3_contract_json(name: String, source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    composition_v3::Record::from_json(&name, &source)
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(|error| Error::new(Status::InvalidArg, error.to_string()))
+}
+
+/// Intersect host-owned active parent and live policy; never dispatch or replay.
+#[napi]
+pub fn admit_delegation_v3_json(
+    parent: Utf16String,
+    request: Utf16String,
+    policy: Utf16String,
+    executor: Utf16String,
+    request_bytes: Buffer,
+    now_unix_ms: f64,
+    scope_id: Utf16String,
+) -> Result<Buffer> {
+    let parent = portable_text(parent)?;
+    let request = portable_text(request)?;
+    let policy = portable_text(policy)?;
+    let executor = portable_text(executor)?;
+    let scope_id = portable_text(scope_id)?;
+    if !now_unix_ms.is_finite()
+        || now_unix_ms.fract() != 0.0
+        || !(1.0..=9_007_199_254_740_991.0).contains(&now_unix_ms)
+    {
+        return Err(Error::new(
+            Status::InvalidArg,
+            "composition_expired: deadline is unavailable",
+        ));
+    }
+    let result = (|| {
+        let parent = composition_v3::Record::from_json("Context", &parent)?;
+        let request = composition_v3::Record::from_json("DelegateRequest", &request)?;
+        let policy = composition_v3::Record::from_json("Policy", &policy)?;
+        composition_v3::admit(
+            &parent,
+            &request,
+            &policy,
+            &executor,
+            &request_bytes,
+            now_unix_ms as u64,
+            &scope_id,
+        )
+    })();
+    result
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(|error| Error::new(Status::InvalidArg, error.to_string()))
+}
+
 /// Native admission of a managed manifest or private inherited startup record.
 #[napi]
 pub fn managed_contract_json(name: String, source: Utf16String) -> Result<Buffer> {
@@ -173,7 +232,7 @@ pub fn managed_contract_digest(name: String, source: Utf16String) -> Result<Stri
     managed::contract_digest(&name, &source).map_err(portable_error)
 }
 
-/// Exact explicit protocol-five handshake profile fingerprint.
+/// Exact explicit protocol-six handshake profile fingerprint.
 #[napi]
 pub fn handshake_profile_digest() -> String {
     handshake::profile_digest().into()
@@ -786,7 +845,7 @@ pub fn operation_runner(
     })
 }
 
-/// Independent protocol-five control/media fingerprint.
+/// Independent protocol-six control/media fingerprint.
 #[napi]
 pub fn transport_profile_digest() -> String {
     transport::profile_digest().into()
@@ -887,6 +946,110 @@ pub async fn open_portable_control(startup: Utf16String, seconds: f64) -> Result
     })
 }
 
+/// Independent protocol-six control/media fingerprint.
+#[napi]
+pub fn transport_v2_profile_digest() -> String {
+    transport_v2::profile_digest().into()
+}
+/// Encode a closed native-admitted control; host authority is separate.
+#[napi]
+pub fn encode_transport_v2_control(source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    transport_v2::Control::from_json(&source)
+        .map(|control| Buffer::from(transport_v2::encode_control(&control)))
+        .map_err(stream_error)
+}
+/// Return canonical control bytes after complete framing and profile checks.
+#[napi]
+pub fn decode_transport_v2_control(bytes: Buffer) -> Result<Buffer> {
+    transport_v2::decode_control(&bytes)
+        .map(|control| Buffer::from(control.canonical()))
+        .map_err(stream_error)
+}
+/// Frame portable scalar JSON and a separate bounded binary attachment.
+#[napi]
+pub fn encode_transport_v2_packet(projection: Utf16String, media: Buffer) -> Result<Buffer> {
+    if media.len() > streams::MAX_MEDIA_BYTES {
+        return Err(stream_error(streams::StreamError::MediaBound));
+    }
+    let projection = portable_text(projection)?;
+    transport_v2::packet(&projection, media.to_vec())
+        .and_then(|packet| transport_v2::encode_packet(&packet))
+        .map(Buffer::from)
+        .map_err(stream_error)
+}
+/// No legacy transport fallback is permitted.
+#[napi]
+pub fn decode_transport_v2_packet(bytes: Buffer) -> Result<NativePacket> {
+    let packet = transport_v2::decode_packet(&bytes).map_err(stream_error)?;
+    Ok(NativePacket {
+        projection: transport_v2::projection(&packet).map_err(stream_error)?,
+        media: Buffer::from(packet.media),
+    })
+}
+/// Derive endpoint and hello from native-admitted startup, never arbitrary hello text.
+#[napi]
+pub async fn open_transport_v2_stream(
+    startup: Utf16String,
+    call_id: String,
+    mode: String,
+    seconds: Option<f64>,
+) -> Result<NativeStream> {
+    let startup = managed_v2::Record::from_json("Startup", &portable_text(startup)?)
+        .map_err(portable_error)?;
+    let mode = streams::Mode::parse(&mode).map_err(stream_error)?;
+    let session = streams::Session::open_inference(&startup, &call_id, mode, seconds)
+        .await
+        .map_err(stream_error)?;
+    Ok(NativeStream {
+        inner: Arc::new(session),
+    })
+}
+/// Protected native control channel; interrupted I/O invalidates subsequent work.
+#[napi]
+pub struct NativeControlV2 {
+    inner: Arc<transport_v2::Channel>,
+}
+#[napi]
+impl NativeControlV2 {
+    /// Receive owned native-admitted canonical bytes.
+    #[napi]
+    pub async fn receive(&self) -> Result<Buffer> {
+        self.inner
+            .receive()
+            .await
+            .map(|record| Buffer::from(record.canonical()))
+            .map_err(stream_error)
+    }
+    /// Validate then send under the channel's single absolute deadline.
+    #[napi]
+    pub async fn send(&self, source: Utf16String) -> Result<()> {
+        let control =
+            transport_v2::Control::from_json(&portable_text(source)?).map_err(stream_error)?;
+        self.inner.send(&control).await.map_err(stream_error)
+    }
+    /// Await task/socket teardown without replaying outstanding work.
+    #[napi]
+    pub async fn close(&self) {
+        self.inner.close().await;
+    }
+}
+/// Open only the startup-bound endpoint; host signature/caller checks are separate.
+#[napi]
+pub async fn open_transport_v2_control(
+    startup: Utf16String,
+    seconds: f64,
+) -> Result<NativeControlV2> {
+    let startup = managed_v2::Record::from_json("Startup", &portable_text(startup)?)
+        .map_err(portable_error)?;
+    let channel = transport_v2::Channel::connect(&startup, seconds)
+        .await
+        .map_err(stream_error)?;
+    Ok(NativeControlV2 {
+        inner: Arc::new(channel),
+    })
+}
+
 /// Independent composed-call profile; metadata validation grants no authority.
 #[napi]
 pub fn calls_profile_digest() -> String {
@@ -974,6 +1137,100 @@ pub async fn open_call_control(startup: Utf16String, seconds: f64) -> Result<Nat
         .await
         .map_err(stream_error)?;
     Ok(NativeCallControl {
+        inner: Arc::new(channel),
+    })
+}
+
+/// Independent composed-call profile; metadata validation grants no authority.
+#[napi]
+pub fn calls_v2_profile_digest() -> String {
+    calls_v2::profile_digest().into()
+}
+
+/// Admit metadata before host body allocation; complete framing remains required.
+#[napi]
+pub fn call_v2_payload_size(source: Utf16String) -> Result<u32> {
+    calls_v2::payload_size(&portable_text(source)?)
+        .map(|size| size as u32)
+        .map_err(stream_error)
+}
+
+/// Validate metadata/body binding and preserve exact request bytes.
+#[napi]
+pub fn encode_call_v2_frame(source: Utf16String, payload: Buffer) -> Result<Buffer> {
+    if payload.len() > calls_v2::MAX_PAYLOAD_BYTES {
+        return Err(stream_error(streams::StreamError::HeaderBound));
+    }
+    calls_v2::Frame::from_json(&portable_text(source)?, payload.to_vec())
+        .map(|frame| Buffer::from(calls_v2::encode(&frame)))
+        .map_err(stream_error)
+}
+
+/// Defensive copies from one complete native-admitted frame.
+#[napi(object)]
+pub struct CallV2Frame {
+    /// Canonical closed metadata; copying it does not establish host authority.
+    pub metadata: Buffer,
+    /// Exact separately owned raw JSON body, without implicit reserialization.
+    pub payload: Buffer,
+}
+
+/// Refuse malformed framing before exposing separately owned bytes.
+#[napi]
+pub fn decode_call_v2_frame(packet: Buffer) -> Result<CallV2Frame> {
+    let frame = calls_v2::decode(&packet).map_err(stream_error)?;
+    Ok(CallV2Frame {
+        metadata: Buffer::from(frame.metadata()),
+        payload: Buffer::from(frame.payload()),
+    })
+}
+
+/// One startup-bound composed-call channel with native uncertain-I/O fencing.
+#[napi]
+pub struct NativeCallControlV2 {
+    inner: Arc<transport_v2::Channel>,
+}
+
+#[napi]
+impl NativeCallControlV2 {
+    /// Receive closed metadata and exact body; never guess an older profile.
+    #[napi]
+    pub async fn receive(&self) -> Result<CallV2Frame> {
+        let frame = self.inner.receive_call().await.map_err(stream_error)?;
+        Ok(CallV2Frame {
+            metadata: Buffer::from(frame.metadata()),
+            payload: Buffer::from(frame.payload()),
+        })
+    }
+    /// Validate exact byte binding then await bounded backpressure without replay.
+    #[napi]
+    pub async fn send(&self, source: Utf16String, payload: Buffer) -> Result<()> {
+        if payload.len() > calls_v2::MAX_PAYLOAD_BYTES {
+            return Err(stream_error(streams::StreamError::HeaderBound));
+        }
+        let frame = calls_v2::Frame::from_json(&portable_text(source)?, payload.to_vec())
+            .map_err(stream_error)?;
+        self.inner.send_call(&frame).await.map_err(stream_error)
+    }
+    /// Fence pending operations and await native socket/timer cleanup.
+    #[napi]
+    pub async fn close(&self) {
+        self.inner.close().await;
+    }
+}
+
+/// Derive endpoint/hello natively; trusted host root admission remains separate.
+#[napi]
+pub async fn open_call_v2_control(
+    startup: Utf16String,
+    seconds: f64,
+) -> Result<NativeCallControlV2> {
+    let startup = managed_v2::Record::from_json("Startup", &portable_text(startup)?)
+        .map_err(portable_error)?;
+    let channel = transport_v2::Channel::connect(&startup, seconds)
+        .await
+        .map_err(stream_error)?;
+    Ok(NativeCallControlV2 {
         inner: Arc::new(channel),
     })
 }

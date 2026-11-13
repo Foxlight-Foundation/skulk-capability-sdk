@@ -41,6 +41,46 @@ fn evaluate(request: &Value) -> Result<Record, CompositionError> {
         text("scope_id")?,
     )
 }
+fn evaluate_execution(
+    request: &Value,
+) -> Result<skulk_capability_kernel::composition_v3::Record, CompositionError> {
+    let text = |key: &str| request[key].as_str().ok_or(CompositionError::Invalid);
+    let record =
+        skulk_capability_kernel::composition_v3::Record::from_json(text("name")?, text("source")?)?;
+    if request["action"] == "parse" {
+        return Ok(record);
+    }
+    let parent =
+        skulk_capability_kernel::composition_v3::Record::from_json("Context", text("parent")?)?;
+    let policy =
+        skulk_capability_kernel::composition_v3::Record::from_json("Policy", text("policy")?)?;
+    let hex = text("request_hex")?;
+    if !hex.len().is_multiple_of(2) {
+        return Err(CompositionError::Invalid);
+    }
+    let bytes = hex
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| {
+            u8::from_str_radix(
+                std::str::from_utf8(pair).map_err(|_| CompositionError::Invalid)?,
+                16,
+            )
+            .map_err(|_| CompositionError::Invalid)
+        })
+        .collect::<Result<Vec<u8>, _>>()?;
+    skulk_capability_kernel::composition_v3::admit(
+        &parent,
+        &record,
+        &policy,
+        text("executor")?,
+        &bytes,
+        request["now_unix_ms"]
+            .as_u64()
+            .ok_or(CompositionError::Invalid)?,
+        text("scope_id")?,
+    )
+}
 fn main() {
     let mut output = io::BufWriter::new(io::stdout().lock());
     for line in io::stdin().lock().lines() {
@@ -72,12 +112,18 @@ fn main() {
             output.flush().expect("probe flush");
             continue;
         }
-        let result = request
-            .ok_or(CompositionError::Invalid)
-            .and_then(|value| evaluate(&value));
+        let result = request.ok_or(CompositionError::Invalid).and_then(|value| {
+            if value["profile"] == "skulk.composition/3" {
+                evaluate_execution(&value).map(|record| record.canonical().to_vec())
+            } else if value["profile"].is_null() {
+                evaluate(&value).map(|record| record.canonical().to_vec())
+            } else {
+                Err(CompositionError::Invalid)
+            }
+        });
         let response = match result {
             Ok(record) => {
-                json!({"canonical":std::str::from_utf8(record.canonical()).expect("scalar JSON"),"error":null,"digest":null})
+                json!({"canonical":std::str::from_utf8(&record).expect("scalar JSON"),"error":null,"digest":null})
             }
             Err(error) => {
                 json!({"canonical":null,"error":error.to_string().split(':').next().expect("bounded error"),"digest":null})

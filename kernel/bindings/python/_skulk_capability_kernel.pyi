@@ -324,3 +324,94 @@ class CompositionV2Contract:
     ) -> CompositionV2Contract:
         """Attenuate host observations without activating or executing the scope."""
         ...
+
+def composition_v3_profile_digest() -> str:
+    """Fingerprint read/inference and processing-domain attenuation."""
+    ...
+
+class CompositionV3Contract:
+    """Immutable sensitive caller metadata with no bearer-grant semantics."""
+    @staticmethod
+    def from_json(
+        name: Literal["Context", "DelegateRequest", "Policy"], source: str
+    ) -> CompositionV3Contract: ...
+    @property
+    def name(self) -> Literal["Context", "DelegateRequest", "Policy"]: ...
+    def canonical(self) -> bytes: ...
+    def admit(
+        self,
+        request: CompositionV3Contract,
+        policy: CompositionV3Contract,
+        executor: str,
+        request_bytes: bytes,
+        now_unix_ms: int,
+        scope_id: str,
+    ) -> CompositionV3Contract:
+        """Attenuate host observations without activating or executing the scope."""
+        ...
+
+def transport_v2_profile_digest() -> str:
+    """Fingerprint protocol-six framing independently of author contracts."""
+    ...
+
+def encode_transport_v2_control(source: str) -> bytes:
+    """Admit and frame a closed protocol-six control record."""
+    ...
+
+def decode_transport_v2_control(packet: bytes) -> bytes:
+    """Return owned canonical control bytes; no legacy fallback."""
+    ...
+
+def encode_transport_v2_packet(projection: str, media: bytes) -> bytes:
+    """Frame portable projection text and bounded binary attachment bytes."""
+    ...
+
+def decode_transport_v2_packet(packet: bytes) -> tuple[str, bytes]:
+    """Return portable canonical metadata and exact media bytes."""
+    ...
+
+def open_transport_v2_stream(
+    startup: ManagedV2Contract, call_id: str, mode: str, seconds: float | None = None
+) -> Awaitable[NativeStream]:
+    """Derive endpoint/hello from admitted startup; share native lifecycle."""
+    ...
+
+class NativeControlV2:
+    """Native protected channel; interrupted I/O fences all later work."""
+    def receive(self) -> Awaitable[bytes]: ...
+    def send(self, source: str) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+def open_transport_v2_control(
+    startup: ManagedV2Contract, seconds: float
+) -> Awaitable[NativeControlV2]:
+    """Open only the startup endpoint; execution admission remains host-owned."""
+    ...
+
+def calls_v2_profile_digest() -> str:
+    """Fingerprint explicit composed-call framing; not caller authority."""
+    ...
+
+def call_v2_payload_size(source: str) -> int:
+    """Admit metadata for a bounded host read; complete frame admission is mandatory."""
+    ...
+
+def encode_call_v2_frame(source: str, payload: bytes) -> bytes:
+    """Bind closed metadata to exact raw request bytes through the native codec."""
+    ...
+
+def decode_call_v2_frame(packet: bytes) -> tuple[bytes, bytes]:
+    """Return separate owned canonical metadata and exact body bytes."""
+    ...
+
+class NativeCallControlV2:
+    """Startup-bound compiled call I/O; any interrupted operation fences reuse."""
+    def receive(self) -> Awaitable[tuple[bytes, bytes]]: ...
+    def send(self, source: str, payload: bytes) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+def open_call_v2_control(
+    startup: ManagedV2Contract, seconds: float
+) -> Awaitable[NativeCallControlV2]:
+    """Derive endpoint/hello natively; host separately authenticates and authorizes."""
+    ...

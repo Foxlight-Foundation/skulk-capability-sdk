@@ -106,6 +106,8 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
         ("calls", "calls-v1-cases.json"),
         ("inference-managed", "managed-v2-cases.json"),
         ("inference-handshake", "handshake-v2-cases.json"),
+        ("inference-transport", "transport-v2-cases.json"),
+        ("inference-calls", "calls-v2-cases.json"),
     ]:
         family = kind.removeprefix("inference-")
         inference = kind.startswith("inference-")
@@ -134,11 +136,11 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
                 if family == "managed"
                 else handshake_fixture(inference)
                 if family == "handshake"
-                else transport_fixture()
-                if kind == "transport"
+                else transport_fixture(inference)
+                if family == "transport"
                 else composition_fixture()
                 if kind == "composition"
-                else calls_fixture()
+                else calls_fixture(inference)
             )
             expected_input = hashlib.sha256(
                 "\n".join(
@@ -182,7 +184,7 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
             ):
                 raise ValueError("Candidate backend observations differ")
         qualified.append(reports[0])
-    for kind in ("inference-author", "inference-composition"):
+    for kind in ("inference-author", "inference-composition", "inference-execution"):
         profile, digest = profile_identity(kind)
         inputs = selected_cases(kind)
         expected_input = hashlib.sha256(
@@ -298,7 +300,7 @@ def read_bundle(
     with zipfile.ZipFile(path) as zipped:
         entries = zipped.infolist()
         if (
-            len(entries) != 35
+            len(entries) != 44
             or sum(e.file_size for e in entries) > 2 * MAX_ASSET_BYTES
         ):
             raise ValueError("Native candidate bundle inventory differs")
@@ -342,6 +344,9 @@ def read_bundle(
                 "calls",
                 "inference-author",
                 "inference-composition",
+                "inference-execution",
+                "inference-transport",
+                "inference-calls",
                 "inference-managed",
                 "inference-handshake",
             ]

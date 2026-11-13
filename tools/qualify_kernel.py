@@ -453,7 +453,7 @@ def main() -> None:
         ),
         end="",
     )
-    for kind in ("inference-author", "inference-composition"):
+    for kind in ("inference-author", "inference-composition", "inference-execution"):
         for backend in ("rust", "python", "node"):
             print(
                 run(
@@ -472,7 +472,7 @@ def main() -> None:
                 ),
                 end="",
             )
-    for kind in ("managed", "handshake"):
+    for kind in ("managed", "handshake", "transport", "calls"):
         for backend in ("rust", "python", "node"):
             print(
                 run(
@@ -542,6 +542,9 @@ def main() -> None:
             for kind in (
                 "inference-author",
                 "inference-composition",
+                "inference-execution",
+                "inference-transport",
+                "inference-calls",
                 "inference-managed",
                 "inference-handshake",
             )

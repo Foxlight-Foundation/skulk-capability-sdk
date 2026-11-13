@@ -438,6 +438,40 @@ def main() -> None:
             ),
             end="",
         )
+    print(
+        run(
+            [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "inference_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
+    for kind in ("inference-author", "inference-composition"):
+        for backend in ("rust", "python", "node"):
+            print(
+                run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "tools.check_inference_profiles",
+                        "--kind",
+                        kind,
+                        "--backend",
+                        backend,
+                        "--report",
+                        str(OUTPUT / f"{kind}-{backend}.json"),
+                    ],
+                    python_env,
+                ),
+                end="",
+            )
     calls_report = json.loads((OUTPUT / "calls-rust.json").read_text())
     composition_report = json.loads((OUTPUT / "composition-rust.json").read_text())
     transport_report = json.loads((OUTPUT / "transport-rust.json").read_text())
@@ -485,6 +519,10 @@ def main() -> None:
             "sha256": hashlib.sha256(package.read_bytes()).hexdigest(),
         },
         "runtime_adoption": False,
+        "inference_profiles": [
+            json.loads((OUTPUT / f"{kind}-rust.json").read_text())
+            for kind in ("inference-author", "inference-composition")
+        ],
     }
     (OUTPUT / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     verify_install(wheel, package, OUTPUT)

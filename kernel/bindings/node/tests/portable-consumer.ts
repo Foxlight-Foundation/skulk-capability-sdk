@@ -72,3 +72,16 @@ function typedCallChannel(startup: ManagedContract): Promise<CallControl> {
 void [callsFingerprint, callBodySize, callFrame, typedCallChannel];
 // @ts-expect-error raw call bodies are byte buffers, never implicit JSON strings
 encodeCallFrame('{}', 'body');
+
+// Explicit inference types do not widen any existing legacy handle.
+import {PortableV2Contract, CompositionV2Contract, portableV2ProfileDigest, compositionV2ProfileDigest} from '../dist/portable.js';
+const inferenceAuthor = PortableV2Contract.fromJson('Descriptor', '{}');
+const inferenceContext = CompositionV2Contract.fromJson('Context', '{}');
+const inferencePolicy = CompositionV2Contract.fromJson('Policy', '{}');
+const inferenceRequest = CompositionV2Contract.fromJson('DelegateRequest', '{}');
+const inferenceChild: CompositionV2Contract = inferenceContext.admit(
+  inferenceRequest, inferencePolicy, '{}', new Uint8Array(), 1000, '0'.repeat(64),
+);
+void [inferenceAuthor, inferenceChild, portableV2ProfileDigest(), compositionV2ProfileDigest()];
+// @ts-expect-error distinct native profiles cannot mix through typed delegation
+inferenceContext.admit(delegation, inferencePolicy, '{}', new Uint8Array(), 1000, '0'.repeat(64));

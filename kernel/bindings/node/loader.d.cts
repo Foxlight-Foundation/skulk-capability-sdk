@@ -58,6 +58,13 @@ declare const native: {
   encodeCallFrame(source: string, payload: Buffer): Buffer;
   decodeCallFrame(packet: Buffer): CallFrame;
   openCallControl(startup: string, seconds: number): Promise<NativeCallControl>;
+  /** Explicit inference-aware structural admission, never caller authority. */
+  compositionV2ProfileDigest(): string;
+  compositionV2ContractJson(name: 'Context' | 'DelegateRequest' | 'Policy', source: string): Buffer;
+  admitDelegationV2Json(parent: string, request: string, policy: string, executor: string, requestBytes: Buffer, nowUnixMs: number, scopeId: string): Buffer;
+  portableV2ProfileDigest(): string;
+  portableV2ContractJson(name: 'Descriptor' | 'ContractEnvelope', source: string): Buffer;
+  portableV2ContractDigest(name: 'Descriptor' | 'ContractEnvelope', source: string): string;
   compositionProfileDigest(): string;
   compositionContractJson(name: 'Context' | 'DelegateRequest' | 'Policy', source: string): Buffer;
   admitDelegationJson(parent: string, request: string, policy: string, executor: string, requestBytes: Buffer, nowUnixMs: number, scopeId: string): Buffer;

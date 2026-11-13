@@ -15,6 +15,35 @@ const MAX_REQUEST_BYTES: usize = 16_777_216;
 const MAX_ANCESTRY: usize = 8;
 type Result<T> = std::result::Result<T, CompositionError>;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CompositionProfile {
+    Original,
+    Inference,
+}
+
+impl CompositionProfile {
+    fn identity(self) -> &'static str {
+        match self {
+            Self::Original => PROFILE,
+            Self::Inference => crate::composition_v2::PROFILE,
+        }
+    }
+
+    fn source(self) -> &'static str {
+        match self {
+            Self::Original => include_str!("../contracts/composition-v1.json"),
+            Self::Inference => include_str!("../contracts/composition-v2.json"),
+        }
+    }
+
+    fn protocol(self) -> u64 {
+        match self {
+            Self::Original => 1,
+            Self::Inference => 2,
+        }
+    }
+}
+
 /// Bounded failures deliberately omit callers, request content and scope IDs.
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum CompositionError {
@@ -40,41 +69,53 @@ fn canonical(source: &str) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
-fn specification() -> &'static Value {
-    static SPEC: OnceLock<Value> = OnceLock::new();
-    SPEC.get_or_init(|| {
-        serde_json::from_str(include_str!("../contracts/composition-v1.json"))
-            .expect("packaged composition specification")
+fn specification(profile: CompositionProfile) -> &'static Value {
+    static ORIGINAL: OnceLock<Value> = OnceLock::new();
+    static INFERENCE: OnceLock<Value> = OnceLock::new();
+    let specification = match profile {
+        CompositionProfile::Original => &ORIGINAL,
+        CompositionProfile::Inference => &INFERENCE,
+    };
+    specification.get_or_init(|| {
+        serde_json::from_str(profile.source()).expect("packaged composition specification")
     })
 }
 
 /// Fingerprint the complete normative schema and semantics, never a request.
 pub fn profile_digest() -> &'static str {
-    static DIGEST: OnceLock<String> = OnceLock::new();
-    DIGEST.get_or_init(|| {
+    profile_digest_for(CompositionProfile::Original)
+}
+
+pub(crate) fn profile_digest_for(profile: CompositionProfile) -> &'static str {
+    static ORIGINAL: OnceLock<String> = OnceLock::new();
+    static INFERENCE: OnceLock<String> = OnceLock::new();
+    let digest = match profile {
+        CompositionProfile::Original => &ORIGINAL,
+        CompositionProfile::Inference => &INFERENCE,
+    };
+    digest.get_or_init(|| {
         let mut domain = b"skulk.composition.profile\0".to_vec();
-        domain.extend(
-            canonical(include_str!("../contracts/composition-v1.json"))
-                .expect("bounded composition specification"),
-        );
+        domain.extend(canonical(profile.source()).expect("bounded composition specification"));
         codec::sha256(&domain)
     })
 }
 
-fn validator(name: &str) -> Result<&'static jsonschema::Validator> {
-    static CONTEXT: OnceLock<jsonschema::Validator> = OnceLock::new();
-    static REQUEST: OnceLock<jsonschema::Validator> = OnceLock::new();
-    static POLICY: OnceLock<jsonschema::Validator> = OnceLock::new();
-    static TARGET: OnceLock<jsonschema::Validator> = OnceLock::new();
-    let cell = match name {
-        "Context" => &CONTEXT,
-        "DelegateRequest" => &REQUEST,
-        "Policy" => &POLICY,
-        "Target" => &TARGET,
+fn validator(profile: CompositionProfile, name: &str) -> Result<&'static jsonschema::Validator> {
+    static ORIGINAL: [OnceLock<jsonschema::Validator>; 4] = [const { OnceLock::new() }; 4];
+    static INFERENCE: [OnceLock<jsonschema::Validator>; 4] = [const { OnceLock::new() }; 4];
+    let index = match name {
+        "Context" => 0,
+        "DelegateRequest" => 1,
+        "Policy" => 2,
+        "Target" => 3,
         _ => return Err(CompositionError::Invalid),
     };
+    let cell = match profile {
+        CompositionProfile::Original => &ORIGINAL[index],
+        CompositionProfile::Inference => &INFERENCE[index],
+    };
     Ok(cell.get_or_init(|| {
-        let spec = specification();
+        let spec = specification(profile);
         let schema = if name == "Target" {
             spec["$defs"]["Target"].clone()
         } else {
@@ -100,7 +141,17 @@ fn identity(target: &Value) -> (&str, &str) {
     )
 }
 
-fn context_semantics(value: &Value) -> Result<()> {
+fn allows(profile: CompositionProfile, executor: &Value, behavior: &Value) -> bool {
+    match profile {
+        CompositionProfile::Original => behavior == "read",
+        CompositionProfile::Inference => {
+            (executor == "read" && behavior == "read")
+                || (executor == "inference" && (behavior == "read" || behavior == "inference"))
+        }
+    }
+}
+
+fn context_semantics(profile: CompositionProfile, value: &Value) -> Result<()> {
     let ancestors = value["ancestry"].as_array().expect("validated context");
     let mut identities = BTreeSet::new();
     for target in ancestors.iter().chain(std::iter::once(&value["executor"])) {
@@ -119,6 +170,18 @@ fn context_semantics(value: &Value) -> Result<()> {
     {
         return Err(CompositionError::Binding);
     }
+    if profile == CompositionProfile::Inference {
+        let executor = &value["executor"]["behavior"];
+        if !allows(profile, executor, executor)
+            || value["allowed_targets"]
+                .as_array()
+                .expect("validated targets")
+                .iter()
+                .any(|target| !allows(profile, executor, &target["behavior"]))
+        {
+            return Err(CompositionError::Denied);
+        }
+    }
     Ok(())
 }
 
@@ -126,6 +189,7 @@ fn context_semantics(value: &Value) -> Result<()> {
 ///
 /// Only the host's authenticated active-call registry can establish provenance.
 pub struct Record {
+    profile: CompositionProfile,
     name: &'static str,
     value: Value,
     canonical: Vec<u8>,
@@ -134,6 +198,14 @@ pub struct Record {
 impl Record {
     /// Admit Context, DelegateRequest or Policy; this grants no execution rights.
     pub fn from_json(name: &str, source: &str) -> Result<Self> {
+        Self::from_profile(CompositionProfile::Original, name, source)
+    }
+
+    pub(crate) fn from_profile(
+        profile: CompositionProfile,
+        name: &str,
+        source: &str,
+    ) -> Result<Self> {
         let name = match name {
             "Context" => "Context",
             "DelegateRequest" => "DelegateRequest",
@@ -143,17 +215,18 @@ impl Record {
         let canonical = canonical(source)?;
         let value: Value =
             serde_json::from_slice(&canonical).map_err(|_| CompositionError::Invalid)?;
-        if value["contract_profile"] != PROFILE
-            || value["profile_digest"] != profile_digest()
-            || value["protocol"].as_u64() != Some(1)
-            || !validator(name)?.is_valid(&value)
+        if value["contract_profile"] != profile.identity()
+            || value["profile_digest"] != profile_digest_for(profile)
+            || value["protocol"].as_u64() != Some(profile.protocol())
+            || !validator(profile, name)?.is_valid(&value)
         {
             return Err(CompositionError::Invalid);
         }
         if name == "Context" {
-            context_semantics(&value)?;
+            context_semantics(profile, &value)?;
         }
         Ok(Self {
+            profile,
             name,
             value,
             canonical,
@@ -186,6 +259,33 @@ pub fn admit(
     now_unix_ms: u64,
     scope_id: &str,
 ) -> Result<Record> {
+    admit_for(
+        CompositionProfile::Original,
+        parent,
+        request,
+        policy,
+        executor,
+        request_bytes,
+        now_unix_ms,
+        scope_id,
+    )
+}
+
+// The profile is fixed by the typed public entry point, never selected by JSON.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn admit_for(
+    profile: CompositionProfile,
+    parent: &Record,
+    request: &Record,
+    policy: &Record,
+    executor: &str,
+    request_bytes: &[u8],
+    now_unix_ms: u64,
+    scope_id: &str,
+) -> Result<Record> {
+    if parent.profile != profile || request.profile != profile || policy.profile != profile {
+        return Err(CompositionError::Invalid);
+    }
     if parent.name != "Context" || request.name != "DelegateRequest" || policy.name != "Policy" {
         return Err(CompositionError::Invalid);
     }
@@ -194,7 +294,7 @@ pub fn admit(
     }
     let executor: Value =
         serde_json::from_slice(&canonical(executor)?).map_err(|_| CompositionError::Invalid)?;
-    if !validator("Target")?.is_valid(&executor) {
+    if !validator(profile, "Target")?.is_valid(&executor) {
         return Err(CompositionError::Invalid);
     }
     let parent = &parent.value;
@@ -239,7 +339,11 @@ pub fn admit(
     ancestry.push(executor);
     let destination = &request["destination"];
     if parent["policy_revision"] != policy["policy_revision"]
-        || destination["behavior"] != "read"
+        || !allows(
+            profile,
+            &parent["executor"]["behavior"],
+            &destination["behavior"],
+        )
         || ancestry
             .iter()
             .any(|target| identity(target) == identity(destination))
@@ -267,7 +371,7 @@ pub fn admit(
                 .as_array()
                 .expect("validated targets")
                 .contains(target)
-                && target["behavior"] == "read"
+                && allows(profile, &destination["behavior"], &target["behavior"])
                 && domains.contains(&target["processing_domain"])
                 && !ancestry
                     .iter()
@@ -287,5 +391,5 @@ pub fn admit(
     child["allowed_processing_domains"] = json!(domains);
     child["ancestry"] = json!(ancestry);
     child["deadline_unix_ms"] = json!(deadline);
-    Record::from_json("Context", &child.to_string())
+    Record::from_profile(profile, "Context", &child.to_string())
 }

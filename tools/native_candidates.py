@@ -90,6 +90,7 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
     from tools.check_calls_profile import fixture as calls_fixture
     from tools.check_composition_profile import fixture as composition_fixture
     from tools.check_handshake_profile import fixture as handshake_fixture
+    from tools.check_inference_profiles import profile_identity, selected_cases
     from tools.check_managed_profile import fixture as managed_fixture
     from tools.check_transport_profile import fixture as transport_fixture
     from tools.portable_profile_cases import cases
@@ -177,6 +178,41 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
             ):
                 raise ValueError("Candidate backend observations differ")
         qualified.append(reports[0])
+    for kind in ("inference-author", "inference-composition"):
+        profile, digest = profile_identity(kind)
+        inputs = selected_cases(kind)
+        expected_input = hashlib.sha256(
+            "\n".join(json.dumps(c.request(), sort_keys=True) for c in inputs).encode()
+        ).hexdigest()
+        expected = tuple(
+            Observation(
+                case=c.identity,
+                sha256=hashlib.sha256(
+                    c.expected().model_dump_json().encode()
+                ).hexdigest(),
+            )
+            for c in inputs
+        )
+        reports = [
+            Corpus.model_validate_json(files[f"{kind}-{backend}.json"])
+            for backend in ("rust", "python", "node")
+        ]
+        for report, backend in zip(reports, ("rust", "python", "node"), strict=True):
+            if (
+                report.backend != backend
+                or report.profile != profile
+                or report.profile_digest != digest
+                or report.input_sha256 != expected_input
+                or report.observations != expected
+                or report.cases != len(expected)
+                or len({o.case for o in report.observations}) != report.cases
+                or report.model_dump(exclude={"backend"})
+                != reports[0].model_dump(exclude={"backend"})
+            ):
+                raise ValueError(
+                    "Inference observations differ from independent corpus"
+                )
+        qualified.append(reports[0])
     return tuple(qualified)
 
 
@@ -231,6 +267,7 @@ def create_bundle(output: Path) -> Path:
                 "transport-",
                 "composition-",
                 "calls-",
+                "inference-",
             )
         )
     }
@@ -257,7 +294,7 @@ def read_bundle(
     with zipfile.ZipFile(path) as zipped:
         entries = zipped.infolist()
         if (
-            len(entries) != 23
+            len(entries) != 29
             or sum(e.file_size for e in entries) > 2 * MAX_ASSET_BYTES
         ):
             raise ValueError("Native candidate bundle inventory differs")
@@ -299,6 +336,8 @@ def read_bundle(
                 "transport",
                 "composition",
                 "calls",
+                "inference-author",
+                "inference-composition",
             ]
             for backend in ["rust", "python", "node"]
         ],

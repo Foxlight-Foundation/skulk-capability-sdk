@@ -112,6 +112,17 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/src/composition_v2.rs",
+        "kernel/src/portable_v2.rs",
+        "kernel/contracts/composition-v2.json",
+        "kernel/contracts/portable-v2.json",
+        "kernel/contracts/inference-v2-cases.json",
+        "kernel/examples/inference_probe.rs",
+        "kernel/tests/inference.rs",
+        "kernel/bindings/python/tests/test_native_inference.py",
+        "kernel/bindings/node/tests/inference.test.mjs",
+        "kernel/bindings/node/tools/inference_probe.mjs",
+        "tools/check_inference_profiles.py",
         "kernel/src/calls.rs",
         "kernel/contracts/calls-v1.json",
         "kernel/contracts/calls-v1-cases.json",

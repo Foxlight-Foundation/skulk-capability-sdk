@@ -300,7 +300,10 @@ async def test_wrong_binding_is_refused_before_handler() -> None:
         assert value["error"] == "invalid_payload" and body == b"" and not entered
 
 
-async def test_repeated_cancel_waits_for_cleanup_and_allows_next_request() -> None:
+@pytest.mark.parametrize("seconds", [None, 0.1])
+async def test_repeated_cancel_waits_for_cleanup_and_allows_next_request(
+    seconds: float | None,
+) -> None:
     """Cancellation cannot interrupt cleanup, block health, or poison the next call."""
     entered, cleanup, release = asyncio.Event(), asyncio.Event(), asyncio.Event()
 
@@ -318,11 +321,15 @@ async def test_repeated_cancel_waits_for_cleanup_and_allows_next_request() -> No
     app = CapabilityApp()
     app.unary("example", handler)
     async with running(app) as peer:
-        await peer.invoke()
+        await peer.invoke(seconds=seconds)
         await entered.wait()
         await peer.send("cancel", call_id="call-1")
         await cleanup.wait()
         await peer.send("cancel", call_id="call-1")
+        if seconds is not None:
+            # The original generation timer must be disarmed before cleanup;
+            # its expiry cannot cancel teardown again or publish a result.
+            await asyncio.sleep(0.15)
         await peer.health()
         release.set()
         value, body = await peer.receive()

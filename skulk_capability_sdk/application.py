@@ -103,6 +103,30 @@ async def _finish_owned[Value](task: asyncio.Task[Value]) -> Value:
     return result
 
 
+async def _during[Value](
+    work: Callable[[], Awaitable[Value]], seconds: float | None
+) -> Value:
+    """Disarm the caller's timer before cancelling and draining owned behavior."""
+
+    async def run() -> Value:
+        return await work()
+
+    task = asyncio.create_task(run())
+    try:
+        async with asyncio.timeout(seconds):
+            # Timeout/host cancellation first unwinds this waiter's timer. Only
+            # then may cleanup cancel the separately owned handler, once.
+            return await asyncio.shield(task)
+    finally:
+        if not task.done() and task.cancelling() == 0:
+            task.cancel()
+
+        async def drain() -> None:
+            await asyncio.gather(task, return_exceptions=True)
+
+        await _finish_owned(asyncio.create_task(drain()))
+
+
 @final
 @dataclass(frozen=True, slots=True, repr=False)
 class ApplicationStartup:
@@ -406,7 +430,9 @@ class CapabilityApp:
                     )
                     if seconds <= 0:
                         raise TimeoutError
-                async with asyncio.timeout(seconds):
+
+                async def handle() -> None:
+                    nonlocal result
                     if mode == "unary":
                         result = _OBJECT.validate_python(
                             await self._unary[identifier](invocation), strict=True
@@ -420,6 +446,8 @@ class CapabilityApp:
                         await self._execute_stream(
                             native, startup, invocation, descriptor, mode, seconds
                         )
+
+                await _during(handle, seconds)
                 encoded = json.dumps(result, allow_nan=False).encode()
                 native.encode_call_v2_frame(
                     frame(

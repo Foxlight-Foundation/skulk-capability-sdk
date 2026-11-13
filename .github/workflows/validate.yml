@@ -21,11 +21,12 @@ jobs:
         with:
           version: '0.8.22'
           python-version: '3.13'
-      - run: uv sync --frozen --all-packages --no-editable
+      - run: uv sync --frozen --all-packages --no-editable --group native-runtime
       - run: uv run --no-sync basedpyright --pythonpath .venv/bin/python
       - run: uv run --no-sync ruff check
       - run: uv run --no-sync ruff format --check
       - run: uv run --no-sync pytest
+      - run: uv run --no-sync pytest tests_native
       - run: uv build --all-packages
       - run: uv run --no-sync python tools/check_export.py
       - run: uv run --no-sync python tools/check_tools_export.py

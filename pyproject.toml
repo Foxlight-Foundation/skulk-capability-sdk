@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skulk-capability-sdk"
-version = "0.5.7"
+version = "0.5.8rc1"
 description = "Public authoring contracts and lifecycle primitives for Skulk capabilities"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -20,6 +20,13 @@ Documentation = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/tre
 
 [dependency-groups]
 dev = ["pytest==9.1.1", "pytest-asyncio==1.4.0", "ruff==0.14.11", "basedpyright==1.39.10", "types-jsonschema", "pydantic==2.13.5", "keyring>=25,<26"]
+
+# Explicit compiler-free author-runtime qualification, separate from the legacy SDK.
+native-runtime = [
+    "skulk-capability-kernel @ https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.3/skulk_capability_kernel-0.7.0rc3-cp313-abi3-macosx_11_0_arm64.whl#sha256=1c2dc4f66d653e8e41ac9fba6d948f1330437fb05dc856ec17eaa649b77d7a5d ; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "skulk-capability-kernel @ https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.3/skulk_capability_kernel-0.7.0rc3-cp313-abi3-manylinux_2_34_aarch64.whl#sha256=e8c3b1dac6254815849ae1d285c70beb966d9fca3087199161e099320b988e0b ; sys_platform == 'linux' and platform_machine == 'aarch64'",
+    "skulk-capability-kernel @ https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.3/skulk_capability_kernel-0.7.0rc3-cp313-abi3-manylinux_2_34_x86_64.whl#sha256=090a350a2d1fab87e9eba28006246fb9a537f7a8395c27d5b8387181e3288101 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
 
 [tool.uv.workspace]
 members = ["packages/tools"]
@@ -41,8 +48,8 @@ pythonpath = ["."]
 
 [tool.basedpyright]
 typeCheckingMode = "strict"
-include = ["skulk_capability_sdk", "tests", "tools", "packages/tools", "kernel/bindings/python"]
-extraPaths = ["kernel/bindings/python"]
+include = ["skulk_capability_sdk", "tests", "tools", "packages/tools", "kernel/bindings/python", "tests_native"]
+extraPaths = ["kernel/bindings/python", "tests_native"]
 
 [tool.ruff]
 target-version = "py313"

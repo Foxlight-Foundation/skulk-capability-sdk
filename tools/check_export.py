@@ -17,6 +17,7 @@ PACKAGE = "skulk_capability_sdk"
 MODULES = {
     "__init__.py",
     "_credential_reader.py",
+    "application.py",
     "contracts.py",
     "credentials.py",
     "database.py",

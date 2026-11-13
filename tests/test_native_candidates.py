@@ -72,6 +72,9 @@ def bundle(path: Path, *, clean: bool = True, source: str = SOURCE) -> Path:
                 "calls",
                 "inference-author",
                 "inference-composition",
+                "inference-execution",
+                "inference-transport",
+                "inference-calls",
                 "inference-managed",
                 "inference-handshake",
             ]

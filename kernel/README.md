@@ -101,3 +101,12 @@ explicit processing domains and a distinct Steward exposure category. The
 host still owns signed selection, original caller, current authorization and
 one-use startup admission. Existing call/media channels refuse this new cohort;
 installed inference execution and application migration remain unqualified.
+
+
+The rc3 execution candidate adds explicitly selected `composition/3`, `calls/2`
+and `transport/2`. Null authority expiry and generation lifetime add no hidden
+unary/stream cap, while finite caller expiry, cancellation, partial-frame
+watchdogs and bounded active admission remain mandatory. Complete independent
+corpus reports cover all thirteen profile IDs, with real socket and virtual
+clock lifecycle checks. Installed host authorization and first-party state
+migration remain separate acceptance gates; no router or classifier is selected.

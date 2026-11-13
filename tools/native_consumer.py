@@ -101,6 +101,9 @@ def verify_install(wheel: Path, package: Path, output: Path) -> None:
         "calls",
         "inference-author",
         "inference-composition",
+        "inference-execution",
+        "inference-transport",
+        "inference-calls",
         "inference-managed",
         "inference-handshake",
     ]:
@@ -109,14 +112,19 @@ def verify_install(wheel: Path, package: Path, output: Path) -> None:
                 sys.executable,
                 "-m",
                 "tools.check_inference_profiles"
-                if kind in ("inference-author", "inference-composition")
+                if kind
+                in ("inference-author", "inference-composition", "inference-execution")
                 else f"tools.check_{kind.removeprefix('inference-')}_profile",
                 "--backend",
                 backend,
                 "--report",
                 str(work / f"{kind}-{backend}.json"),
             ]
-            if kind in ("inference-author", "inference-composition"):
+            if kind in (
+                "inference-author",
+                "inference-composition",
+                "inference-execution",
+            ):
                 command += ["--kind", kind]
             elif kind.startswith("inference-"):
                 command.append("--inference")
@@ -132,6 +140,9 @@ def verify_install(wheel: Path, package: Path, output: Path) -> None:
         "calls",
         "inference-author",
         "inference-composition",
+        "inference-execution",
+        "inference-transport",
+        "inference-calls",
         "inference-managed",
         "inference-handshake",
     ]:

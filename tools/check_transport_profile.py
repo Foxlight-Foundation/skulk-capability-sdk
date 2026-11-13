@@ -19,6 +19,9 @@ class Native(Protocol):
     """Installed compiled wire ABI; no Python validation or framing fallback."""
 
     def transport_profile_digest(self) -> str: ...
+    def transport_v2_profile_digest(self) -> str: ...
+    def encode_transport_v2_control(self, source: str) -> bytes: ...
+    def encode_transport_v2_packet(self, projection: str, media: bytes) -> bytes: ...
     def encode_portable_control(self, source: str) -> bytes: ...
     def encode_portable_packet(self, projection: str, media: bytes) -> bytes: ...
 
@@ -28,6 +31,7 @@ class Case(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
     identity: str = Field(alias="id")
+    profile: Literal["skulk.transport/2"] | None = None
     action: Literal["control", "packet"]
     source: str
     media_hex: str
@@ -36,11 +40,14 @@ class Case(BaseModel):
 
     def request(self) -> dict[str, str | None]:
         """Return the same probe request for all three native backends."""
-        return {
+        request: dict[str, str | None] = {
             "action": self.action,
             "source": self.source,
             "media_hex": self.media_hex,
         }
+        if self.profile is not None:
+            request["profile"] = self.profile
+        return request
 
     def expected(self) -> Response:
         """Expected full wire bytes come from the independent frozen oracle."""
@@ -53,28 +60,40 @@ class Fixture(BaseModel):
     """Complete corpus identity and scope for the separate transport profile."""
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-    profile: Literal["skulk.transport/1"]
+    profile: Literal["skulk.transport/1", "skulk.transport/2"]
     profile_digest: str
     scope: str
     cases: list[Case]
 
 
-def fixture() -> Fixture:
+def fixture(inference: bool = False) -> Fixture:
     """Read synthetic source fixtures without a private owner or account."""
     return Fixture.model_validate_json(
-        (ROOT / "kernel/contracts/transport-v1-cases.json").read_bytes()
+        (
+            ROOT
+            / "kernel/contracts"
+            / ("transport-v2-cases.json" if inference else "transport-v1-cases.json")
+        ).read_bytes()
     )
 
 
 def python_case(native: Native, case: Case) -> Response:
     """Exercise the public compiled handle API and retain only bounded outcomes."""
+    control = (
+        native.encode_transport_v2_control
+        if case.profile
+        else native.encode_portable_control
+    )
+    packet = (
+        native.encode_transport_v2_packet
+        if case.profile
+        else native.encode_portable_packet
+    )
     try:
         wire = (
-            native.encode_portable_control(case.source)
+            control(case.source)
             if case.action == "control"
-            else native.encode_portable_packet(
-                case.source, bytes.fromhex(case.media_hex)
-            )
+            else packet(case.source, bytes.fromhex(case.media_hex))
         )
         return Response(canonical=wire.hex())
     except ValueError as error:
@@ -87,13 +106,18 @@ def main() -> None:
     """Compare every case and report hashes of complete observations only."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--backend", choices=["rust", "python", "node"], default="rust")
+    parser.add_argument("--inference", action="store_true")
     parser.add_argument("--report", type=Path)
     parser.add_argument("--node-facade", type=Path)
     args = parser.parse_args()
-    inputs = fixture()
+    inputs = fixture(args.inference)
     if args.backend == "python":
         native = cast(Native, importlib.import_module("_skulk_capability_kernel"))
-        if native.transport_profile_digest() != inputs.profile_digest:
+        if (
+            native.transport_v2_profile_digest()
+            if args.inference
+            else native.transport_profile_digest()
+        ) != inputs.profile_digest:
             raise ValueError("Installed transport profile differs")
         results = [python_case(native, case) for case in inputs.cases]
     else:

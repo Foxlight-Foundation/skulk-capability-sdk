@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 use serde_json::{Value, json};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
-use crate::{codec, composition, portable_json, streams::StreamError};
+use crate::{codec, composition, composition_v3, portable_json, streams::StreamError};
 
 /// Independently issued call profile; existing control and media bytes stay fixed.
 pub const PROFILE: &str = "skulk.calls/1";
@@ -15,11 +15,57 @@ pub const MAX_METADATA_BYTES: usize = 262_144;
 pub const MAX_PAYLOAD_BYTES: usize = 16_777_216;
 type Result<T> = std::result::Result<T, StreamError>;
 
-fn specification() -> &'static Value {
-    static SPEC: OnceLock<Value> = OnceLock::new();
-    SPEC.get_or_init(|| {
-        serde_json::from_str(include_str!("../contracts/calls-v1.json"))
-            .expect("packaged calls specification")
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CallsProfile {
+    Original,
+    Execution,
+}
+impl CallsProfile {
+    fn identity(self) -> &'static str {
+        match self {
+            Self::Original => PROFILE,
+            Self::Execution => crate::calls_v2::PROFILE,
+        }
+    }
+    fn protocol(self) -> u64 {
+        match self {
+            Self::Original => 1,
+            Self::Execution => 2,
+        }
+    }
+    fn source(self) -> &'static str {
+        match self {
+            Self::Original => include_str!("../contracts/calls-v1.json"),
+            Self::Execution => include_str!("../contracts/calls-v2.json"),
+        }
+    }
+}
+
+fn specification(profile: CallsProfile) -> &'static Value {
+    static ORIGINAL: OnceLock<Value> = OnceLock::new();
+    static EXECUTION: OnceLock<Value> = OnceLock::new();
+    let cell = match profile {
+        CallsProfile::Original => &ORIGINAL,
+        CallsProfile::Execution => &EXECUTION,
+    };
+    cell.get_or_init(|| {
+        let spec: Value =
+            serde_json::from_str(profile.source()).expect("packaged calls specification");
+        if profile == CallsProfile::Execution {
+            assert_eq!(
+                spec["composition_profile_digest"],
+                composition_v3::profile_digest()
+            );
+            assert_eq!(
+                spec["protected_hello_profile_digest"],
+                crate::handshake_v2::profile_digest()
+            );
+            assert_eq!(
+                spec["media_profile_digest"],
+                crate::transport_v2::profile_digest()
+            );
+        }
+        spec
     })
 }
 
@@ -34,24 +80,34 @@ fn canonical(source: &str, bound: usize) -> Result<Vec<u8>> {
 
 /// Fingerprint all normative call schemas and semantics, never caller content.
 pub fn profile_digest() -> &'static str {
-    static DIGEST: OnceLock<String> = OnceLock::new();
-    DIGEST.get_or_init(|| {
+    profile_digest_for(CallsProfile::Original)
+}
+
+pub(crate) fn profile_digest_for(profile: CallsProfile) -> &'static str {
+    static ORIGINAL: OnceLock<String> = OnceLock::new();
+    static EXECUTION: OnceLock<String> = OnceLock::new();
+    let cell = match profile {
+        CallsProfile::Original => &ORIGINAL,
+        CallsProfile::Execution => &EXECUTION,
+    };
+    cell.get_or_init(|| {
         let mut bytes = b"skulk.calls.profile\0".to_vec();
         bytes.extend(
-            canonical(
-                include_str!("../contracts/calls-v1.json"),
-                MAX_METADATA_BYTES,
-            )
-            .expect("bounded calls specification"),
+            canonical(profile.source(), MAX_METADATA_BYTES).expect("bounded calls specification"),
         );
         codec::sha256(&bytes)
     })
 }
 
-fn validator() -> &'static jsonschema::Validator {
-    static VALIDATOR: OnceLock<jsonschema::Validator> = OnceLock::new();
-    VALIDATOR.get_or_init(|| {
-        let schema = json!({"oneOf": specification()["controls"].as_object()
+fn validator(profile: CallsProfile) -> &'static jsonschema::Validator {
+    static ORIGINAL: OnceLock<jsonschema::Validator> = OnceLock::new();
+    static EXECUTION: OnceLock<jsonschema::Validator> = OnceLock::new();
+    let cell = match profile {
+        CallsProfile::Original => &ORIGINAL,
+        CallsProfile::Execution => &EXECUTION,
+    };
+    cell.get_or_init(|| {
+        let schema = json!({"oneOf": specification(profile)["controls"].as_object()
             .expect("closed calls kinds").values().collect::<Vec<_>>()});
         jsonschema::options()
             .with_draft(jsonschema::Draft::Draft202012)
@@ -73,13 +129,13 @@ fn object_payload(payload: &[u8]) -> Result<()> {
     Ok(())
 }
 
-fn checked_metadata(source: &str) -> Result<(Vec<u8>, Value)> {
+fn checked_metadata(profile: CallsProfile, source: &str) -> Result<(Vec<u8>, Value)> {
     let bytes = canonical(source, MAX_METADATA_BYTES)?;
     let value: Value = serde_json::from_slice(&bytes).map_err(|_| StreamError::InvalidFrame)?;
-    if value["protocol"].as_u64() != Some(1)
-        || value["contract_profile"] != PROFILE
-        || value["profile_digest"] != profile_digest()
-        || !validator().is_valid(&value)
+    if value["protocol"].as_u64() != Some(profile.protocol())
+        || value["contract_profile"] != profile.identity()
+        || value["profile_digest"] != profile_digest_for(profile)
+        || !validator(profile).is_valid(&value)
     {
         return Err(StreamError::InvalidFrame);
     }
@@ -111,14 +167,34 @@ fn checked_metadata(source: &str) -> Result<(Vec<u8>, Value)> {
         } else {
             ("DelegateRequest", "request")
         };
-        composition::Record::from_json(name, &value[field].to_string())
-            .map_err(|_| StreamError::InvalidFrame)?;
+        match profile {
+            CallsProfile::Original => {
+                composition::Record::from_json(name, &value[field].to_string()).map(drop)
+            }
+            CallsProfile::Execution => {
+                composition_v3::Record::from_json(name, &value[field].to_string()).map(drop)
+            }
+        }
+        .map_err(|_| StreamError::InvalidFrame)?;
         if value["kind"] == "delegate" {
             sequence(&value[field]["request_id"])?;
         }
-        if value["kind"] == "invoke"
+        if profile == CallsProfile::Original
+            && value["kind"] == "invoke"
             && value["mode"] == "unary"
             && value["remaining_seconds"].as_f64().unwrap_or(f64::INFINITY) > 30.0
+        {
+            return Err(StreamError::InvalidFrame);
+        }
+    }
+    if profile == CallsProfile::Execution {
+        let deadline = match value["kind"].as_str() {
+            Some("invoke") => Some(&value["context"]["deadline_unix_ms"]),
+            Some("delegate_started") => Some(&value["deadline_unix_ms"]),
+            _ => None,
+        };
+        if deadline
+            .is_some_and(|deadline| deadline.is_null() != value["remaining_seconds"].is_null())
         {
             return Err(StreamError::InvalidFrame);
         }
@@ -129,7 +205,10 @@ fn checked_metadata(source: &str) -> Result<(Vec<u8>, Value)> {
 /// Admit metadata before a host allocates/reads a body. This is only a resource
 /// hint: complete frame admission and actual host authority remain mandatory.
 pub fn payload_size(source: &str) -> Result<usize> {
-    let (_, value) = checked_metadata(source)?;
+    payload_size_for(CallsProfile::Original, source)
+}
+pub(crate) fn payload_size_for(profile: CallsProfile, source: &str) -> Result<usize> {
+    let (_, value) = checked_metadata(profile, source)?;
     Ok(value["payload_size"]
         .as_u64()
         .ok_or(StreamError::InvalidFrame)? as usize)
@@ -147,6 +226,7 @@ fn sequence(value: &Value) -> Result<()> {
 
 /// Immutable admitted frame; representation never prints metadata or raw content.
 pub struct Frame {
+    profile: CallsProfile,
     metadata: Vec<u8>,
     payload: Vec<u8>,
 }
@@ -155,10 +235,17 @@ impl Frame {
     /// Admit closed metadata and the exact raw body through compiled semantics.
     /// Host connection/caller/policy/call authority is deliberately not inferred.
     pub fn from_json(source: &str, payload: Vec<u8>) -> Result<Self> {
+        Self::from_profile(CallsProfile::Original, source, payload)
+    }
+    pub(crate) fn from_profile(
+        profile: CallsProfile,
+        source: &str,
+        payload: Vec<u8>,
+    ) -> Result<Self> {
         if payload.len() > MAX_PAYLOAD_BYTES {
             return Err(StreamError::HeaderBound);
         }
-        let (metadata, value) = checked_metadata(source)?;
+        let (metadata, value) = checked_metadata(profile, source)?;
         if value["payload_size"].as_u64() != Some(payload.len() as u64) {
             return Err(StreamError::InvalidFrame);
         }
@@ -190,13 +277,29 @@ impl Frame {
                 let mut legacy = value.clone();
                 let fields = legacy.as_object_mut().ok_or(StreamError::InvalidFrame)?;
                 fields.remove("payload_size");
-                fields.insert("protocol".into(), json!(5));
-                fields.insert("contract_profile".into(), json!(crate::transport::PROFILE));
-                fields.insert(
-                    "profile_digest".into(),
-                    json!(crate::transport::profile_digest()),
-                );
-                crate::transport::Control::from_json(&legacy.to_string())?;
+                match profile {
+                    CallsProfile::Original => {
+                        fields.insert("protocol".into(), json!(5));
+                        fields.insert("contract_profile".into(), json!(crate::transport::PROFILE));
+                        fields.insert(
+                            "profile_digest".into(),
+                            json!(crate::transport::profile_digest()),
+                        );
+                        crate::transport::Control::from_json(&legacy.to_string()).map(drop)?;
+                    }
+                    CallsProfile::Execution => {
+                        fields.insert("protocol".into(), json!(6));
+                        fields.insert(
+                            "contract_profile".into(),
+                            json!(crate::transport_v2::PROFILE),
+                        );
+                        fields.insert(
+                            "profile_digest".into(),
+                            json!(crate::transport_v2::profile_digest()),
+                        );
+                        crate::transport_v2::Control::from_json(&legacy.to_string()).map(drop)?;
+                    }
+                }
             }
             "shutdown" | "cancel" | "delegate_started" | "delegate_finished" => {
                 if !payload.is_empty() {
@@ -205,7 +308,15 @@ impl Frame {
             }
             _ => return Err(StreamError::InvalidFrame),
         }
-        Ok(Self { metadata, payload })
+        Ok(Self {
+            profile,
+            metadata,
+            payload,
+        })
+    }
+
+    pub(crate) fn profile(&self) -> CallsProfile {
+        self.profile
     }
 
     /// Borrow admitted canonical metadata; bindings return defensive copies.
@@ -229,6 +340,9 @@ pub fn encode(frame: &Frame) -> Vec<u8> {
 
 /// Refuse oversized, truncated and trailing bytes before admitting a full frame.
 pub fn decode(bytes: &[u8]) -> Result<Frame> {
+    decode_for(CallsProfile::Original, bytes)
+}
+pub(crate) fn decode_for(profile: CallsProfile, bytes: &[u8]) -> Result<Frame> {
     let header: [u8; 4] = bytes
         .get(..4)
         .ok_or(StreamError::InvalidFrame)?
@@ -240,22 +354,56 @@ pub fn decode(bytes: &[u8]) -> Result<Frame> {
     }
     let source = std::str::from_utf8(bytes.get(4..4 + size).ok_or(StreamError::InvalidFrame)?)
         .map_err(|_| StreamError::InvalidFrame)?;
-    let (_, metadata) = checked_metadata(source)?;
+    let (_, metadata) = checked_metadata(profile, source)?;
     let body_size = metadata["payload_size"]
         .as_u64()
         .ok_or(StreamError::InvalidFrame)? as usize;
     if bytes.len() != 4 + size + body_size {
         return Err(StreamError::InvalidFrame);
     }
-    Frame::from_json(source, bytes[4 + size..].to_vec())
+    Frame::from_profile(profile, source, bytes[4 + size..].to_vec())
 }
 
 /// Bound both lengths before allocation; outer owner supplies deadline/fencing.
 pub async fn read(reader: &mut (impl AsyncRead + Unpin)) -> Result<Frame> {
-    let size = reader
-        .read_u32()
+    read_for(CallsProfile::Original, reader).await
+}
+pub(crate) async fn read_for(
+    profile: CallsProfile,
+    reader: &mut (impl AsyncRead + Unpin),
+) -> Result<Frame> {
+    if profile == CallsProfile::Execution {
+        // A quiet model has no partial frame. Start this resource watchdog only
+        // after input begins; the host still owns call lifetime and cancellation.
+        let first = reader.read_u8().await.map_err(|_| StreamError::Transport)?;
+        tokio::time::timeout(
+            std::time::Duration::from_secs(30),
+            read_inner(profile, reader, Some(first)),
+        )
         .await
-        .map_err(|_| StreamError::Transport)? as usize;
+        .map_err(|_| StreamError::Timeout)?
+    } else {
+        read_inner(profile, reader, None).await
+    }
+}
+async fn read_inner(
+    profile: CallsProfile,
+    reader: &mut (impl AsyncRead + Unpin),
+    first: Option<u8>,
+) -> Result<Frame> {
+    let size = if let Some(first) = first {
+        let mut prefix = [first, 0, 0, 0];
+        reader
+            .read_exact(&mut prefix[1..])
+            .await
+            .map_err(|_| StreamError::Transport)?;
+        u32::from_be_bytes(prefix)
+    } else {
+        reader
+            .read_u32()
+            .await
+            .map_err(|_| StreamError::Transport)?
+    } as usize;
     if !(2..=MAX_METADATA_BYTES).contains(&size) {
         return Err(StreamError::HeaderBound);
     }
@@ -265,7 +413,7 @@ pub async fn read(reader: &mut (impl AsyncRead + Unpin)) -> Result<Frame> {
         .await
         .map_err(|_| StreamError::Transport)?;
     let source = std::str::from_utf8(&header).map_err(|_| StreamError::InvalidFrame)?;
-    let (_, metadata) = checked_metadata(source)?;
+    let (_, metadata) = checked_metadata(profile, source)?;
     let body_size = metadata["payload_size"]
         .as_u64()
         .ok_or(StreamError::InvalidFrame)? as usize;
@@ -274,13 +422,29 @@ pub async fn read(reader: &mut (impl AsyncRead + Unpin)) -> Result<Frame> {
         .read_exact(&mut body)
         .await
         .map_err(|_| StreamError::Transport)?;
-    Frame::from_json(source, body)
+    Frame::from_profile(profile, source, body)
 }
 
 /// Write through backpressure; interrupted writes must poison the owning channel.
 pub async fn write(writer: &mut (impl AsyncWrite + Unpin), frame: &Frame) -> Result<()> {
-    writer
-        .write_all(&encode(frame))
-        .await
-        .map_err(|_| StreamError::Transport)
+    write_for(CallsProfile::Original, writer, frame).await
+}
+pub(crate) async fn write_for(
+    profile: CallsProfile,
+    writer: &mut (impl AsyncWrite + Unpin),
+    frame: &Frame,
+) -> Result<()> {
+    if frame.profile != profile {
+        return Err(StreamError::InvalidFrame);
+    }
+    let bytes = encode(frame);
+    let write = writer.write_all(&bytes);
+    if profile == CallsProfile::Execution {
+        tokio::time::timeout(std::time::Duration::from_secs(30), write)
+            .await
+            .map_err(|_| StreamError::Timeout)?
+            .map_err(|_| StreamError::Transport)
+    } else {
+        write.await.map_err(|_| StreamError::Transport)
+    }
 }

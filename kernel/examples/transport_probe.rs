@@ -1,6 +1,6 @@
 //! Bounded synthetic protocol-five full-wire probe, never a host authority.
 use serde_json::{Value, json};
-use skulk_capability_kernel::transport;
+use skulk_capability_kernel::{transport, transport_v2};
 use std::io::{self, BufRead, Write};
 fn unhex(raw: &str) -> Option<Vec<u8>> {
     if !raw.len().is_multiple_of(2) {
@@ -20,7 +20,20 @@ fn main() {
             .and_then(|line| serde_json::from_str::<Value>(&line).ok())
             .and_then(|request| {
                 let source = request["source"].as_str()?;
-                if request["action"] == "control" {
+                if request["profile"] == "skulk.transport/2" {
+                    if request["action"] == "control" {
+                        transport_v2::Control::from_json(source)
+                            .ok()
+                            .map(|c| transport_v2::encode_control(&c))
+                    } else {
+                        let media = unhex(request["media_hex"].as_str()?)?;
+                        transport_v2::packet(source, media)
+                            .and_then(|p| transport_v2::encode_packet(&p))
+                            .ok()
+                    }
+                } else if !request["profile"].is_null() {
+                    None
+                } else if request["action"] == "control" {
                     transport::Control::from_json(source)
                         .ok()
                         .map(|c| transport::encode_control(&c))

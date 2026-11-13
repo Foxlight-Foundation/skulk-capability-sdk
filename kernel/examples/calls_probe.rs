@@ -1,6 +1,6 @@
 //! Independent synthetic call codec observations, never a host authority.
 use serde_json::{Value, json};
-use skulk_capability_kernel::calls;
+use skulk_capability_kernel::{calls, calls_v2};
 use std::io::{self, BufRead, Write};
 fn unhex(raw: &str) -> Option<Vec<u8>> {
     if !raw.len().is_multiple_of(2) {
@@ -19,16 +19,31 @@ fn main() {
             .filter(|s| s.len() <= 1_048_576)
             .and_then(|s| serde_json::from_str::<Value>(&s).ok())
             .and_then(|input| {
-                let frame = if input["action"] == "encode" {
-                    calls::Frame::from_json(
-                        input["source"].as_str()?,
-                        unhex(input["payload_hex"].as_str()?)?,
-                    )
-                    .ok()?
+                if input["profile"] == "skulk.calls/2" {
+                    let frame = if input["action"] == "encode" {
+                        calls_v2::Frame::from_json(
+                            input["source"].as_str()?,
+                            unhex(input["payload_hex"].as_str()?)?,
+                        )
+                        .ok()?
+                    } else {
+                        calls_v2::decode(&unhex(input["packet_hex"].as_str()?)?).ok()?
+                    };
+                    Some(calls_v2::encode(&frame))
+                } else if input["profile"].is_null() {
+                    let frame = if input["action"] == "encode" {
+                        calls::Frame::from_json(
+                            input["source"].as_str()?,
+                            unhex(input["payload_hex"].as_str()?)?,
+                        )
+                        .ok()?
+                    } else {
+                        calls::decode(&unhex(input["packet_hex"].as_str()?)?).ok()?
+                    };
+                    Some(calls::encode(&frame))
                 } else {
-                    calls::decode(&unhex(input["packet_hex"].as_str()?)?).ok()?
-                };
-                Some(calls::encode(&frame))
+                    None
+                }
             });
         let result = match result {
             Some(wire) => {

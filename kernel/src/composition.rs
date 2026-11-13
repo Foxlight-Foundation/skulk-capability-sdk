@@ -19,6 +19,7 @@ type Result<T> = std::result::Result<T, CompositionError>;
 pub(crate) enum CompositionProfile {
     Original,
     Inference,
+    Execution,
 }
 
 impl CompositionProfile {
@@ -26,6 +27,7 @@ impl CompositionProfile {
         match self {
             Self::Original => PROFILE,
             Self::Inference => crate::composition_v2::PROFILE,
+            Self::Execution => crate::composition_v3::PROFILE,
         }
     }
 
@@ -33,6 +35,7 @@ impl CompositionProfile {
         match self {
             Self::Original => include_str!("../contracts/composition-v1.json"),
             Self::Inference => include_str!("../contracts/composition-v2.json"),
+            Self::Execution => include_str!("../contracts/composition-v3.json"),
         }
     }
 
@@ -40,6 +43,7 @@ impl CompositionProfile {
         match self {
             Self::Original => 1,
             Self::Inference => 2,
+            Self::Execution => 3,
         }
     }
 }
@@ -72,9 +76,11 @@ fn canonical(source: &str) -> Result<Vec<u8>> {
 fn specification(profile: CompositionProfile) -> &'static Value {
     static ORIGINAL: OnceLock<Value> = OnceLock::new();
     static INFERENCE: OnceLock<Value> = OnceLock::new();
+    static EXECUTION: OnceLock<Value> = OnceLock::new();
     let specification = match profile {
         CompositionProfile::Original => &ORIGINAL,
         CompositionProfile::Inference => &INFERENCE,
+        CompositionProfile::Execution => &EXECUTION,
     };
     specification.get_or_init(|| {
         serde_json::from_str(profile.source()).expect("packaged composition specification")
@@ -89,9 +95,11 @@ pub fn profile_digest() -> &'static str {
 pub(crate) fn profile_digest_for(profile: CompositionProfile) -> &'static str {
     static ORIGINAL: OnceLock<String> = OnceLock::new();
     static INFERENCE: OnceLock<String> = OnceLock::new();
+    static EXECUTION: OnceLock<String> = OnceLock::new();
     let digest = match profile {
         CompositionProfile::Original => &ORIGINAL,
         CompositionProfile::Inference => &INFERENCE,
+        CompositionProfile::Execution => &EXECUTION,
     };
     digest.get_or_init(|| {
         let mut domain = b"skulk.composition.profile\0".to_vec();
@@ -103,6 +111,7 @@ pub(crate) fn profile_digest_for(profile: CompositionProfile) -> &'static str {
 fn validator(profile: CompositionProfile, name: &str) -> Result<&'static jsonschema::Validator> {
     static ORIGINAL: [OnceLock<jsonschema::Validator>; 4] = [const { OnceLock::new() }; 4];
     static INFERENCE: [OnceLock<jsonschema::Validator>; 4] = [const { OnceLock::new() }; 4];
+    static EXECUTION: [OnceLock<jsonschema::Validator>; 4] = [const { OnceLock::new() }; 4];
     let index = match name {
         "Context" => 0,
         "DelegateRequest" => 1,
@@ -113,6 +122,7 @@ fn validator(profile: CompositionProfile, name: &str) -> Result<&'static jsonsch
     let cell = match profile {
         CompositionProfile::Original => &ORIGINAL[index],
         CompositionProfile::Inference => &INFERENCE[index],
+        CompositionProfile::Execution => &EXECUTION[index],
     };
     Ok(cell.get_or_init(|| {
         let spec = specification(profile);
@@ -144,7 +154,7 @@ fn identity(target: &Value) -> (&str, &str) {
 fn allows(profile: CompositionProfile, executor: &Value, behavior: &Value) -> bool {
     match profile {
         CompositionProfile::Original => behavior == "read",
-        CompositionProfile::Inference => {
+        CompositionProfile::Inference | CompositionProfile::Execution => {
             (executor == "read" && behavior == "read")
                 || (executor == "inference" && (behavior == "read" || behavior == "inference"))
         }
@@ -170,7 +180,7 @@ fn context_semantics(profile: CompositionProfile, value: &Value) -> Result<()> {
     {
         return Err(CompositionError::Binding);
     }
-    if profile == CompositionProfile::Inference {
+    if profile != CompositionProfile::Original {
         let executor = &value["executor"]["behavior"];
         if !allows(profile, executor, executor)
             || value["allowed_targets"]
@@ -244,6 +254,49 @@ impl Record {
     }
 }
 
+// Composition3 treats a null ceiling as infinity while preserving every
+// real expiry. Older profiles keep their issued finite-only refusal behavior.
+fn effective_deadline(
+    profile: CompositionProfile,
+    parent: &Value,
+    request: &Value,
+    policy: &Value,
+    now_unix_ms: u64,
+) -> Result<Option<u64>> {
+    if profile == CompositionProfile::Execution {
+        if now_unix_ms == 0 || now_unix_ms > 9_007_199_254_740_991 {
+            return Err(CompositionError::Expired);
+        }
+        let mut earliest = None;
+        for record in [parent, request, policy] {
+            if let Some(deadline) = record["deadline_unix_ms"].as_u64() {
+                if deadline <= now_unix_ms {
+                    return Err(CompositionError::Expired);
+                }
+                earliest = Some(earliest.map_or(deadline, |current: u64| current.min(deadline)));
+            }
+        }
+        return Ok(earliest);
+    }
+    let deadline = request["deadline_unix_ms"]
+        .as_u64()
+        .expect("validated deadline");
+    if now_unix_ms == 0
+        || now_unix_ms >= deadline
+        || deadline
+            > parent["deadline_unix_ms"]
+                .as_u64()
+                .expect("validated deadline")
+        || deadline
+            > policy["deadline_unix_ms"]
+                .as_u64()
+                .expect("validated deadline")
+    {
+        return Err(CompositionError::Expired);
+    }
+    Ok(Some(deadline))
+}
+
 /// Attenuate one delegation against authenticated host observations, without I/O.
 ///
 /// `parent`, `policy`, `executor` and fresh `scope_id` must be supplied by the
@@ -313,22 +366,7 @@ pub(crate) fn admit_for(
     {
         return Err(CompositionError::Binding);
     }
-    let deadline = request["deadline_unix_ms"]
-        .as_u64()
-        .expect("validated deadline");
-    if now_unix_ms == 0
-        || now_unix_ms >= deadline
-        || deadline
-            > parent["deadline_unix_ms"]
-                .as_u64()
-                .expect("validated deadline")
-        || deadline
-            > policy["deadline_unix_ms"]
-                .as_u64()
-                .expect("validated deadline")
-    {
-        return Err(CompositionError::Expired);
-    }
+    let deadline = effective_deadline(profile, parent, request, policy, now_unix_ms)?;
     let mut ancestry = parent["ancestry"]
         .as_array()
         .expect("validated ancestry")

@@ -96,3 +96,29 @@ export function inferenceStartupConsumer(source: string, helloSource: string): U
   void identity; void hello;
   return matched.canonical();
 }
+
+// Nullable overall inference deadlines remain explicit across every entry point.
+import {CompositionV3Contract, compositionV3ProfileDigest, transportV2ProfileDigest, callsV2ProfileDigest,
+  encodeTransportV2Control, decodeTransportV2Control, encodeTransportV2Packet, decodeTransportV2Packet,
+  encodeCallV2Frame, decodeCallV2Frame, callV2PayloadSize,
+  openTransportV2Stream, openTransportV2Control, openCallV2Control} from '../dist/portable.js';
+/** Compile the explicit cohort, with null or real owner/credential deadlines. */
+export function executionConsumer(startup: ManagedV2Contract, source: string): void {
+  const parent = CompositionV3Contract.fromJson('Context', source);
+  const request = CompositionV3Contract.fromJson('DelegateRequest', source);
+  const policy = CompositionV3Contract.fromJson('Policy', source);
+  const child: CompositionV3Contract = parent.admit(request, policy, source, new Uint8Array(), 1000, '0'.repeat(64));
+  const streaming: Promise<import('../dist/portable.js').PortableStream> = openTransportV2Stream(startup, 'call', 'bidirectional');
+  const bounded = openTransportV2Stream(startup, 'call', 'bidirectional', 7200);
+  const control: Promise<import('../dist/portable.js').PortableControl> = openTransportV2Control(startup, 30);
+  const calls: Promise<CallControl> = openCallV2Control(startup, 30);
+  const wire: Uint8Array = encodeCallV2Frame(source, new Uint8Array());
+  const decoded: CallFrame = decodeCallV2Frame(wire);
+  const size: number = callV2PayloadSize(source);
+  void [child, streaming, bounded, control, calls, decoded, size, compositionV3ProfileDigest(), transportV2ProfileDigest(), callsV2ProfileDigest(),
+    decodeTransportV2Control(encodeTransportV2Control(source)), decodeTransportV2Packet(encodeTransportV2Packet(source, new Uint8Array()))];
+  // @ts-expect-error profile two composition cannot inherit nullable expiry implicitly
+  parent.admit(inferenceRequest, policy, source, new Uint8Array(), 1000, '0'.repeat(64));
+  // @ts-expect-error legacy startup must not select the new execution transport
+  openTransportV2Stream(ManagedContract.fromJson('Startup', source), 'call', 'bidirectional');
+}

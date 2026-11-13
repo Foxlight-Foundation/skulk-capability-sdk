@@ -7,9 +7,9 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use skulk_capability_kernel::{
-    binding, calls, codec, composition, composition_v2, contracts, handshake, handshake_v2,
-    journal, managed, managed_v2, operation_logs, operations, portable, portable_v2, schema,
-    streams, transport,
+    binding, calls, calls_v2, codec, composition, composition_v2, composition_v3, contracts,
+    handshake, handshake_v2, journal, managed, managed_v2, operation_logs, operations, portable,
+    portable_v2, schema, streams, transport, transport_v2,
 };
 
 /// Private qualification surface; source text preserves wide JSON numbers.
@@ -191,6 +191,76 @@ impl CompositionV2Contract {
 
     fn __repr__(&self) -> String {
         format!("CompositionV2Contract({})", self.record.name())
+    }
+}
+
+/// The inference-aware composition fingerprint grants no caller authority.
+#[pyfunction]
+fn composition_v3_profile_digest() -> &'static str {
+    composition_v3::profile_digest()
+}
+
+/// Immutable caller metadata, without diagnostic serialization or content digest.
+#[pyclass(frozen, module = "_skulk_capability_kernel")]
+struct CompositionV3Contract {
+    record: composition_v3::Record,
+}
+
+#[pymethods]
+impl CompositionV3Contract {
+    /// Parse structurally; the host must establish active-scope provenance.
+    #[staticmethod]
+    fn from_json(py: Python<'_>, name: &str, source: &Bound<'_, PyString>) -> PyResult<Self> {
+        let source = portable_text(source)?;
+        let record = py
+            .detach(|| composition_v3::Record::from_json(name, &source))
+            .map_err(|error| PyValueError::new_err(error.to_string()))?;
+        Ok(Self { record })
+    }
+
+    /// Public kind only, without caller, scope or request identity.
+    #[getter]
+    fn name(&self) -> &'static str {
+        self.record.name()
+    }
+
+    /// Explicitly copy sensitive canonical bytes for protected host IPC.
+    fn canonical<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, self.record.canonical())
+    }
+
+    /// Attenuate with host observations; no registry lookup, replay or dispatch.
+    // Separate arguments make host observations explicit at the FFI boundary.
+    #[allow(clippy::too_many_arguments)]
+    fn admit(
+        &self,
+        py: Python<'_>,
+        request: &Self,
+        policy: &Self,
+        executor: &Bound<'_, PyString>,
+        request_bytes: Vec<u8>,
+        now_unix_ms: u64,
+        scope_id: &str,
+    ) -> PyResult<Self> {
+        let executor = portable_text(executor)?;
+        let record = py
+            .detach(|| {
+                composition_v3::admit(
+                    &self.record,
+                    &request.record,
+                    &policy.record,
+                    &executor,
+                    &request_bytes,
+                    now_unix_ms,
+                    scope_id,
+                )
+            })
+            .map_err(|error| PyValueError::new_err(error.to_string()))?;
+        Ok(Self { record })
+    }
+
+    fn __repr__(&self) -> String {
+        format!("CompositionV3Contract({})", self.record.name())
     }
 }
 
@@ -905,6 +975,23 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<CompositionContract>()?;
     module.add_function(wrap_pyfunction!(composition_v2_profile_digest, module)?)?;
     module.add_class::<CompositionV2Contract>()?;
+    module.add_class::<CompositionV3Contract>()?;
+    module.add_class::<NativeControlV2>()?;
+    module.add_class::<NativeCallControlV2>()?;
+    module.add_function(wrap_pyfunction!(composition_v3_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(transport_v2_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(encode_transport_v2_control, module)?)?;
+    module.add_function(wrap_pyfunction!(decode_transport_v2_control, module)?)?;
+    module.add_function(wrap_pyfunction!(encode_transport_v2_packet, module)?)?;
+    module.add_function(wrap_pyfunction!(decode_transport_v2_packet, module)?)?;
+    module.add_function(wrap_pyfunction!(open_transport_v2_stream, module)?)?;
+    module.add_function(wrap_pyfunction!(open_transport_v2_control, module)?)?;
+    module.add_function(wrap_pyfunction!(calls_v2_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(call_v2_payload_size, module)?)?;
+    module.add_function(wrap_pyfunction!(encode_call_v2_frame, module)?)?;
+    module.add_function(wrap_pyfunction!(decode_call_v2_frame, module)?)?;
+    module.add_function(wrap_pyfunction!(open_call_v2_control, module)?)?;
+
     module.add_function(wrap_pyfunction!(portable_v2_profile_digest, module)?)?;
     module.add_function(wrap_pyfunction!(portable_v2_contract_json, module)?)?;
     module.add_function(wrap_pyfunction!(portable_v2_contract_digest, module)?)?;
@@ -1354,6 +1441,170 @@ fn open_portable_control<'py>(
     })
 }
 
+// Nullable generation time is not a boolean switch or language-coerced string.
+fn execution_seconds(source: Option<&Bound<'_, PyAny>>) -> PyResult<Option<f64>> {
+    let Some(value) = source.filter(|value| !value.is_none()) else {
+        return Ok(None);
+    };
+    if value.is_instance_of::<PyBool>()
+        || !(value.is_instance_of::<PyFloat>() || value.is_instance_of::<PyInt>())
+    {
+        return Err(stream_error(streams::StreamError::InvalidFrame));
+    }
+    value
+        .extract::<f64>()
+        .map(Some)
+        .map_err(|_| stream_error(streams::StreamError::InvalidFrame))
+}
+
+/// Independent fingerprint for protocol-six control and binary framing.
+#[pyfunction]
+fn transport_v2_profile_digest() -> &'static str {
+    transport_v2::profile_digest()
+}
+/// Encode one closed control record; host execution admission remains separate.
+#[pyfunction]
+fn encode_transport_v2_control<'py>(
+    py: Python<'py>,
+    source: &Bound<'_, PyString>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    let source = portable_text(source)?;
+    let bytes = py
+        .detach(|| {
+            transport_v2::Control::from_json(&source)
+                .map(|control| transport_v2::encode_control(&control))
+        })
+        .map_err(stream_error)?;
+    Ok(PyBytes::new(py, &bytes))
+}
+/// Return an owned canonical copy after complete length/profile validation.
+#[pyfunction]
+fn decode_transport_v2_control<'py>(
+    py: Python<'py>,
+    bytes: &Bound<'_, PyBytes>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    let control = transport_v2::decode_control(bytes.as_bytes()).map_err(stream_error)?;
+    Ok(PyBytes::new(py, control.canonical()))
+}
+/// Admit portable projection text before framing a separate bounded binary buffer.
+#[pyfunction]
+fn encode_transport_v2_packet<'py>(
+    py: Python<'py>,
+    projection: &Bound<'_, PyString>,
+    media: &Bound<'_, PyBytes>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    if media.as_bytes().len() > streams::MAX_MEDIA_BYTES {
+        return Err(stream_error(streams::StreamError::MediaBound));
+    }
+    let projection = portable_text(projection)?;
+    let packet =
+        transport_v2::packet(&projection, media.as_bytes().to_vec()).map_err(stream_error)?;
+    let bytes = py
+        .detach(|| transport_v2::encode_packet(&packet))
+        .map_err(stream_error)?;
+    Ok(PyBytes::new(py, &bytes))
+}
+/// Decode only protocol-six bytes; legacy readers are never a fallback.
+#[pyfunction]
+fn decode_transport_v2_packet<'py>(
+    py: Python<'py>,
+    bytes: &Bound<'_, PyBytes>,
+) -> PyResult<(String, Bound<'py, PyBytes>)> {
+    let packet = transport_v2::decode_packet(bytes.as_bytes()).map_err(stream_error)?;
+    Ok((
+        transport_v2::projection(&packet).map_err(stream_error)?,
+        PyBytes::new(py, &packet.media),
+    ))
+}
+/// Open the startup-bound stream endpoint, deriving its hello in native code.
+#[pyfunction]
+#[pyo3(signature = (startup, call_id, mode, seconds=None))]
+fn open_transport_v2_stream<'py>(
+    py: Python<'py>,
+    startup: &ManagedV2Contract,
+    call_id: String,
+    mode: String,
+    seconds: Option<&Bound<'_, PyAny>>,
+) -> PyResult<Bound<'py, PyAny>> {
+    let seconds = execution_seconds(seconds)?;
+    let record = managed_v2::Record::from_json(
+        startup.record.name(),
+        std::str::from_utf8(startup.record.canonical())
+            .map_err(|_| stream_error(streams::StreamError::InvalidFrame))?,
+    )
+    .map_err(portable_error)?;
+    let mode = streams::Mode::parse(&mode).map_err(stream_error)?;
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let session = streams::Session::open_inference(&record, &call_id, mode, seconds)
+            .await
+            .map_err(stream_error)?;
+        Ok(NativeStream {
+            inner: Arc::new(session),
+        })
+    })
+}
+/// Protected native control channel with poisoned-channel cancellation semantics.
+#[pyclass(module = "_skulk_capability_kernel")]
+struct NativeControlV2 {
+    inner: Arc<transport_v2::Channel>,
+}
+#[pymethods]
+impl NativeControlV2 {
+    /// Receive admitted canonical bytes; interrupted reads close this channel.
+    fn receive<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let record = channel.receive().await.map_err(stream_error)?;
+            Ok(Python::attach(|py| {
+                PyBytes::new(py, record.canonical()).unbind()
+            }))
+        })
+    }
+    /// Validate and send a control; no inference authority is created by sending.
+    fn send<'py>(
+        &self,
+        py: Python<'py>,
+        source: &Bound<'_, PyString>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let source = portable_text(source)?;
+        let control = transport_v2::Control::from_json(&source).map_err(stream_error)?;
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            channel.send(&control).await.map_err(stream_error)
+        })
+    }
+    /// Await native timer/socket teardown from the language-owned finally path.
+    fn close<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            channel.close().await;
+            Ok(())
+        })
+    }
+}
+/// Derive the endpoint/hello from an admitted startup; host trust remains separate.
+#[pyfunction]
+fn open_transport_v2_control<'py>(
+    py: Python<'py>,
+    startup: &ManagedV2Contract,
+    seconds: f64,
+) -> PyResult<Bound<'py, PyAny>> {
+    let record = managed_v2::Record::from_json(
+        startup.record.name(),
+        std::str::from_utf8(startup.record.canonical())
+            .map_err(|_| stream_error(streams::StreamError::InvalidFrame))?,
+    )
+    .map_err(portable_error)?;
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let channel = transport_v2::Channel::connect(&record, seconds)
+            .await
+            .map_err(stream_error)?;
+        Ok(NativeControlV2 {
+            inner: Arc::new(channel),
+        })
+    })
+}
+
 /// Explicit composed-call fingerprint; parsing never authenticates a caller.
 #[pyfunction]
 fn calls_profile_digest() -> &'static str {
@@ -1467,6 +1718,128 @@ fn open_call_control<'py>(
             .await
             .map_err(stream_error)?;
         Ok(NativeCallControl {
+            inner: Arc::new(channel),
+        })
+    })
+}
+
+/// Explicit composed-call fingerprint; parsing never authenticates a caller.
+#[pyfunction]
+fn calls_v2_profile_digest() -> &'static str {
+    calls_v2::profile_digest()
+}
+
+/// Admit bounded metadata before a host reads a body; not full frame admission.
+#[pyfunction]
+fn call_v2_payload_size(py: Python<'_>, source: &Bound<'_, PyString>) -> PyResult<usize> {
+    let source = portable_text(source)?;
+    py.detach(|| calls_v2::payload_size(&source))
+        .map_err(stream_error)
+}
+
+/// Preserve exact raw payload bytes while admitting closed composition metadata.
+#[pyfunction]
+fn encode_call_v2_frame<'py>(
+    py: Python<'py>,
+    source: &Bound<'_, PyString>,
+    payload: &Bound<'_, PyBytes>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    let source = portable_text(source)?;
+    if payload.as_bytes().len() > calls_v2::MAX_PAYLOAD_BYTES {
+        return Err(stream_error(streams::StreamError::HeaderBound));
+    }
+    let payload = payload.as_bytes().to_vec();
+    let bytes = py
+        .detach(|| {
+            calls_v2::Frame::from_json(&source, payload).map(|frame| calls_v2::encode(&frame))
+        })
+        .map_err(stream_error)?;
+    Ok(PyBytes::new(py, &bytes))
+}
+
+/// Return defensive metadata/body copies from one complete admitted frame.
+#[pyfunction]
+fn decode_call_v2_frame<'py>(
+    py: Python<'py>,
+    packet: &Bound<'_, PyBytes>,
+) -> PyResult<(Bound<'py, PyBytes>, Bound<'py, PyBytes>)> {
+    let bytes = packet.as_bytes();
+    let frame = py
+        .detach(|| calls_v2::decode(bytes))
+        .map_err(stream_error)?;
+    Ok((
+        PyBytes::new(py, frame.metadata()),
+        PyBytes::new(py, frame.payload()),
+    ))
+}
+
+/// One startup-bound composed-call channel; no legacy profile guessing/fallback.
+#[pyclass(module = "_skulk_capability_kernel")]
+struct NativeCallControlV2 {
+    inner: Arc<transport_v2::Channel>,
+}
+
+#[pymethods]
+impl NativeCallControlV2 {
+    /// Receive one compiled-admitted metadata/body pair under native I/O fences.
+    fn receive<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let frame = channel.receive_call().await.map_err(stream_error)?;
+            Ok(Python::attach(|py| {
+                (
+                    PyBytes::new(py, frame.metadata()).unbind(),
+                    PyBytes::new(py, frame.payload()).unbind(),
+                )
+            }))
+        })
+    }
+    /// Admit exact body binding, then await bounded backpressure without retries.
+    fn send<'py>(
+        &self,
+        py: Python<'py>,
+        source: &Bound<'_, PyString>,
+        payload: &Bound<'_, PyBytes>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let source = portable_text(source)?;
+        let bytes = payload.as_bytes();
+        if bytes.len() > calls_v2::MAX_PAYLOAD_BYTES {
+            return Err(stream_error(streams::StreamError::HeaderBound));
+        }
+        let frame = py
+            .detach(|| calls_v2::Frame::from_json(&source, bytes.to_vec()))
+            .map_err(stream_error)?;
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            channel.send_call(&frame).await.map_err(stream_error)
+        })
+    }
+    /// Fence pending operations and await native socket/timer cleanup.
+    fn close<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let channel = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            channel.close().await;
+            Ok(())
+        })
+    }
+}
+
+/// Derive protected endpoint/hello natively; the host still admits current trust.
+#[pyfunction]
+fn open_call_v2_control<'py>(
+    py: Python<'py>,
+    startup: &ManagedV2Contract,
+    seconds: f64,
+) -> PyResult<Bound<'py, PyAny>> {
+    let source = std::str::from_utf8(startup.record.canonical())
+        .map_err(|_| stream_error(streams::StreamError::InvalidFrame))?;
+    let record =
+        managed_v2::Record::from_json(startup.record.name(), source).map_err(portable_error)?;
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let channel = transport_v2::Channel::connect(&record, seconds)
+            .await
+            .map_err(stream_error)?;
+        Ok(NativeCallControlV2 {
             inner: Arc::new(channel),
         })
     })

@@ -96,3 +96,13 @@ corpora, including 53 managed and 36 handshake witnesses, across Rust, Python
 and Node and offline installed language bindings. It uses a new candidate
 version rather than replacing rc1 artifacts. Call/media transport, installed
 host inference authority and real application migration remain separate gates.
+
+
+Native 0.7.0rc3 retains those ten profiles and adds composition/3, calls/2 and
+transport/2 for explicitly nullable inference execution lifetimes. All thirteen
+versioned profile IDs and their complete three-backend corpus reports are
+mandatory. Each candidate bundle has 44 exact members: five artifact/provenance
+records and 39 corpus reports. Existing contract/corpus bytes stay unchanged.
+The cohort and its host-adoption boundary are described in
+[native inference](native-inference.md). No candidate publication changes the
+runtime's selected profile or grants caller authority.

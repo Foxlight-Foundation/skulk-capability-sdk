@@ -105,14 +105,23 @@ JSON schema. A blob reference remains metadata: the SDK never fetches caller
 URLs or resolves paths supplied by a frame.
 
 An output iterator supplies chunks followed by exactly one `completed`, `failed`
-or `cancelled` terminal. The compiled channel holds the terminal until iterator
+or `cancelled` terminal. After the first terminal, the runtime closes the iterator without resuming
+ordinary handler code. Put teardown in `finally` or register invocation resources.
+The compiled channel holds the terminal until protected iterator/resource
 cleanup finishes; then it sends one end marker. Control completion follows stream
 cleanup. Client-streaming consumes caller input and returns its result in the
 terminal; server-streaming has no caller media ingress. Bidirectional handlers may
 consume/yield concurrently using application-owned tasks, which they must drain
 before returning.
 
-Cancellation interrupts the active handler once and waits for its cleanup.
+Use `await call.enter_resource(async_context_manager)` for invocation-owned
+resources. The SDK closes these resources under cancellation protection before
+result or stream terminal/end delivery. Register resources during the handler and
+drain any application-owned tasks before returning. Arbitrary teardown hidden
+inside a unary backend function follows ordinary Python cancellation semantics;
+register its resources with the SDK when teardown must finish reliably.
+
+Cancellation interrupts active behavior once and waits for SDK-owned cleanup.
 Repeated cancellation cannot cut across resource teardown. Shutdown drains the
 handler before closing control, then completes application teardown. Invalid frames, broken
 channels and backend failures never reconnect or replay an uncertain request.
@@ -123,7 +132,8 @@ has failed.
 The independent `tests_native` suite uses real released compiled socket codecs,
 not a Python replacement validator. It covers exact bytes/original context,
 refusal before behavior, all three streaming modes, separate media, schema and
-terminal refusals, handler/application cleanup, repeated cancellation, explicit
+terminal refusals, handler/application cleanup (including cancellation during natural terminal or
+schema-refusal teardown), invocation resource custody, repeated cancellation, explicit
 finite timeout and over-thirty-second silent generation with live health. Real
 signed installation and protected application-state migration remain separate
 acceptance gates.

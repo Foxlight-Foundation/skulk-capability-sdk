@@ -14,7 +14,12 @@ import os
 import stat
 import time
 from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
-from contextlib import AbstractAsyncContextManager, aclosing, asynccontextmanager
+from contextlib import (
+    AbstractAsyncContextManager,
+    AsyncExitStack,
+    aclosing,
+    asynccontextmanager,
+)
 from dataclasses import dataclass, field
 from typing import Literal, Protocol, cast, final
 
@@ -127,6 +132,30 @@ async def _during[Value](
         await _finish_owned(asyncio.create_task(drain()))
 
 
+@asynccontextmanager
+async def _owned_context[Value](
+    context: AbstractAsyncContextManager[Value],
+) -> AsyncGenerator[Value]:
+    value = await context.__aenter__()
+    try:
+        yield value
+    except BaseException as error:
+
+        async def exit_error(exception: BaseException) -> bool | None:
+            return await context.__aexit__(
+                type(exception), exception, exception.__traceback__
+            )
+
+        if not await _finish_owned(asyncio.create_task(exit_error(error))):
+            raise
+    else:
+
+        async def exit_normal() -> None:
+            await context.__aexit__(None, None, None)
+
+        await _finish_owned(asyncio.create_task(exit_normal()))
+
+
 @final
 @dataclass(frozen=True, slots=True, repr=False)
 class ApplicationStartup:
@@ -204,6 +233,18 @@ class Invocation:
     payload: dict[str, JsonValue] = field(repr=False)
     raw_payload: bytes = field(repr=False)
     context: CallContext = field(repr=False)
+    _resources: AsyncExitStack = field(default_factory=AsyncExitStack, repr=False)
+
+    async def enter_resource[Resource](
+        self, context: AbstractAsyncContextManager[Resource]
+    ) -> Resource:
+        """Enter a handler resource whose SDK-owned exit resists cancellation.
+
+        Register during the active handler, and drain application-owned tasks
+        before returning. Registered exits run before result/terminal completion.
+        This does not protect arbitrary cleanup hidden inside a backend function.
+        """
+        return await self._resources.enter_async_context(context)
 
 
 @final
@@ -332,7 +373,7 @@ class CapabilityApp:
         )
 
         async def run() -> None:
-            async with self._setup(public_startup):
+            async with _owned_context(self._setup(public_startup)):
                 await self._serve_control(native, startup, value, descriptors)
 
         task = asyncio.create_task(run())
@@ -408,12 +449,14 @@ class CapabilityApp:
                     json.dumps(descriptor["input_schema"])
                 ).matches(body.decode()):
                     raise ValueError("application input schema refused")
+                resources = AsyncExitStack()
                 invocation = Invocation(
                     call_id,
                     identifier,
                     _OBJECT.validate_json(body),
                     body,
                     CallContext(context.canonical()),
+                    resources,
                 )
                 seconds = _SECONDS.validate_python(
                     request["remaining_seconds"], strict=True
@@ -434,17 +477,24 @@ class CapabilityApp:
                 async def handle() -> None:
                     nonlocal result
                     if mode == "unary":
-                        result = _OBJECT.validate_python(
-                            await self._unary[identifier](invocation), strict=True
-                        )
-                        schema = descriptor["output_schema"]
-                        if schema is not None and not native.PortableSchema(
-                            json.dumps(schema)
-                        ).matches(json.dumps(result, allow_nan=False)):
-                            raise ValueError("application result schema refused")
+                        async with _owned_context(resources):
+                            result = _OBJECT.validate_python(
+                                await self._unary[identifier](invocation), strict=True
+                            )
+                            schema = descriptor["output_schema"]
+                            if schema is not None and not native.PortableSchema(
+                                json.dumps(schema)
+                            ).matches(json.dumps(result, allow_nan=False)):
+                                raise ValueError("application result schema refused")
                     else:
                         await self._execute_stream(
-                            native, startup, invocation, descriptor, mode, seconds
+                            native,
+                            startup,
+                            invocation,
+                            resources,
+                            descriptor,
+                            mode,
+                            seconds,
                         )
 
                 await _during(handle, seconds)
@@ -529,6 +579,7 @@ class CapabilityApp:
         native: _Native,
         startup: _Record,
         invocation: Invocation,
+        resources: AsyncExitStack,
         descriptor: dict[str, JsonValue],
         mode: str,
         seconds: float | None,
@@ -554,49 +605,62 @@ class CapabilityApp:
                 yield InputFrame(value, media)
 
         try:
-            async with aclosing(inputs()) as ingress:
-                async with aclosing(
-                    self._streams[invocation.capability_id](invocation, ingress)
-                ) as outputs:
-                    sequence = 1
-                    async for output in outputs:
-                        schema = descriptor["output_chunk_schema"]
-                        if (
-                            output.kind == "chunk"
-                            and output.payload is not None
-                            and schema is not None
-                            and not native.PortableSchema(json.dumps(schema)).matches(
-                                json.dumps(output.payload)
-                            )
-                        ):
-                            raise ValueError("application output chunk schema refused")
-                        result_schema = descriptor["output_schema"]
-                        if (
-                            output.kind == "completed"
-                            and output.payload is not None
-                            and result_schema is not None
-                            and not native.PortableSchema(
-                                json.dumps(result_schema)
-                            ).matches(json.dumps(output.payload, allow_nan=False))
-                        ):
-                            raise ValueError("application terminal schema refused")
-                        projection: dict[str, JsonValue] = {
-                            "call_id": invocation.call_id,
-                            "direction": "provider_to_caller",
-                            "sequence": sequence,
-                            "kind": output.kind,
-                            "payload": output.payload,
-                            "media": output.media_metadata,
-                            "error": None
-                            if output.error is None
-                            else {"code": output.error},
-                        }
-                        await stream.send_output(
-                            json.dumps(projection, allow_nan=False), output.media
+            async with _owned_context(resources):
+                async with _owned_context(aclosing(inputs())) as ingress:
+                    async with _owned_context(
+                        aclosing(
+                            self._streams[invocation.capability_id](invocation, ingress)
                         )
-                        sequence += 1
+                    ) as outputs:
+                        sequence = 1
+                        async for output in outputs:
+                            schema = descriptor["output_chunk_schema"]
+                            if (
+                                output.kind == "chunk"
+                                and output.payload is not None
+                                and schema is not None
+                                and not native.PortableSchema(
+                                    json.dumps(schema)
+                                ).matches(json.dumps(output.payload))
+                            ):
+                                raise ValueError(
+                                    "application output chunk schema refused"
+                                )
+                            result_schema = descriptor["output_schema"]
+                            if (
+                                output.kind == "completed"
+                                and output.payload is not None
+                                and result_schema is not None
+                                and not native.PortableSchema(
+                                    json.dumps(result_schema)
+                                ).matches(json.dumps(output.payload, allow_nan=False))
+                            ):
+                                raise ValueError("application terminal schema refused")
+                            projection: dict[str, JsonValue] = {
+                                "call_id": invocation.call_id,
+                                "direction": "provider_to_caller",
+                                "sequence": sequence,
+                                "kind": output.kind,
+                                "payload": output.payload,
+                                "media": output.media_metadata,
+                                "error": None
+                                if output.error is None
+                                else {"code": output.error},
+                            }
+                            await stream.send_output(
+                                json.dumps(projection, allow_nan=False), output.media
+                            )
+                            sequence += 1
+                            if output.kind != "chunk":
+                                # A terminal transfers the iterator into owned close;
+                                # never resume natural teardown as cancellable work.
+                                break
             # The compiled stream retains its terminal until the iterator has
             # closed, then sends exactly one end. Control result follows cleanup.
             await stream.finish()
         finally:
-            await stream.close()
+
+            async def close() -> None:
+                await stream.close()
+
+            await _finish_owned(asyncio.create_task(close()))

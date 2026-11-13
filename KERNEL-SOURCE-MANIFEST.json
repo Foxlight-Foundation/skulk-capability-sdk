@@ -23,7 +23,7 @@
     "kernel/bindings/node/tools/calls_probe.mjs": "540aa408d1baece518d0a6f3e302f5dbc3667dca5d1a56803dc8e8252b9c1d32",
     "kernel/bindings/node/tools/composition_probe.mjs": "8c0070d51c9d68c194edcd5eaf761e14c8be7bca3e682d44cb8f0e94d941eb2d",
     "kernel/bindings/node/tools/inference_probe.mjs": "ed43490bbbf5ef9f02344fab0fbbdce486d73dd18bcce9a47d697207a19a351e",
-    "kernel/bindings/node/tools/portable_probe.mjs": "50f82528fdb152e32962fd529c97f835f84c1940749fb22b438ac0a37216fb46",
+    "kernel/bindings/node/tools/portable_probe.mjs": "13c07225e265358b55035ea7cd4c8a67fe5c12cc3a5353f7e7f2411c64115404",
     "kernel/bindings/node/tools/transport_probe.mjs": "724494b5aad8a60c6b25424afa52fe14eca07aa8e242e49aa1423a37afc7481f",
     "kernel/bindings/python/Cargo.toml": "99d782762a414be702cdbdc75e65455f4dc23fb97d50bc063221be4db078f37e",
     "kernel/bindings/python/THIRD_PARTY_NOTICES.txt": "74f63b3385ead32d78578d62064b7c9d8a42436bdd2496cc6e1d05b9a35e4c4f",

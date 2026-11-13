@@ -7,8 +7,8 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use skulk_capability_kernel::{
-    binding, calls, codec, composition, contracts, handshake, journal, managed, operation_logs,
-    operations, portable, schema, streams, transport,
+    binding, calls, codec, composition, composition_v2, contracts, handshake, journal, managed,
+    operation_logs, operations, portable, portable_v2, schema, streams, transport,
 };
 
 /// Private qualification surface; source text preserves wide JSON numbers.
@@ -111,6 +111,76 @@ impl CompositionContract {
     }
 }
 
+/// The inference-aware composition fingerprint grants no caller authority.
+#[pyfunction]
+fn composition_v2_profile_digest() -> &'static str {
+    composition_v2::profile_digest()
+}
+
+/// Immutable caller metadata, without diagnostic serialization or content digest.
+#[pyclass(frozen, module = "_skulk_capability_kernel")]
+struct CompositionV2Contract {
+    record: composition_v2::Record,
+}
+
+#[pymethods]
+impl CompositionV2Contract {
+    /// Parse structurally; the host must establish active-scope provenance.
+    #[staticmethod]
+    fn from_json(py: Python<'_>, name: &str, source: &Bound<'_, PyString>) -> PyResult<Self> {
+        let source = portable_text(source)?;
+        let record = py
+            .detach(|| composition_v2::Record::from_json(name, &source))
+            .map_err(|error| PyValueError::new_err(error.to_string()))?;
+        Ok(Self { record })
+    }
+
+    /// Public kind only, without caller, scope or request identity.
+    #[getter]
+    fn name(&self) -> &'static str {
+        self.record.name()
+    }
+
+    /// Explicitly copy sensitive canonical bytes for protected host IPC.
+    fn canonical<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, self.record.canonical())
+    }
+
+    /// Attenuate with host observations; no registry lookup, replay or dispatch.
+    // Separate arguments make host observations explicit at the FFI boundary.
+    #[allow(clippy::too_many_arguments)]
+    fn admit(
+        &self,
+        py: Python<'_>,
+        request: &Self,
+        policy: &Self,
+        executor: &Bound<'_, PyString>,
+        request_bytes: Vec<u8>,
+        now_unix_ms: u64,
+        scope_id: &str,
+    ) -> PyResult<Self> {
+        let executor = portable_text(executor)?;
+        let record = py
+            .detach(|| {
+                composition_v2::admit(
+                    &self.record,
+                    &request.record,
+                    &policy.record,
+                    &executor,
+                    &request_bytes,
+                    now_unix_ms,
+                    scope_id,
+                )
+            })
+            .map_err(|error| PyValueError::new_err(error.to_string()))?;
+        Ok(Self { record })
+    }
+
+    fn __repr__(&self) -> String {
+        format!("CompositionV2Contract({})", self.record.name())
+    }
+}
+
 /// Native admission of a managed manifest or private inherited startup record.
 #[pyfunction]
 fn managed_contract_json<'py>(
@@ -176,6 +246,32 @@ fn portable_contract_digest(
         .map_err(portable_error)
 }
 
+/// Normalize a profile-bound descriptor or protocol-six contract envelope.
+#[pyfunction]
+fn portable_v2_contract_json<'py>(
+    py: Python<'py>,
+    name: &str,
+    source: &Bound<'py, PyString>,
+) -> PyResult<Bound<'py, PyBytes>> {
+    let source = portable_text(source)?;
+    let bytes = py
+        .detach(|| portable_v2::validate_contract_json(name, &source))
+        .map_err(portable_error)?;
+    Ok(PyBytes::new(py, &bytes))
+}
+
+/// Bind new-model identity to the explicit profile and canonical contract.
+#[pyfunction]
+fn portable_v2_contract_digest(
+    py: Python<'_>,
+    name: &str,
+    source: &Bound<'_, PyString>,
+) -> PyResult<String> {
+    let source = portable_text(source)?;
+    py.detach(|| portable_v2::contract_digest(name, &source))
+        .map_err(portable_error)
+}
+
 /// Qualify the fixed portable schema profile through the installed native ABI.
 #[pyfunction]
 fn portable_schema_matches(
@@ -207,6 +303,12 @@ fn portable_text(source: &Bound<'_, PyString>) -> PyResult<String> {
 #[pyfunction]
 fn portable_profile_digest() -> &'static str {
     portable::profile_digest()
+}
+
+/// The profile fingerprint belongs to the kernel, never to a caller annotation.
+#[pyfunction]
+fn portable_v2_profile_digest() -> &'static str {
+    portable_v2::profile_digest()
 }
 
 /// Exact fingerprint of the explicit protocol-five handshake specification.
@@ -674,6 +776,11 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(managed_profile_digest, module)?)?;
     module.add_function(wrap_pyfunction!(composition_profile_digest, module)?)?;
     module.add_class::<CompositionContract>()?;
+    module.add_function(wrap_pyfunction!(composition_v2_profile_digest, module)?)?;
+    module.add_class::<CompositionV2Contract>()?;
+    module.add_function(wrap_pyfunction!(portable_v2_profile_digest, module)?)?;
+    module.add_function(wrap_pyfunction!(portable_v2_contract_json, module)?)?;
+    module.add_function(wrap_pyfunction!(portable_v2_contract_digest, module)?)?;
     module.add_function(wrap_pyfunction!(handshake_profile_digest, module)?)?;
     module.add_class::<ManagedContract>()?;
     module.add_class::<HandshakeContract>()?;

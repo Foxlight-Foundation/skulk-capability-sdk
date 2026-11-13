@@ -249,3 +249,44 @@ def open_call_control(
 ) -> Awaitable[NativeCallControl]:
     """Derive endpoint/hello natively; host separately authenticates and authorizes."""
     ...
+
+def portable_v2_profile_digest() -> str:
+    """Fingerprint explicit inference declarations, separate from profile one."""
+    ...
+
+def portable_v2_contract_json(
+    name: Literal["Descriptor", "ContractEnvelope"], source: str
+) -> bytes:
+    """Validate protocol-six declarations; this grants no execution rights."""
+    ...
+
+def portable_v2_contract_digest(
+    name: Literal["Descriptor", "ContractEnvelope"], source: str
+) -> str:
+    """Bind the complete new author profile/model identity."""
+    ...
+
+def composition_v2_profile_digest() -> str:
+    """Fingerprint read/inference and processing-domain attenuation."""
+    ...
+
+class CompositionV2Contract:
+    """Immutable sensitive caller metadata with no bearer-grant semantics."""
+    @staticmethod
+    def from_json(
+        name: Literal["Context", "DelegateRequest", "Policy"], source: str
+    ) -> CompositionV2Contract: ...
+    @property
+    def name(self) -> Literal["Context", "DelegateRequest", "Policy"]: ...
+    def canonical(self) -> bytes: ...
+    def admit(
+        self,
+        request: CompositionV2Contract,
+        policy: CompositionV2Contract,
+        executor: str,
+        request_bytes: bytes,
+        now_unix_ms: int,
+        scope_id: str,
+    ) -> CompositionV2Contract:
+        """Attenuate host observations without activating or executing the scope."""
+        ...

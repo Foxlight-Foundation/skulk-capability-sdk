@@ -81,3 +81,11 @@ binding and separate call metadata framing. The offline compiler-free package
 check repeats all six profiles in both installed language bindings. This source
 candidate does not change the published 0.4 cohort or select a runtime for an
 existing application.
+
+Native 0.7.0rc1 additionally defines [explicit inference contracts](native-inference.md).
+Its inventory requires eight complete profile corpora across all three backends
+and repeats them from offline installed artifacts. The portable/2 and
+composition/2 reports partition 56 independently authored declaration and
+authority witnesses. Issued 0.6 profiles and assets remain unchanged. A new
+installation and call cohort is still required before hosts can execute these
+contracts; package acquisition does not grant inference or external processing.

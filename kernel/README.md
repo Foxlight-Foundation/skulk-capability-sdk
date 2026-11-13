@@ -87,3 +87,10 @@ Its explicit `skulk.calls/1` framing preserves raw body bytes separately from
 canonical metadata, binds composition request hashes, and shares the protected
 native channel's lifecycle. It does not extend the issued transport profile or
 establish authenticated host authority by parsing a context.
+
+Native 0.7.0rc1 adds explicit [inference authority contracts](../docs/native-inference.md):
+portable/2 declarations with a required processing boundary and composition/2
+attenuation with separate read/inference ceilings. The 56 independent witnesses
+run through all three native backends and offline archive consumers. Issued
+profiles are unchanged; compatible installed readers and actual inference
+adoption remain separate requirements.

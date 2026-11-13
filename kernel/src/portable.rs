@@ -15,13 +15,51 @@ pub const PROTOCOL: u32 = 5;
 /// This is a closed profile of this dialect, not unrestricted draft support.
 pub const DIALECT: &str = "https://json-schema.org/draft/2020-12/schema";
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AuthorProfile {
+    Original,
+    Inference,
+}
+
+impl AuthorProfile {
+    fn identity(self) -> &'static str {
+        match self {
+            Self::Original => PROFILE,
+            Self::Inference => crate::portable_v2::PROFILE,
+        }
+    }
+
+    fn source(self) -> &'static str {
+        match self {
+            Self::Original => include_str!("../contracts/portable-v1.json"),
+            Self::Inference => include_str!("../contracts/portable-v2.json"),
+        }
+    }
+
+    fn protocol(self) -> u32 {
+        match self {
+            Self::Original => PROTOCOL,
+            Self::Inference => crate::portable_v2::PROTOCOL,
+        }
+    }
+}
+
 /// Bind negotiated profile identity to the packaged normative specification.
 pub fn profile_digest() -> &'static str {
-    static DIGEST: OnceLock<String> = OnceLock::new();
-    DIGEST.get_or_init(|| {
+    profile_digest_for(AuthorProfile::Original)
+}
+
+pub(crate) fn profile_digest_for(profile: AuthorProfile) -> &'static str {
+    static ORIGINAL: OnceLock<String> = OnceLock::new();
+    static INFERENCE: OnceLock<String> = OnceLock::new();
+    let digest = match profile {
+        AuthorProfile::Original => &ORIGINAL,
+        AuthorProfile::Inference => &INFERENCE,
+    };
+    digest.get_or_init(|| {
         let mut domain = b"skulk.portable.profile\0".to_vec();
         domain.extend(
-            canonical_with_limit(include_str!("../contracts/portable-v1.json"), 262_144)
+            canonical_with_limit(profile.source(), 262_144)
                 .expect("packaged profile is bounded scalar JSON"),
         );
         codec::sha256(&domain)
@@ -62,10 +100,18 @@ pub enum PortableError {
 }
 
 pub(super) fn specification() -> &'static Value {
-    static SPECIFICATION: OnceLock<Value> = OnceLock::new();
-    SPECIFICATION.get_or_init(|| {
-        serde_json::from_str(include_str!("../contracts/portable-v1.json"))
-            .expect("packaged portable contract is JSON")
+    contract_specification(AuthorProfile::Original)
+}
+
+fn contract_specification(profile: AuthorProfile) -> &'static Value {
+    static ORIGINAL: OnceLock<Value> = OnceLock::new();
+    static INFERENCE: OnceLock<Value> = OnceLock::new();
+    let specification = match profile {
+        AuthorProfile::Original => &ORIGINAL,
+        AuthorProfile::Inference => &INFERENCE,
+    };
+    specification.get_or_init(|| {
+        serde_json::from_str(profile.source()).expect("packaged portable contract is JSON")
     })
 }
 
@@ -121,25 +167,45 @@ impl Schema {
 
 /// Normalize one new model without changing any issued legacy model or reader.
 pub fn validate_contract_json(name: &str, source: &str) -> Result<Vec<u8>, PortableError> {
+    validate_for(AuthorProfile::Original, name, source)
+}
+
+pub(crate) fn validate_for(
+    profile: AuthorProfile,
+    name: &str,
+    source: &str,
+) -> Result<Vec<u8>, PortableError> {
     let value = portable_json::parse(source, 262_144)?;
     let mut value = portable_json::serde(&value)?;
-    normalize_contract(name, &mut value)?;
+    normalize_contract(profile, name, &mut value)?;
     let text = serde_json::to_string(&value).map_err(|_| PortableError::Json)?;
     canonical_with_limit(&text, 262_144)
 }
 
 /// Full SHA-256 with model/profile domain separation; never a legacy revision.
 pub fn contract_digest(name: &str, source: &str) -> Result<String, PortableError> {
-    let canonical = validate_contract_json(name, source)?;
-    let mut domain = format!("{PROFILE}/{name}\0").into_bytes();
+    digest_for(AuthorProfile::Original, name, source)
+}
+
+pub(crate) fn digest_for(
+    profile: AuthorProfile,
+    name: &str,
+    source: &str,
+) -> Result<String, PortableError> {
+    let canonical = validate_for(profile, name, source)?;
+    let mut domain = format!("{}/{name}\0", profile.identity()).into_bytes();
     domain.extend(canonical);
     Ok(codec::sha256(&domain))
 }
 
-fn normalize_contract(name: &str, value: &mut Value) -> Result<(), PortableError> {
+fn normalize_contract(
+    profile: AuthorProfile,
+    name: &str,
+    value: &mut Value,
+) -> Result<(), PortableError> {
     let fields = value.as_object_mut().ok_or(PortableError::Contract)?;
-    if fields.get("contract_profile").and_then(Value::as_str) != Some(PROFILE)
-        || fields.get("profile_digest").and_then(Value::as_str) != Some(profile_digest())
+    if fields.get("contract_profile").and_then(Value::as_str) != Some(profile.identity())
+        || fields.get("profile_digest").and_then(Value::as_str) != Some(profile_digest_for(profile))
     {
         return Err(PortableError::Profile);
     }
@@ -156,7 +222,8 @@ fn normalize_contract(name: &str, value: &mut Value) -> Result<(), PortableError
             }
         }
         "ContractEnvelope" => {
-            if fields.get("protocol").and_then(Value::as_u64) != Some(u64::from(PROTOCOL)) {
+            if fields.get("protocol").and_then(Value::as_u64) != Some(u64::from(profile.protocol()))
+            {
                 return Err(PortableError::Protocol);
             }
             fields.entry("configuration_schema").or_insert(Value::Null);
@@ -166,12 +233,12 @@ fn normalize_contract(name: &str, value: &mut Value) -> Result<(), PortableError
                 .filter(|descriptors| (1..=16).contains(&descriptors.len()))
                 .ok_or(PortableError::Contract)?;
             for descriptor in descriptors {
-                normalize_contract("Descriptor", descriptor)?;
+                normalize_contract(profile, "Descriptor", descriptor)?;
             }
         }
         _ => return Err(PortableError::Contract),
     }
-    let model = json!({"$defs": specification()["models"], "$ref": format!("#/$defs/{name}")});
+    let model = json!({"$defs": contract_specification(profile)["models"], "$ref": format!("#/$defs/{name}")});
     if !options()
         .build(&model)
         .map_err(|_| PortableError::Contract)?

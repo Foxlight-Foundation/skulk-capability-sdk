@@ -8,6 +8,7 @@
 pub mod calls;
 pub mod codec;
 pub mod composition;
+pub mod composition_v2;
 pub mod contracts;
 pub mod handshake;
 #[cfg(unix)]
@@ -16,6 +17,7 @@ pub mod managed;
 pub mod portable;
 mod portable_json;
 mod portable_schema;
+pub mod portable_v2;
 pub mod schema;
 mod schema_alias;
 mod schema_graph;

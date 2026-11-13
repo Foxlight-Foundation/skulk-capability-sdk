@@ -248,3 +248,64 @@ export async function openCallControl(startup: ManagedContract, seconds: number)
     close: () => channel.close(),
   });
 }
+
+/** Explicit inference-declaration profile; not installed execution authority. */
+export const PORTABLE_V2_PROFILE = 'skulk.portable/2' as const;
+/** Fingerprint inference declarations and their unchanged closed schema language. */
+export function portableV2ProfileDigest(): string { return native.portableV2ProfileDigest(); }
+/** Immutable admitted contract. Reading its bytes cannot mutate its identity. */
+export class PortableV2Contract {
+  readonly #canonical: Uint8Array;
+  readonly digest: string;
+  readonly name: PortableContractName;
+
+  private constructor(name: PortableContractName, source: string) {
+    this.name = name;
+    this.#canonical = native.portableV2ContractJson(name, source);
+    this.digest = native.portableV2ContractDigest(name, source);
+    Object.freeze(this);
+  }
+
+  /** Validate profile, defaults, I/O modes, schemas and envelope negotiation. */
+  static fromJson(name: PortableContractName, source: string): PortableV2Contract {
+    return new PortableV2Contract(name, source);
+  }
+
+  /** Return a copy so callers cannot modify the admitted canonical bytes. */
+  canonical(): Uint8Array { return Uint8Array.from(this.#canonical); }
+}
+
+
+/** Read/inference attenuation has a separate negotiated identity. */
+export const COMPOSITION_V2_PROFILE = 'skulk.composition/2' as const;
+/** Fingerprint inference authority rules; a parsed record is never a credential. */
+export function compositionV2ProfileDigest(): string { return native.compositionV2ProfileDigest(); }
+/** Immutable sensitive caller metadata. Hosts own active scope and replay state. */
+export class CompositionV2Contract {
+  readonly #canonical: Uint8Array;
+  readonly name: CompositionContractName;
+  private constructor(name: CompositionContractName, source: string) {
+    this.name = name;
+    this.#canonical = native.compositionV2ContractJson(name, source);
+    Object.freeze(this);
+  }
+  /** Structural validation alone grants no execution rights. */
+  static fromJson(name: CompositionContractName, source: string): CompositionV2Contract {
+    return new CompositionV2Contract(name, source);
+  }
+  /** Explicit copy for protected IPC; no caller metadata in incidental encoding. */
+  canonical(): Uint8Array { return Uint8Array.from(this.#canonical); }
+  toJSON(): {name: CompositionContractName} { return {name: this.name}; }
+  [inspect.custom](): string { return `CompositionV2Contract(${this.name})`; }
+  /** Pure attenuation against host observations; does not reserve or execute. */
+  admit(request: CompositionV2Contract, policy: CompositionV2Contract, executor: string,
+        requestBytes: Uint8Array, nowUnixMs: number, scopeId: string): CompositionV2Contract {
+    const source = native.admitDelegationV2Json(
+      Buffer.from(this.#canonical).toString('utf8'),
+      Buffer.from(request.#canonical).toString('utf8'),
+      Buffer.from(policy.#canonical).toString('utf8'), executor,
+      Buffer.from(requestBytes), nowUnixMs, scopeId,
+    );
+    return CompositionV2Contract.fromJson('Context', Buffer.from(source).toString('utf8'));
+  }
+}

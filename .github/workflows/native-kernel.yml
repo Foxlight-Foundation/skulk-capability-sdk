@@ -9,6 +9,7 @@ on:
       - KERNEL-INITIAL-EXPORT.json
       - tools/check_calls_profile.py
       - tools/check_composition_profile.py
+      - tools/check_inference_profiles.py
       - tools/check_handshake_profile.py
       - tools/check_transport_profile.py
       - tools/check_managed_profile.py
@@ -56,6 +57,7 @@ jobs:
             .runtime/native-qualification/transport-*.json
             .runtime/native-qualification/composition-*.json
             .runtime/native-qualification/calls-*.json
+            .runtime/native-qualification/inference-*.json
             .runtime/native-qualification/native-candidate-*.zip
             .runtime/native-qualification/compiler-free-install.json
           retention-days: 14

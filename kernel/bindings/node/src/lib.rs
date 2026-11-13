@@ -6,8 +6,8 @@ use napi::bindgen_prelude::{Buffer, Utf16String};
 use napi::{Error, Result, Status};
 use napi_derive::napi;
 use skulk_capability_kernel::{
-    binding, calls, codec, composition, contracts, handshake, journal, managed, operation_logs,
-    operations, portable, schema, streams, transport,
+    binding, calls, codec, composition, composition_v2, contracts, handshake, journal, managed,
+    operation_logs, operations, portable, portable_v2, schema, streams, transport,
 };
 
 /// Private qualification surface; source text avoids JavaScript number narrowing.
@@ -77,6 +77,65 @@ pub fn admit_delegation_json(
         let request = composition::Record::from_json("DelegateRequest", &request)?;
         let policy = composition::Record::from_json("Policy", &policy)?;
         composition::admit(
+            &parent,
+            &request,
+            &policy,
+            &executor,
+            &request_bytes,
+            now_unix_ms as u64,
+            &scope_id,
+        )
+    })();
+    result
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(|error| Error::new(Status::InvalidArg, error.to_string()))
+}
+
+/// Pure composition fingerprint, independently versioned from native transport.
+#[napi]
+pub fn composition_v2_profile_digest() -> String {
+    composition_v2::profile_digest().into()
+}
+
+/// Admit metadata structurally without establishing host provenance.
+#[napi]
+pub fn composition_v2_contract_json(name: String, source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    composition_v2::Record::from_json(&name, &source)
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(|error| Error::new(Status::InvalidArg, error.to_string()))
+}
+
+/// Intersect host-owned active parent and live policy; never dispatch or replay.
+#[napi]
+pub fn admit_delegation_v2_json(
+    parent: Utf16String,
+    request: Utf16String,
+    policy: Utf16String,
+    executor: Utf16String,
+    request_bytes: Buffer,
+    now_unix_ms: f64,
+    scope_id: Utf16String,
+) -> Result<Buffer> {
+    let parent = portable_text(parent)?;
+    let request = portable_text(request)?;
+    let policy = portable_text(policy)?;
+    let executor = portable_text(executor)?;
+    let scope_id = portable_text(scope_id)?;
+    if !now_unix_ms.is_finite()
+        || now_unix_ms.fract() != 0.0
+        || !(1.0..=9_007_199_254_740_991.0).contains(&now_unix_ms)
+    {
+        return Err(Error::new(
+            Status::InvalidArg,
+            "composition_expired: deadline is unavailable",
+        ));
+    }
+    let result = (|| {
+        let parent = composition_v2::Record::from_json("Context", &parent)?;
+        let request = composition_v2::Record::from_json("DelegateRequest", &request)?;
+        let policy = composition_v2::Record::from_json("Policy", &policy)?;
+        composition_v2::admit(
             &parent,
             &request,
             &policy,
@@ -172,11 +231,27 @@ pub fn portable_contract_json(name: String, source: Utf16String) -> Result<Buffe
         .map_err(portable_error)
 }
 
+/// Explicit profile-two admission; never caller authority.
+#[napi]
+pub fn portable_v2_contract_json(name: String, source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    portable_v2::validate_contract_json(&name, &source)
+        .map(Buffer::from)
+        .map_err(portable_error)
+}
+
 /// Full profile/model-domain-separated digest of an admitted new contract.
 #[napi]
 pub fn portable_contract_digest(name: String, source: Utf16String) -> Result<String> {
     let source = portable_text(source)?;
     portable::contract_digest(&name, &source).map_err(portable_error)
+}
+
+/// Explicit profile-two admission; never caller authority.
+#[napi]
+pub fn portable_v2_contract_digest(name: String, source: Utf16String) -> Result<String> {
+    let source = portable_text(source)?;
+    portable_v2::contract_digest(&name, &source).map_err(portable_error)
 }
 
 /// Qualify portable validation through the generation-owned Node addon.
@@ -207,6 +282,12 @@ fn portable_text(source: Utf16String) -> Result<String> {
 #[napi]
 pub fn portable_profile_digest() -> String {
     portable::profile_digest().into()
+}
+
+/// Explicit profile-two admission; never caller authority.
+#[napi]
+pub fn portable_v2_profile_digest() -> String {
+    portable_v2::profile_digest().into()
 }
 
 /// Reusable immutable compiled schema; native storage owns its lifetime.

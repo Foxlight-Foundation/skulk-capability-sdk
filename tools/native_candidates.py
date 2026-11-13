@@ -104,7 +104,11 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
         ("transport", "transport-v1-cases.json"),
         ("composition", "composition-v1-cases.json"),
         ("calls", "calls-v1-cases.json"),
+        ("inference-managed", "managed-v2-cases.json"),
+        ("inference-handshake", "handshake-v2-cases.json"),
     ]:
+        family = kind.removeprefix("inference-")
+        inference = kind.startswith("inference-")
         fixture = json.loads((ROOT / "kernel/contracts" / source_name).read_bytes())
         if kind == "portable":
             inputs = cases()
@@ -126,10 +130,10 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
                 raise ValueError("Portable fixture identity differs")
         else:
             managed = (
-                managed_fixture()
-                if kind == "managed"
-                else handshake_fixture()
-                if kind == "handshake"
+                managed_fixture(inference)
+                if family == "managed"
+                else handshake_fixture(inference)
+                if family == "handshake"
                 else transport_fixture()
                 if kind == "transport"
                 else composition_fixture()
@@ -294,7 +298,7 @@ def read_bundle(
     with zipfile.ZipFile(path) as zipped:
         entries = zipped.infolist()
         if (
-            len(entries) != 29
+            len(entries) != 35
             or sum(e.file_size for e in entries) > 2 * MAX_ASSET_BYTES
         ):
             raise ValueError("Native candidate bundle inventory differs")
@@ -338,6 +342,8 @@ def read_bundle(
                 "calls",
                 "inference-author",
                 "inference-composition",
+                "inference-managed",
+                "inference-handshake",
             ]
             for backend in ["rust", "python", "node"]
         ],

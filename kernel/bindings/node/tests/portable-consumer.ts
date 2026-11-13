@@ -85,3 +85,14 @@ const inferenceChild: CompositionV2Contract = inferenceContext.admit(
 void [inferenceAuthor, inferenceChild, portableV2ProfileDigest(), compositionV2ProfileDigest()];
 // @ts-expect-error distinct native profiles cannot mix through typed delegation
 inferenceContext.admit(delegation, inferencePolicy, '{}', new Uint8Array(), 1000, '0'.repeat(64));
+
+import {ManagedV2Contract, HandshakeV2Contract, managedV2ProfileDigest, handshakeV2ProfileDigest} from '../dist/portable.js';
+/** Compile the separate inference startup API without selecting a legacy channel. */
+export function inferenceStartupConsumer(source: string, helloSource: string): Uint8Array {
+  const startup: ManagedV2Contract = ManagedV2Contract.fromJson('Startup', source);
+  const hello: HandshakeV2Contract = startup.hello();
+  const matched: HandshakeV2Contract = startup.admitHello(helloSource);
+  const identity: string = managedV2ProfileDigest() + handshakeV2ProfileDigest();
+  void identity; void hello;
+  return matched.canonical();
+}

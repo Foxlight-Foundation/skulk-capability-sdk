@@ -5,11 +5,47 @@ use std::sync::OnceLock;
 use serde_json::{Value, json};
 use subtle::ConstantTimeEq;
 
-use crate::{codec, managed, portable::PortableError, portable_json};
+use crate::{codec, managed, managed_v2, portable::PortableError, portable_json};
 
 /// Handshake semantics are independent of the frozen manifest/descriptor profiles.
 pub const PROFILE: &str = "skulk.handshake/1";
 const MAX_BYTES: usize = 16_384;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum HandshakeProfile {
+    Legacy,
+    Inference,
+}
+
+impl HandshakeProfile {
+    fn identity(self) -> &'static str {
+        match self {
+            Self::Legacy => PROFILE,
+            Self::Inference => "skulk.handshake/2",
+        }
+    }
+
+    fn protocol(self) -> u32 {
+        match self {
+            Self::Legacy => 5,
+            Self::Inference => 6,
+        }
+    }
+
+    fn managed(self) -> managed::ManagedProfile {
+        match self {
+            Self::Legacy => managed::ManagedProfile::Legacy,
+            Self::Inference => managed::ManagedProfile::Inference,
+        }
+    }
+
+    fn source(self) -> &'static str {
+        match self {
+            Self::Legacy => include_str!("../contracts/handshake-v1.json"),
+            Self::Inference => include_str!("../contracts/handshake-v2.json"),
+        }
+    }
+}
 
 fn canonical(source: &str) -> Result<Vec<u8>, PortableError> {
     let bytes = portable_json::encode(&portable_json::parse(source, MAX_BYTES)?)?;
@@ -21,28 +57,45 @@ fn canonical(source: &str) -> Result<Vec<u8>, PortableError> {
 
 /// Return the fingerprint of the complete handshake-only specification.
 pub fn profile_digest() -> &'static str {
-    static DIGEST: OnceLock<String> = OnceLock::new();
-    DIGEST.get_or_init(|| {
+    profile_digest_for(HandshakeProfile::Legacy)
+}
+
+pub(crate) fn profile_digest_for(profile: HandshakeProfile) -> &'static str {
+    static LEGACY: OnceLock<String> = OnceLock::new();
+    static INFERENCE: OnceLock<String> = OnceLock::new();
+    let cell = match profile {
+        HandshakeProfile::Legacy => &LEGACY,
+        HandshakeProfile::Inference => &INFERENCE,
+    };
+    cell.get_or_init(|| {
         let mut domain = b"skulk.handshake.profile\0".to_vec();
-        domain.extend(
-            canonical(include_str!("../contracts/handshake-v1.json")).expect("handshake spec"),
-        );
+        domain.extend(canonical(profile.source()).expect("handshake spec"));
         codec::sha256(&domain)
     })
 }
 
-fn validator(name: &str) -> Result<&'static jsonschema::Validator, PortableError> {
+fn validator(
+    profile: HandshakeProfile,
+    name: &str,
+) -> Result<&'static jsonschema::Validator, PortableError> {
     static HELLO: OnceLock<jsonschema::Validator> = OnceLock::new();
     static STREAM_HELLO: OnceLock<jsonschema::Validator> = OnceLock::new();
-    let cell = match name {
-        "Hello" => &HELLO,
-        "StreamHello" => &STREAM_HELLO,
+    static INFERENCE_HELLO: OnceLock<jsonschema::Validator> = OnceLock::new();
+    static INFERENCE_STREAM_HELLO: OnceLock<jsonschema::Validator> = OnceLock::new();
+    let cell = match (profile, name) {
+        (HandshakeProfile::Legacy, "Hello") => &HELLO,
+        (HandshakeProfile::Legacy, "StreamHello") => &STREAM_HELLO,
+        (HandshakeProfile::Inference, "Hello") => &INFERENCE_HELLO,
+        (HandshakeProfile::Inference, "StreamHello") => &INFERENCE_STREAM_HELLO,
         _ => return Err(PortableError::Contract),
     };
     Ok(cell.get_or_init(|| {
-        let spec: Value = serde_json::from_str(include_str!("../contracts/handshake-v1.json"))
-            .expect("handshake specification");
-        assert_eq!(spec["managed_profile_digest"], managed::profile_digest());
+        let spec: Value = serde_json::from_str(profile.source()).expect("handshake specification");
+        let managed_digest = match profile {
+            HandshakeProfile::Legacy => managed::profile_digest(),
+            HandshakeProfile::Inference => managed_v2::profile_digest(),
+        };
+        assert_eq!(spec["managed_profile_digest"], managed_digest);
         jsonschema::options()
             .with_draft(jsonschema::Draft::Draft202012)
             .offline()
@@ -64,15 +117,25 @@ pub struct Record {
 impl Record {
     /// Admit a closed, fingerprint-bound Hello or StreamHello without I/O.
     pub fn from_json(name: &str, source: &str) -> Result<Self, PortableError> {
+        Self::from_profile(HandshakeProfile::Legacy, name, source)
+    }
+
+    pub(crate) fn from_profile(
+        profile: HandshakeProfile,
+        name: &str,
+        source: &str,
+    ) -> Result<Self, PortableError> {
         let canonical = canonical(source)?;
         let value: Value = serde_json::from_slice(&canonical).map_err(|_| PortableError::Json)?;
-        if value["contract_profile"] != PROFILE || value["profile_digest"] != profile_digest() {
+        if value["contract_profile"] != profile.identity()
+            || value["profile_digest"] != profile_digest_for(profile)
+        {
             return Err(PortableError::Profile);
         }
-        if value["protocol"].as_u64() != Some(5) {
+        if value["protocol"].as_u64() != Some(u64::from(profile.protocol())) {
             return Err(PortableError::Protocol);
         }
-        if !validator(name)?.is_valid(&value) {
+        if !validator(profile, name)?.is_valid(&value) {
             return Err(PortableError::Contract);
         }
         Ok(Self {
@@ -112,15 +175,26 @@ pub fn from_startup(
     startup: &managed::Record,
     call_id: Option<&str>,
 ) -> Result<Record, PortableError> {
-    if startup.name() != "Startup" || call_id.is_some_and(|value| !identifier(value)) {
+    from_startup_for(HandshakeProfile::Legacy, startup, call_id)
+}
+
+pub(crate) fn from_startup_for(
+    profile: HandshakeProfile,
+    startup: &managed::Record,
+    call_id: Option<&str>,
+) -> Result<Record, PortableError> {
+    if startup.profile() != profile.managed()
+        || startup.name() != "Startup"
+        || call_id.is_some_and(|value| !identifier(value))
+    {
         return Err(PortableError::Contract);
     }
     let value: Value =
         serde_json::from_slice(startup.canonical()).map_err(|_| PortableError::Json)?;
     let mut fields = json!({
-        "contract_profile": PROFILE,
-        "profile_digest": profile_digest(),
-        "protocol": 5,
+        "contract_profile": profile.identity(),
+        "profile_digest": profile_digest_for(profile),
+        "protocol": profile.protocol(),
         "capability_node_id": value["node_id"],
         "manifest_sha256": value["manifest_digest"],
         "token": value["token"],
@@ -137,7 +211,7 @@ pub fn from_startup(
         fields["bundle_version"] = value["manifest"]["bundle_version"].clone();
         "Hello"
     };
-    Record::from_json(name, &fields.to_string())
+    Record::from_profile(profile, name, &fields.to_string())
 }
 
 /// Bind an incoming handshake to the expected startup and optional admitted call.
@@ -150,8 +224,17 @@ pub fn admit(
     source: &str,
     call_id: Option<&str>,
 ) -> Result<Record, PortableError> {
-    let expected = from_startup(startup, call_id)?;
-    let received = Record::from_json(expected.name(), source)?;
+    admit_for(HandshakeProfile::Legacy, startup, source, call_id)
+}
+
+pub(crate) fn admit_for(
+    profile: HandshakeProfile,
+    startup: &managed::Record,
+    source: &str,
+    call_id: Option<&str>,
+) -> Result<Record, PortableError> {
+    let expected = from_startup_for(profile, startup, call_id)?;
+    let received = Record::from_profile(profile, expected.name(), source)?;
     let mut expected_fields: Value =
         serde_json::from_slice(expected.canonical()).map_err(|_| PortableError::Json)?;
     let mut received_fields: Value =

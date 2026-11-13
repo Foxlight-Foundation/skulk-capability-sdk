@@ -50,7 +50,7 @@ def test_source_archive_needs_no_owner_or_git_history(exported_source: Path) -> 
     assert not (exported_source / ".git").exists()
     result = run_export_check(exported_source)
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["source_files"] == 155
+    assert json.loads(result.stdout)["source_files"] == 165
 
 
 def test_undeclared_kernel_source_refuses(exported_source: Path) -> None:

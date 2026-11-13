@@ -82,6 +82,13 @@ declare const native: {
   managedProfileDigest(): string;
   managedContractJson(name: 'Manifest' | 'Startup', source: string): Buffer;
   managedContractDigest(name: 'Manifest' | 'Startup', source: string): string;
+  handshakeV2ProfileDigest(): string;
+  handshakeV2ContractJson(name: 'Hello' | 'StreamHello', source: string): Buffer;
+  managedV2HelloJson(name: 'Manifest' | 'Startup', startup: string, callId?: string): Buffer;
+  managedV2AdmitHelloJson(name: 'Manifest' | 'Startup', startup: string, source: string, callId?: string): Buffer;
+  managedV2ProfileDigest(): string;
+  managedV2ContractJson(name: 'Manifest' | 'Startup', source: string): Buffer;
+  managedV2ContractDigest(name: 'Manifest' | 'Startup', source: string): string;
   portableProfileDigest(): string;
   PortableSchema: typeof PortableSchema;
   portableCanonicalJson(source: string): Buffer;

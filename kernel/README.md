@@ -88,9 +88,16 @@ canonical metadata, binds composition request hashes, and shares the protected
 native channel's lifecycle. It does not extend the issued transport profile or
 establish authenticated host authority by parsing a context.
 
-Native 0.7.0rc1 adds explicit [inference authority contracts](../docs/native-inference.md):
+Native 0.7.0rc2 adds explicit [inference authority contracts](../docs/native-inference.md):
 portable/2 declarations with a required processing boundary and composition/2
 attenuation with separate read/inference ceilings. The 56 independent witnesses
 run through all three native backends and offline archive consumers. Issued
 profiles are unchanged; compatible installed readers and actual inference
 adoption remain separate requirements.
+
+The rc2 candidate also adds separate `managed/2` and `handshake/2` installation
+and startup contracts. Inference has an opt-in overall execution ceiling,
+explicit processing domains and a distinct Steward exposure category. The
+host still owns signed selection, original caller, current authorization and
+one-use startup admission. Existing call/media channels refuse this new cohort;
+installed inference execution and application migration remain unqualified.

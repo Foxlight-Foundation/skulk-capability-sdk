@@ -101,21 +101,25 @@ def verify_install(wheel: Path, package: Path, output: Path) -> None:
         "calls",
         "inference-author",
         "inference-composition",
+        "inference-managed",
+        "inference-handshake",
     ]:
         for backend in ["python", "node"]:
             command = [
                 sys.executable,
                 "-m",
                 "tools.check_inference_profiles"
-                if kind.startswith("inference-")
-                else f"tools.check_{kind}_profile",
+                if kind in ("inference-author", "inference-composition")
+                else f"tools.check_{kind.removeprefix('inference-')}_profile",
                 "--backend",
                 backend,
                 "--report",
                 str(work / f"{kind}-{backend}.json"),
             ]
-            if kind.startswith("inference-"):
+            if kind in ("inference-author", "inference-composition"):
                 command += ["--kind", kind]
+            elif kind.startswith("inference-"):
+                command.append("--inference")
             if backend == "node":
                 command += ["--node-facade", str(facade)]
             _run(command, python_env)
@@ -128,6 +132,8 @@ def verify_install(wheel: Path, package: Path, output: Path) -> None:
         "calls",
         "inference-author",
         "inference-composition",
+        "inference-managed",
+        "inference-handshake",
     ]:
         expected = json.loads((output / f"{kind}-rust.json").read_text())
         for backend in ["python", "node"]:

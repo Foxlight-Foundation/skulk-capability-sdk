@@ -72,6 +72,8 @@ def bundle(path: Path, *, clean: bool = True, source: str = SOURCE) -> Path:
                 "calls",
                 "inference-author",
                 "inference-composition",
+                "inference-managed",
+                "inference-handshake",
             ]
             for backend in ["rust", "python", "node"]
         },

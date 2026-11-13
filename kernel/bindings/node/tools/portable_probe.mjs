@@ -1,6 +1,6 @@
 // Maintainer-only adapter: the same candidate facade used by the Node tests.
 import {createInterface} from 'node:readline';
-const {HandshakeContract, ManagedContract, PortableContract, PortableSchema, canonicalPortableJson} = await import(process.argv[2] ?? new URL('../dist/portable.js', import.meta.url).href);
+const {HandshakeContract, HandshakeV2Contract, ManagedContract, ManagedV2Contract, PortableContract, PortableSchema, canonicalPortableJson} = await import(process.argv[2] ?? new URL('../dist/portable.js', import.meta.url).href);
 
 for await (const line of createInterface({input: process.stdin, crlfDelay: Infinity})) {
   const request = JSON.parse(line);
@@ -19,6 +19,18 @@ for await (const line of createInterface({input: process.stdin, crlfDelay: Infin
       if (request.action === 'parse') record = HandshakeContract.fromJson(request.name, request.source);
       else {
         const startup = ManagedContract.fromJson('Startup', request.startup);
+        record = request.action === 'create' ? startup.hello(callId) : startup.admitHello(request.source, callId);
+      }
+      response = {canonical: Buffer.from(record.canonical()).toString('ascii')};
+    } else if (request.operation === 'managed_v2') {
+      const record = ManagedV2Contract.fromJson(request.name, request.source);
+      response = {canonical: Buffer.from(record.canonical()).toString('ascii'), digest: record.digest};
+    } else if (request.operation === 'handshake_v2') {
+      const callId = request.call_id ?? undefined;
+      let record;
+      if (request.action === 'parse') record = HandshakeV2Contract.fromJson(request.name, request.source);
+      else {
+        const startup = ManagedV2Contract.fromJson('Startup', request.startup);
         record = request.action === 'create' ? startup.hello(callId) : startup.admitHello(request.source, callId);
       }
       response = {canonical: Buffer.from(record.canonical()).toString('ascii')};

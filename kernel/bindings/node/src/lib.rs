@@ -6,8 +6,9 @@ use napi::bindgen_prelude::{Buffer, Utf16String};
 use napi::{Error, Result, Status};
 use napi_derive::napi;
 use skulk_capability_kernel::{
-    binding, calls, codec, composition, composition_v2, contracts, handshake, journal, managed,
-    operation_logs, operations, portable, portable_v2, schema, streams, transport,
+    binding, calls, codec, composition, composition_v2, contracts, handshake, handshake_v2,
+    journal, managed, managed_v2, operation_logs, operations, portable, portable_v2, schema,
+    streams, transport,
 };
 
 /// Private qualification surface; source text avoids JavaScript number narrowing.
@@ -30,6 +31,12 @@ pub fn schema_matches_installed(definition: String, instance: String) -> Result<
 #[napi]
 pub fn managed_profile_digest() -> String {
     managed::profile_digest().into()
+}
+
+/// Exact inference-capable managed profile fingerprint; no execution authority.
+#[napi]
+pub fn managed_v2_profile_digest() -> String {
+    managed_v2::profile_digest().into()
 }
 
 /// Pure composition fingerprint, independently versioned from native transport.
@@ -209,6 +216,69 @@ pub fn managed_admit_hello_json(
     let call_id = call_id.map(portable_text).transpose()?;
     managed::Record::from_json(&name, &startup)
         .and_then(|record| handshake::admit(&record, &source, call_id.as_deref()))
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(portable_error)
+}
+
+/// Native admission of a managed manifest or private inherited startup record.
+#[napi]
+pub fn managed_v2_contract_json(name: String, source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    managed_v2::validate_contract_json(&name, &source)
+        .map(Buffer::from)
+        .map_err(portable_error)
+}
+
+/// Full managed identity; never truncate or treat a digest as caller authority.
+#[napi]
+pub fn managed_v2_contract_digest(name: String, source: Utf16String) -> Result<String> {
+    let source = portable_text(source)?;
+    managed_v2::contract_digest(&name, &source).map_err(portable_error)
+}
+
+/// Exact explicit protocol-six handshake profile fingerprint.
+#[napi]
+pub fn handshake_v2_profile_digest() -> String {
+    handshake_v2::profile_digest().into()
+}
+
+/// Parse a handshake structurally without treating it as a bound peer.
+#[napi]
+pub fn handshake_v2_contract_json(name: String, source: Utf16String) -> Result<Buffer> {
+    let source = portable_text(source)?;
+    handshake_v2::Record::from_json(&name, &source)
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(portable_error)
+}
+
+/// Derive a handshake from a native-admitted expected private startup.
+#[napi]
+pub fn managed_v2_hello_json(
+    name: String,
+    startup: Utf16String,
+    call_id: Option<Utf16String>,
+) -> Result<Buffer> {
+    let startup = portable_text(startup)?;
+    let call_id = call_id.map(portable_text).transpose()?;
+    managed_v2::Record::from_json(&name, &startup)
+        .and_then(|record| handshake_v2::from_startup(&record, call_id.as_deref()))
+        .map(|record| Buffer::from(record.canonical()))
+        .map_err(portable_error)
+}
+
+/// Bind full public identities and the token to the expected startup/call.
+#[napi]
+pub fn managed_v2_admit_hello_json(
+    name: String,
+    startup: Utf16String,
+    source: Utf16String,
+    call_id: Option<Utf16String>,
+) -> Result<Buffer> {
+    let startup = portable_text(startup)?;
+    let source = portable_text(source)?;
+    let call_id = call_id.map(portable_text).transpose()?;
+    managed_v2::Record::from_json(&name, &startup)
+        .and_then(|record| handshake_v2::admit(&record, &source, call_id.as_deref()))
         .map(|record| Buffer::from(record.canonical()))
         .map_err(portable_error)
 }

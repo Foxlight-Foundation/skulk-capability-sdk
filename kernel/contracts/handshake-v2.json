@@ -1,0 +1,150 @@
+{
+  "canonicalization": "skulk.portable-json/1",
+  "limits": {
+    "record_bytes": 16384
+  },
+  "managed_profile": "skulk.managed/2",
+  "managed_profile_digest": "add1362825790e109c779ae5ec5b3467710b42acebf8a2081b404fb18f73cacc",
+  "models": {
+    "Hello": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "bundle_version": {
+          "maxLength": 64,
+          "pattern": "^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$",
+          "type": "string"
+        },
+        "capability_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "contract_profile": {
+          "const": "skulk.handshake/2"
+        },
+        "host_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "hello"
+        },
+        "manifest_sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 6
+        },
+        "token": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "transport_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "token",
+        "kind",
+        "host_id",
+        "transport_node_id",
+        "capability_node_id",
+        "bundle_id",
+        "bundle_version",
+        "manifest_sha256"
+      ],
+      "type": "object"
+    },
+    "StreamHello": {
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "capability_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "contract_profile": {
+          "const": "skulk.handshake/2"
+        },
+        "kind": {
+          "const": "stream_hello"
+        },
+        "manifest_sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 6
+        },
+        "token": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "token",
+        "kind",
+        "call_id",
+        "capability_node_id",
+        "manifest_sha256"
+      ],
+      "type": "object"
+    }
+  },
+  "profile": "skulk.handshake/2",
+  "protocol": 6,
+  "semantics": [
+    "Hello and StreamHello are explicit protocol-five records. Unknown profiles, fingerprints, kinds or protocols refuse; no downgrade or legacy transport fallback.",
+    "Hello binds the host, transport, child, bundle/version, full managed manifest digest and fresh host-issued token to an admitted private Startup. StreamHello additionally binds the separately admitted call ID.",
+    "Tokens are exactly 64 lowercase hexadecimal characters. A host must issue a fresh cryptographically random 256-bit token for each child; shape admission cannot establish entropy, freshness or one-use ownership. Token equality uses the shared constant-time primitive.",
+    "Record handles own immutable canonical bytes. Startup and handshake bytes contain credentials and belong only on protected IPC; errors and object representations must not echo input values.",
+    "Pure record admission and binding do not install, execute, consume a nonce, authorize an invocation or establish the original caller. The host retains current trust, signed selection, channel lifecycle, call admission and replay/uncertainty duties.",
+    "This profile selects only managed/2 protocol-six startup and never reinterprets an issued protocol-five handshake. Record parsing and matching never grant an inference call or processing-domain permission."
+  ]
+}

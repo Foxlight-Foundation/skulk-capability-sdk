@@ -112,6 +112,16 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/contracts/managed-v2.json",
+        "kernel/contracts/handshake-v2.json",
+        "kernel/contracts/managed-v2-cases.json",
+        "kernel/contracts/handshake-v2-cases.json",
+        "kernel/src/managed_v2.rs",
+        "kernel/src/handshake_v2.rs",
+        "kernel/tests/managed_inference.rs",
+        "kernel/tests/handshake_inference.rs",
+        "kernel/bindings/python/tests/test_native_runtime_inference.py",
+        "kernel/bindings/node/tests/runtime-inference.test.mjs",
         "kernel/src/composition_v2.rs",
         "kernel/src/portable_v2.rs",
         "kernel/contracts/composition-v2.json",

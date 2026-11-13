@@ -472,6 +472,24 @@ def main() -> None:
                 ),
                 end="",
             )
+    for kind in ("managed", "handshake"):
+        for backend in ("rust", "python", "node"):
+            print(
+                run(
+                    [
+                        sys.executable,
+                        "-m",
+                        f"tools.check_{kind}_profile",
+                        "--inference",
+                        "--backend",
+                        backend,
+                        "--report",
+                        str(OUTPUT / f"inference-{kind}-{backend}.json"),
+                    ],
+                    python_env,
+                ),
+                end="",
+            )
     calls_report = json.loads((OUTPUT / "calls-rust.json").read_text())
     composition_report = json.loads((OUTPUT / "composition-rust.json").read_text())
     transport_report = json.loads((OUTPUT / "transport-rust.json").read_text())
@@ -521,7 +539,12 @@ def main() -> None:
         "runtime_adoption": False,
         "inference_profiles": [
             json.loads((OUTPUT / f"{kind}-rust.json").read_text())
-            for kind in ("inference-author", "inference-composition")
+            for kind in (
+                "inference-author",
+                "inference-composition",
+                "inference-managed",
+                "inference-handshake",
+            )
         ],
     }
     (OUTPUT / "report.json").write_text(json.dumps(report, indent=2) + "\n")

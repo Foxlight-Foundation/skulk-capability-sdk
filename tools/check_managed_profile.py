@@ -32,6 +32,9 @@ class Native(Protocol):
     """The installed native managed ABI, including negative root-name tests."""
 
     ManagedContract: ManagedFactory
+    ManagedV2Contract: ManagedFactory
+
+    def managed_v2_profile_digest(self) -> str: ...
 
     def managed_profile_digest(self) -> str: ...
     def managed_contract_json(self, name: str, source: str) -> bytes: ...
@@ -43,6 +46,7 @@ class ManagedCase(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
     identity: str = Field(alias="id")
+    operation: Literal["managed", "managed_v2"] = "managed"
     name: str
     source: str
     canonical: str | None = None
@@ -51,7 +55,7 @@ class ManagedCase(BaseModel):
 
     def request(self) -> dict[str, str]:
         """Return only maintainer-probe input; no live startup records are used."""
-        return {"operation": "managed", "name": self.name, "source": self.source}
+        return {"operation": self.operation, "name": self.name, "source": self.source}
 
     def expected(self) -> Response:
         """Independent expected bytes and identity, never a native-produced oracle."""
@@ -62,24 +66,33 @@ class Fixture(BaseModel):
     """Frozen complete observations for the managed profile and dependencies."""
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-    profile: Literal["skulk.managed/1"]
+    profile: Literal["skulk.managed/1", "skulk.managed/2"]
     profile_digest: str
     portable_profile_digest: str
     scope: str
     cases: list[ManagedCase]
 
 
-def fixture() -> Fixture:
+def fixture(inference: bool = False) -> Fixture:
     """Load synthetic inputs without importing a private owner or provider."""
     return Fixture.model_validate_json(
-        (ROOT / "kernel/contracts/managed-v1-cases.json").read_bytes()
+        (
+            ROOT
+            / "kernel/contracts"
+            / ("managed-v2-cases.json" if inference else "managed-v1-cases.json")
+        ).read_bytes()
     )
 
 
 def python_case(native: Native, case: ManagedCase) -> Response:
     """Exercise only the installed ABI; native refusals never echo input data."""
     try:
-        record = native.ManagedContract.from_json(case.name, case.source)
+        factory = (
+            native.ManagedV2Contract
+            if case.operation == "managed_v2"
+            else native.ManagedContract
+        )
+        record = factory.from_json(case.name, case.source)
         return Response(canonical=record.canonical().decode(), digest=record.digest)
     except ValueError as error:
         code = str(error).split(":", 1)[0]
@@ -96,11 +109,17 @@ def main() -> None:
     parser.add_argument("--backend", choices=["rust", "python", "node"], default="rust")
     parser.add_argument("--report", type=Path)
     parser.add_argument("--node-facade", type=Path)
+    parser.add_argument("--inference", action="store_true")
     args = parser.parse_args()
-    inputs = fixture()
+    inputs = fixture(args.inference)
     if args.backend == "python":
         native = cast(Native, importlib.import_module("_skulk_capability_kernel"))
-        if native.managed_profile_digest() != inputs.profile_digest:
+        digest = (
+            native.managed_v2_profile_digest()
+            if args.inference
+            else native.managed_profile_digest()
+        )
+        if digest != inputs.profile_digest:
             raise ValueError(
                 "Installed managed profile differs from qualification input"
             )

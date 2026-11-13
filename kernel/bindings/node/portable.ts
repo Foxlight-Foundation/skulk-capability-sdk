@@ -135,6 +135,83 @@ export class HandshakeContract {
   [inspect.custom](): string { return `HandshakeContract(${this.name})`; }
 }
 
+/** Managed records have a separate fingerprint; portable descriptor identity stays frozen. */
+export const MANAGED_V2_PROFILE = 'skulk.managed/2' as const;
+/** Return the exact managed installation/startup profile fingerprint. */
+export function managedV2ProfileDigest(): string { return native.managedV2ProfileDigest(); }
+
+/** Immutable native-admitted managed record. Startup bytes may contain secrets.
+ * Keep startup records on private inherited IPC; never log or publish them.
+ * Admission validates structure, not signatures, trust or execution authority.
+ */
+export class ManagedV2Contract {
+  readonly #canonical: Uint8Array;
+  readonly digest: string;
+  readonly name: ManagedContractName;
+
+  private constructor(name: ManagedContractName, source: string) {
+    this.name = name;
+    this.#canonical = native.managedV2ContractJson(name, source);
+    this.digest = native.managedV2ContractDigest(name, source);
+    Object.freeze(this);
+  }
+
+  /** Validate defaults, full identity binding, configuration and startup constraints. */
+  static fromJson(name: ManagedContractName, source: string): ManagedV2Contract {
+    return new ManagedV2Contract(name, source);
+  }
+
+  /** Derive the explicit hello for this startup and an optional admitted call. */
+  hello(callId?: string): HandshakeV2Contract {
+    const bytes = native.managedV2HelloJson(this.name, Buffer.from(this.#canonical).toString('utf8'), callId);
+    return HandshakeV2Contract.fromJson(callId === undefined ? 'Hello' : 'StreamHello', bytes.toString('utf8'));
+  }
+
+  /** Bind an incoming hello using the shared native implementation. No I/O occurs. */
+  admitHello(source: string, callId?: string): HandshakeV2Contract {
+    const bytes = native.managedV2AdmitHelloJson(this.name, Buffer.from(this.#canonical).toString('utf8'), source, callId);
+    return HandshakeV2Contract.fromJson(callId === undefined ? 'Hello' : 'StreamHello', bytes.toString('utf8'));
+  }
+
+  /** Avoid implicit diagnostic serialization of startup content or its identity. */
+  toJSON(): {name: ManagedContractName} { return {name: this.name}; }
+  /** Keep routine Node inspection free of credential-bearing values. */
+  [inspect.custom](): string { return `ManagedV2Contract(${this.name})`; }
+
+  /** Copy bytes without permitting mutation of the native-admitted identity. */
+  canonical(): Uint8Array { return Uint8Array.from(this.#canonical); }
+}
+
+
+/** Protocol-six handshakes have an independent immutable fingerprint. */
+export const HANDSHAKE_V2_PROFILE = 'skulk.handshake/2' as const;
+/** Return the native normative handshake fingerprint. */
+export function handshakeV2ProfileDigest(): string { return native.handshakeV2ProfileDigest(); }
+
+/** Immutable credential-bearing handshake; parsing is distinct from binding. */
+export class HandshakeV2Contract {
+  readonly #canonical: Uint8Array;
+  readonly name: HandshakeContractName;
+
+  private constructor(name: HandshakeContractName, source: string) {
+    this.name = name;
+    this.#canonical = native.handshakeV2ContractJson(name, source);
+    Object.freeze(this);
+  }
+
+  /** Validate the explicit profile/kind/protocol; startup admission is separate. */
+  static fromJson(name: HandshakeContractName, source: string): HandshakeV2Contract {
+    return new HandshakeV2Contract(name, source);
+  }
+
+  /** Explicitly copy secret-bearing bytes for protected IPC. */
+  canonical(): Uint8Array { return Uint8Array.from(this.#canonical); }
+  /** Serialize only the public kind during incidental diagnostic encoding. */
+  toJSON(): {name: HandshakeContractName} { return {name: this.name}; }
+  /** Native token and identity fields never appear in routine Node inspection. */
+  [inspect.custom](): string { return `HandshakeV2Contract(${this.name})`; }
+}
+
 /** Pure composition profile; independent of issued transport/startup contracts. */
 export const COMPOSITION_PROFILE = 'skulk.composition/1' as const;
 /** Closed composition metadata kinds; parsing never establishes provenance. */

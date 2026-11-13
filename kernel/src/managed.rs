@@ -6,7 +6,7 @@ use std::sync::OnceLock;
 
 use serde_json::{Value, json};
 
-use crate::{codec, portable, portable::PortableError, portable_json};
+use crate::{codec, portable, portable::PortableError, portable_json, portable_v2};
 
 /// Installation semantics are versioned separately from the frozen descriptors.
 pub const PROFILE: &str = "skulk.managed/1";
@@ -14,21 +14,62 @@ pub const PROFILE: &str = "skulk.managed/1";
 pub const PROTOCOL: u32 = 5;
 const MAX_BYTES: usize = 262_144;
 
-fn specification() -> &'static Value {
-    static SPECIFICATION: OnceLock<Value> = OnceLock::new();
-    SPECIFICATION.get_or_init(|| {
-        serde_json::from_str(include_str!("../contracts/managed-v1.json"))
-            .expect("packaged managed specification is JSON")
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ManagedProfile {
+    Legacy,
+    Inference,
+}
+
+impl ManagedProfile {
+    fn identity(self) -> &'static str {
+        match self {
+            Self::Legacy => PROFILE,
+            Self::Inference => "skulk.managed/2",
+        }
+    }
+
+    fn protocol(self) -> u32 {
+        match self {
+            Self::Legacy => PROTOCOL,
+            Self::Inference => 6,
+        }
+    }
+
+    fn source(self) -> &'static str {
+        match self {
+            Self::Legacy => include_str!("../contracts/managed-v1.json"),
+            Self::Inference => include_str!("../contracts/managed-v2.json"),
+        }
+    }
+}
+
+fn specification(profile: ManagedProfile) -> &'static Value {
+    static LEGACY: OnceLock<Value> = OnceLock::new();
+    static INFERENCE: OnceLock<Value> = OnceLock::new();
+    let cell = match profile {
+        ManagedProfile::Legacy => &LEGACY,
+        ManagedProfile::Inference => &INFERENCE,
+    };
+    cell.get_or_init(|| {
+        serde_json::from_str(profile.source()).expect("packaged managed specification is JSON")
     })
 }
 
 /// Fingerprint the complete managed specification without changing portable/1.
 pub fn profile_digest() -> &'static str {
-    static DIGEST: OnceLock<String> = OnceLock::new();
-    DIGEST.get_or_init(|| {
+    profile_digest_for(ManagedProfile::Legacy)
+}
+
+pub(crate) fn profile_digest_for(profile: ManagedProfile) -> &'static str {
+    static LEGACY: OnceLock<String> = OnceLock::new();
+    static INFERENCE: OnceLock<String> = OnceLock::new();
+    let cell = match profile {
+        ManagedProfile::Legacy => &LEGACY,
+        ManagedProfile::Inference => &INFERENCE,
+    };
+    cell.get_or_init(|| {
         let mut domain = b"skulk.managed.profile\0".to_vec();
-        domain
-            .extend(canonical(include_str!("../contracts/managed-v1.json")).expect("managed spec"));
+        domain.extend(canonical(profile.source()).expect("managed spec"));
         codec::sha256(&domain)
     })
 }
@@ -46,24 +87,40 @@ fn canonical(source: &str) -> Result<Vec<u8>, PortableError> {
 /// Startup may contain credentials. No errors include supplied data, and this
 /// function performs no logging, I/O, installation or authorization effects.
 pub fn validate_contract_json(name: &str, source: &str) -> Result<Vec<u8>, PortableError> {
+    validate_for(ManagedProfile::Legacy, name, source)
+}
+
+pub(crate) fn validate_for(
+    profile: ManagedProfile,
+    name: &str,
+    source: &str,
+) -> Result<Vec<u8>, PortableError> {
     if !matches!(name, "Manifest" | "Startup") {
         return Err(PortableError::Contract);
     }
     let mut value = portable_json::serde(&portable_json::parse(source, MAX_BYTES)?)?;
-    normalize(name, &mut value)?;
+    normalize(profile, name, &mut value)?;
     canonical(&value.to_string())
 }
 
 /// Hash the full normalized record under its managed profile and model domain.
 pub fn contract_digest(name: &str, source: &str) -> Result<String, PortableError> {
-    let mut domain = format!("{PROFILE}/{name}\0").into_bytes();
-    domain.extend(validate_contract_json(name, source)?);
+    digest_for(ManagedProfile::Legacy, name, source)
+}
+
+pub(crate) fn digest_for(
+    profile: ManagedProfile,
+    name: &str,
+    source: &str,
+) -> Result<String, PortableError> {
+    let mut domain = format!("{}/{name}\0", profile.identity()).into_bytes();
+    domain.extend(validate_for(profile, name, source)?);
     Ok(codec::sha256(&domain))
 }
 
-fn defaults(name: &str, value: &mut Value) -> Result<(), PortableError> {
+fn defaults(profile: ManagedProfile, name: &str, value: &mut Value) -> Result<(), PortableError> {
     let fields = value.as_object_mut().ok_or(PortableError::Contract)?;
-    if let Some(defaults) = specification()["defaults"][name].as_object() {
+    if let Some(defaults) = specification(profile)["defaults"][name].as_object() {
         for (key, default) in defaults {
             fields.entry(key).or_insert_with(|| default.clone());
         }
@@ -71,22 +128,22 @@ fn defaults(name: &str, value: &mut Value) -> Result<(), PortableError> {
     Ok(())
 }
 
-fn normalize(name: &str, value: &mut Value) -> Result<(), PortableError> {
-    if value["contract_profile"].as_str() != Some(PROFILE)
-        || value["profile_digest"].as_str() != Some(profile_digest())
+fn normalize(profile: ManagedProfile, name: &str, value: &mut Value) -> Result<(), PortableError> {
+    if value["contract_profile"].as_str() != Some(profile.identity())
+        || value["profile_digest"].as_str() != Some(profile_digest_for(profile))
     {
         return Err(PortableError::Profile);
     }
-    if value["protocol"].as_u64() != Some(u64::from(PROTOCOL)) {
+    if value["protocol"].as_u64() != Some(u64::from(profile.protocol())) {
         return Err(PortableError::Protocol);
     }
-    defaults(name, value)?;
+    defaults(profile, name, value)?;
     if name == "Startup" {
-        normalize("Manifest", &mut value["manifest"])?;
+        normalize(profile, "Manifest", &mut value["manifest"])?;
     } else {
-        defaults("Bounds", &mut value["bounds"])?;
+        defaults(profile, "Bounds", &mut value["bounds"])?;
         if !value["operations"].is_null() {
-            defaults("OperationBounds", &mut value["operations"])?;
+            defaults(profile, "OperationBounds", &mut value["operations"])?;
         }
         for (key, model, limit) in [
             ("surfaces", "Surface", 4),
@@ -98,15 +155,20 @@ fn normalize(name: &str, value: &mut Value) -> Result<(), PortableError> {
                 .filter(|items| items.len() <= limit)
                 .ok_or(PortableError::Contract)?;
             for item in items {
-                defaults(model, item)?;
+                defaults(profile, model, item)?;
             }
         }
-        let envelope =
-            portable::validate_contract_json("ContractEnvelope", &value["contracts"].to_string())?;
+        let source = value["contracts"].to_string();
+        let envelope = match profile {
+            ManagedProfile::Legacy => portable::validate_contract_json("ContractEnvelope", &source),
+            ManagedProfile::Inference => {
+                portable_v2::validate_contract_json("ContractEnvelope", &source)
+            }
+        }?;
         value["contracts"] = serde_json::from_slice(&envelope).map_err(|_| PortableError::Json)?;
     }
     // These are packaged schemas, never author-supplied schemas or references.
-    let model = json!({"$defs":specification()["models"],"$ref":format!("#/$defs/{name}")});
+    let model = json!({"$defs":specification(profile)["models"],"$ref":format!("#/$defs/{name}")});
     let validator = jsonschema::options()
         .with_draft(jsonschema::Draft::Draft202012)
         .offline()
@@ -118,9 +180,9 @@ fn normalize(name: &str, value: &mut Value) -> Result<(), PortableError> {
         return Err(PortableError::Contract);
     }
     if name == "Manifest" {
-        manifest_semantics(value)
+        manifest_semantics(profile, value)
     } else {
-        startup_semantics(value)
+        startup_semantics(profile, value)
     }
 }
 
@@ -159,7 +221,7 @@ fn unique(values: &[Value], key: Option<&str>) -> Result<(), PortableError> {
     Ok(())
 }
 
-fn manifest_semantics(value: &Value) -> Result<(), PortableError> {
+fn manifest_semantics(profile: ManagedProfile, value: &Value) -> Result<(), PortableError> {
     let executable = text(value, "executable")?;
     if executable.starts_with('/')
         || executable.contains(['\0', '\\'])
@@ -200,6 +262,10 @@ fn manifest_semantics(value: &Value) -> Result<(), PortableError> {
     let descriptors = items(&value["contracts"], "descriptors")?;
     for descriptor in descriptors {
         if (value["effect"] == "read" && descriptor["behavior"] != "read")
+            || (profile == ManagedProfile::Inference
+                && value["effect"] == "inference"
+                && descriptor["behavior"] != "read"
+                && descriptor["behavior"] != "inference")
             || (descriptor["annotations"]["skulk.operation"] == "1"
                 && value["operations"].is_null())
         {
@@ -217,10 +283,17 @@ fn manifest_semantics(value: &Value) -> Result<(), PortableError> {
                 ) == exposure["qualified_id"]
             })
             .ok_or(PortableError::Contract)?;
+        let inference = profile == ManagedProfile::Inference && exposure["behavior"] == "inference";
         if exposure["behavior"] != descriptor["behavior"]
             || (exposure["behavior"] == "read" && exposure["risk"] != "observation")
+            || (inference
+                && (exposure["risk"] != "inference"
+                    || (value["effect"] != "inference" && value["effect"] != "governed")))
             || (exposure["behavior"] != "read"
-                && (value["effect"] != "governed" || exposure["risk"] == "observation"))
+                && !inference
+                && (value["effect"] != "governed"
+                    || exposure["risk"] == "observation"
+                    || exposure["risk"] == "inference"))
         {
             return Err(PortableError::Contract);
         }
@@ -228,7 +301,7 @@ fn manifest_semantics(value: &Value) -> Result<(), PortableError> {
     Ok(())
 }
 
-fn startup_semantics(value: &Value) -> Result<(), PortableError> {
+fn startup_semantics(profile: ManagedProfile, value: &Value) -> Result<(), PortableError> {
     let executable = text(value, "executable")?;
     path(executable)?;
     let entry = text(&value["manifest"], "executable")?;
@@ -244,7 +317,7 @@ fn startup_semantics(value: &Value) -> Result<(), PortableError> {
     {
         return Err(PortableError::Contract);
     }
-    let manifest_digest = contract_digest("Manifest", &value["manifest"].to_string())?;
+    let manifest_digest = digest_for(profile, "Manifest", &value["manifest"].to_string())?;
     if value["manifest_digest"] != manifest_digest {
         return Err(PortableError::Contract);
     }
@@ -277,6 +350,7 @@ fn startup_semantics(value: &Value) -> Result<(), PortableError> {
 /// Immutable native-admitted author record; startup bytes may contain credentials.
 /// No Debug implementation is provided because diagnostics must not expose them.
 pub struct Record {
+    profile: ManagedProfile,
     name: &'static str,
     canonical: Vec<u8>,
     digest: String,
@@ -285,10 +359,19 @@ pub struct Record {
 impl Record {
     /// Normalize once and retain its full profile/model-domain identity.
     pub fn from_json(name: &str, source: &str) -> Result<Self, PortableError> {
-        let canonical = validate_contract_json(name, source)?;
-        let mut domain = format!("{PROFILE}/{name}\0").into_bytes();
+        Self::from_profile(ManagedProfile::Legacy, name, source)
+    }
+
+    pub(crate) fn from_profile(
+        profile: ManagedProfile,
+        name: &str,
+        source: &str,
+    ) -> Result<Self, PortableError> {
+        let canonical = validate_for(profile, name, source)?;
+        let mut domain = format!("{}/{name}\0", profile.identity()).into_bytes();
         domain.extend(&canonical);
         Ok(Self {
+            profile,
             name: if name == "Manifest" {
                 "Manifest"
             } else {
@@ -297,6 +380,10 @@ impl Record {
             digest: codec::sha256(&domain),
             canonical,
         })
+    }
+
+    pub(crate) fn profile(&self) -> ManagedProfile {
+        self.profile
     }
 
     /// Return the public record kind without credential fields.

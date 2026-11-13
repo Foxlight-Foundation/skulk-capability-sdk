@@ -43,7 +43,12 @@ class HandshakeFactory(Protocol):
 class Native(Protocol):
     """Minimum installed ABI needed to exercise real author record handles."""
 
+    ManagedV2Contract: ManagedFactory
+    HandshakeV2Contract: HandshakeFactory
     ManagedContract: ManagedFactory
+
+    def handshake_v2_profile_digest(self) -> str: ...
+
     HandshakeContract: HandshakeFactory
 
     def handshake_profile_digest(self) -> str: ...
@@ -54,6 +59,7 @@ class Case(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
     identity: str = Field(alias="id")
+    operation: Literal["handshake", "handshake_v2"] = "handshake"
     action: Literal["parse", "create", "admit"]
     name: str
     source: str
@@ -65,7 +71,7 @@ class Case(BaseModel):
     def request(self) -> dict[str, str | None]:
         """Return the same probe request for all three native backends."""
         return {
-            "operation": "handshake",
+            "operation": self.operation,
             "action": self.action,
             "name": self.name,
             "source": self.source,
@@ -82,26 +88,40 @@ class Fixture(BaseModel):
     """Complete corpus identity and scope for the separate handshake profile."""
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-    profile: Literal["skulk.handshake/1"]
+    profile: Literal["skulk.handshake/1", "skulk.handshake/2"]
     profile_digest: str
     scope: str
     cases: list[Case]
 
 
-def fixture() -> Fixture:
+def fixture(inference: bool = False) -> Fixture:
     """Read synthetic source fixtures without a private owner or account."""
     return Fixture.model_validate_json(
-        (ROOT / "kernel/contracts/handshake-v1-cases.json").read_bytes()
+        (
+            ROOT
+            / "kernel/contracts"
+            / ("handshake-v2-cases.json" if inference else "handshake-v1-cases.json")
+        ).read_bytes()
     )
 
 
 def python_case(native: Native, case: Case) -> Response:
     """Exercise the public compiled handle API and retain only bounded outcomes."""
     try:
+        managed_factory = (
+            native.ManagedV2Contract
+            if case.operation == "handshake_v2"
+            else native.ManagedContract
+        )
+        handshake_factory = (
+            native.HandshakeV2Contract
+            if case.operation == "handshake_v2"
+            else native.HandshakeContract
+        )
         if case.action == "parse":
-            record = native.HandshakeContract.from_json(case.name, case.source)
+            record = handshake_factory.from_json(case.name, case.source)
         else:
-            startup = native.ManagedContract.from_json("Startup", case.startup)
+            startup = managed_factory.from_json("Startup", case.startup)
             record = (
                 startup.hello(case.call_id)
                 if case.action == "create"
@@ -123,11 +143,17 @@ def main() -> None:
     parser.add_argument("--backend", choices=["rust", "python", "node"], default="rust")
     parser.add_argument("--report", type=Path)
     parser.add_argument("--node-facade", type=Path)
+    parser.add_argument("--inference", action="store_true")
     args = parser.parse_args()
-    inputs = fixture()
+    inputs = fixture(args.inference)
     if args.backend == "python":
         native = cast(Native, importlib.import_module("_skulk_capability_kernel"))
-        if native.handshake_profile_digest() != inputs.profile_digest:
+        digest = (
+            native.handshake_v2_profile_digest()
+            if args.inference
+            else native.handshake_profile_digest()
+        )
+        if digest != inputs.profile_digest:
             raise ValueError("Installed handshake profile differs")
         results = [python_case(native, case) for case in inputs.cases]
     else:

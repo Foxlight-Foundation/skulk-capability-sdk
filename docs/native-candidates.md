@@ -89,3 +89,10 @@ composition/2 reports partition 56 independently authored declaration and
 authority witnesses. Issued 0.6 profiles and assets remain unchanged. A new
 installation and call cohort is still required before hosts can execute these
 contracts; package acquisition does not grant inference or external processing.
+
+Native 0.7.0rc2 preserves those contracts and adds managed/2 and handshake/2
+installation/startup admission. Its inventory requires ten complete profile
+corpora, including 53 managed and 36 handshake witnesses, across Rust, Python
+and Node and offline installed language bindings. It uses a new candidate
+version rather than replacing rc1 artifacts. Call/media transport, installed
+host inference authority and real application migration remain separate gates.

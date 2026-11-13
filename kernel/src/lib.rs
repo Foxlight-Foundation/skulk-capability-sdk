@@ -11,9 +11,11 @@ pub mod composition;
 pub mod composition_v2;
 pub mod contracts;
 pub mod handshake;
+pub mod handshake_v2;
 #[cfg(unix)]
 pub mod journal;
 pub mod managed;
+pub mod managed_v2;
 pub mod portable;
 mod portable_json;
 mod portable_schema;

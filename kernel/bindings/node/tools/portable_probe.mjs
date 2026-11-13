@@ -22,6 +22,18 @@ for await (const line of createInterface({input: process.stdin, crlfDelay: Infin
         record = request.action === 'create' ? startup.hello(callId) : startup.admitHello(request.source, callId);
       }
       response = {canonical: Buffer.from(record.canonical()).toString('ascii')};
+    } else if (request.operation === 'managed_v2') {
+      const record = ManagedV2Contract.fromJson(request.name, request.source);
+      response = {canonical: Buffer.from(record.canonical()).toString('ascii'), digest: record.digest};
+    } else if (request.operation === 'handshake_v2') {
+      const callId = request.call_id ?? undefined;
+      let record;
+      if (request.action === 'parse') record = HandshakeV2Contract.fromJson(request.name, request.source);
+      else {
+        const startup = ManagedV2Contract.fromJson('Startup', request.startup);
+        record = request.action === 'create' ? startup.hello(callId) : startup.admitHello(request.source, callId);
+      }
+      response = {canonical: Buffer.from(record.canonical()).toString('ascii')};
     } else if (request.operation === 'contract') {
       const record = PortableContract.fromJson(request.name, request.source);
       response = {canonical: Buffer.from(record.canonical()).toString('ascii'), digest: record.digest};

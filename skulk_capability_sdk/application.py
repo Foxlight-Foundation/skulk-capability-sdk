@@ -36,6 +36,7 @@ _OBJECTS = TypeAdapter(list[dict[str, JsonValue]])
 _SECONDS: TypeAdapter[float | None] = TypeAdapter(float | None)
 _DEADLINE: TypeAdapter[int | None] = TypeAdapter(int | None)
 _NUMBER = TypeAdapter(float)
+_INTEGER = TypeAdapter(int)
 type StreamMode = Literal["server_streaming", "client_streaming", "bidirectional"]
 
 
@@ -87,11 +88,32 @@ class _Native(Protocol):
 
 
 def _native() -> _Native:
-    if importlib.metadata.version("skulk-capability-kernel") != "0.7.0rc3":
+    if importlib.metadata.version("skulk-capability-kernel") not in {
+        "0.7.0rc3",
+        "0.7.0rc4",
+    }:
         raise ValueError("native application requires the explicit execution cohort")
     return cast(
         _Native, cast(object, importlib.import_module("_skulk_capability_kernel"))
     )
+
+
+@dataclass(slots=True)
+class _InvocationJob:
+    """Keep result publication separate from cancellable generation and cleanup."""
+
+    task: asyncio.Task[None] | None = None
+    work: asyncio.Task[None] | None = None
+    cancelled: bool = False
+
+    def cancel(self) -> None:
+        self.cancelled = True
+        if (
+            self.work is not None
+            and not self.work.done()
+            and self.work.cancelling() == 0
+        ):
+            self.work.cancel()
 
 
 async def _finish_owned[Value](task: asyncio.Task[Value]) -> Value:
@@ -403,7 +425,8 @@ class CapabilityApp:
             2 * _NUMBER.validate_python(bounds["health_seconds"], strict=True),
         )
         control = await native.open_call_v2_control(startup, control_seconds)
-        tasks: dict[str, asyncio.Task[None]] = {}
+        jobs: dict[str, _InvocationJob] = {}
+        capacity = _INTEGER.validate_python(bounds["concurrency"], strict=True)
 
         def frame(kind: str, **fields: JsonValue) -> str:
             return json.dumps(
@@ -418,12 +441,16 @@ class CapabilityApp:
                 allow_nan=False,
             )
 
-        async def execute(request: dict[str, JsonValue], body: bytes) -> None:
+        async def execute(
+            job: _InvocationJob, request: dict[str, JsonValue], body: bytes
+        ) -> None:
             call_id = _TEXT.validate_python(request["call_id"], strict=True)
             result: dict[str, JsonValue] = {}
             encoded = b""
             error: str | None = None
             try:
+                if job.cancelled:
+                    raise asyncio.CancelledError
                 context = native.CompositionV3Contract.from_json(
                     "Context", json.dumps(request["context"])
                 )
@@ -497,7 +524,8 @@ class CapabilityApp:
                             seconds,
                         )
 
-                await _during(handle, seconds)
+                job.work = asyncio.create_task(_during(handle, seconds))
+                await asyncio.shield(job.work)
                 encoded = json.dumps(result, allow_nan=False).encode()
                 native.encode_call_v2_frame(
                     frame(
@@ -548,27 +576,39 @@ class CapabilityApp:
                         b"",
                     )
                 elif kind == "invoke":
-                    if any(not task.done() for task in tasks.values()):
+                    for identifier, job in list(jobs.items()):
+                        if job.task is not None and job.task.done():
+                            job.task.result()
+                            del jobs[identifier]
+                    if len(jobs) >= capacity:
                         raise ValueError("application workload capacity exceeded")
-                    await asyncio.gather(*tasks.values())
                     call_id = _TEXT.validate_python(request["call_id"], strict=True)
-                    tasks = {call_id: asyncio.create_task(execute(request, body))}
+                    if call_id in jobs:
+                        raise ValueError("application call identity already active")
+                    job = _InvocationJob()
+                    jobs[call_id] = job
+                    job.task = asyncio.create_task(execute(job, request, body))
                 elif kind == "cancel":
                     call_id = _TEXT.validate_python(request["call_id"], strict=True)
-                    if call_id not in tasks:
-                        raise ValueError("application cancellation binding differs")
-                    if tasks[call_id].cancelling() == 0:
-                        tasks[call_id].cancel()
+                    # Cancel behavior once. A late cancel cannot interrupt a
+                    # result frame whose cleanup and publication we already own.
+                    # A settled call may already have been collected while its
+                    # result crossed the socket. Cancellation is idempotent;
+                    # an absent ID creates no work and grants no authority.
+                    if call_id in jobs:
+                        jobs[call_id].cancel()
                 else:
                     raise ValueError("application control direction refused")
         finally:
 
             async def close() -> None:
                 try:
-                    for task in tasks.values():
-                        if not task.done() and task.cancelling() == 0:
-                            task.cancel()
-                    await asyncio.gather(*tasks.values(), return_exceptions=True)
+                    for job in jobs.values():
+                        job.cancel()
+                    await asyncio.gather(
+                        *(job.task for job in jobs.values() if job.task is not None),
+                        return_exceptions=True,
+                    )
                 finally:
                     await control.close()
 

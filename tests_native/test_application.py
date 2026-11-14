@@ -192,7 +192,9 @@ class Peer:
 
 
 @asynccontextmanager
-async def running(app: CapabilityApp, mode: Mode = "unary") -> AsyncGenerator[Peer]:
+async def running(
+    app: CapabilityApp, mode: Mode = "unary", *, concurrency: int = 1
+) -> AsyncGenerator[Peer]:
     """Use real compiled startup/control/stream channels and drain all sockets."""
     writers: list[asyncio.StreamWriter] = []
     connected: asyncio.Queue[tuple[asyncio.StreamReader, asyncio.StreamWriter]] = (
@@ -207,6 +209,14 @@ async def running(app: CapabilityApp, mode: Mode = "unary") -> AsyncGenerator[Pe
             str(Path(directory) / "stream"),
         )
         value = startup_value(control_path, stream_path, mode)
+        manifest = _OBJECT.validate_python(value["manifest"])
+        bounds = _OBJECT.validate_python(manifest["bounds"])
+        bounds["concurrency"] = concurrency
+        manifest["bounds"] = bounds
+        value["manifest"] = manifest
+        value["manifest_digest"] = native.ManagedV2Contract.from_json(
+            "Manifest", document(manifest).decode()
+        ).digest
         record = native.ManagedV2Contract.from_json("Startup", document(value).decode())
 
         def accept(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -498,3 +508,102 @@ async def test_uncapped_generation_remains_healthy_past_thirty_seconds() -> None
         release.set()
         value, body = await peer.receive()
         assert value["error"] is None and json.loads(body) == {"ok": True}
+
+
+async def test_signed_concurrent_roots_cancel_and_clean_up_independently() -> None:
+    """One cancelled root's cleanup cannot withdraw another admitted live root."""
+    entered = {name: asyncio.Event() for name in ["call-1", "call-2"]}
+    cleaning, release, second = asyncio.Event(), asyncio.Event(), asyncio.Event()
+
+    async def handler(call: Invocation) -> dict[str, JsonValue]:
+        if call.call_id == "call-3":
+            return {"next": True}
+        entered[call.call_id].set()
+        if call.call_id == "call-2":
+            await second.wait()
+            return {"second": True}
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cleaning.set()
+            await release.wait()
+        return {}
+
+    app = CapabilityApp()
+    app.unary("example", handler)
+    async with running(app, concurrency=2) as peer:
+        await peer.invoke("call-1")
+        await entered["call-1"].wait()
+        await peer.invoke("call-2")
+        await entered["call-2"].wait()
+        await peer.send("cancel", call_id="call-1")
+        await cleaning.wait()
+        await peer.send("cancel", call_id="call-1")
+        await peer.health()
+        second.set()
+        value, body = await peer.receive()
+        assert value["call_id"] == "call-2" and value["error"] is None
+        assert json.loads(body) == {"second": True}
+        release.set()
+        value, body = await peer.receive()
+        assert value["call_id"] == "call-1" and value["error"] == "cancelled"
+        assert body == b""
+        await peer.invoke("call-3")
+        value, body = await peer.receive()
+        assert value["error"] is None and json.loads(body) == {"next": True}
+
+
+async def test_late_cancel_cannot_interrupt_backpressured_result_publication() -> None:
+    """Actual socket backpressure and late cancellation preserve framing and reuse."""
+    content = "x" * 8_388_608
+
+    async def handler(call: Invocation) -> dict[str, JsonValue]:
+        return {"output": content if call.call_id == "call-1" else "next"}
+
+    app = CapabilityApp()
+    app.unary("example", handler)
+    async with running(app) as peer:
+        await peer.invoke()
+        # Consuming only the header leaves a body far larger than Unix socket
+        # buffers blocked in publication after handler/resources have completed.
+        raw = await header(peer.reader)
+        value = _OBJECT.validate_json(raw)
+        assert value["call_id"] == "call-1" and value["error"] is None
+        await peer.send("cancel", call_id="call-1")
+        await peer.send("cancel", call_id="call-1")
+        await asyncio.sleep(0.03)
+        body = await peer.reader.readexactly(native.call_v2_payload_size(raw.decode()))
+        _, payload = native.decode_call_v2_frame(
+            len(raw).to_bytes(4, "big") + raw + body
+        )
+        assert json.loads(payload) == {"output": content}
+        await peer.health()
+        await peer.invoke("call-2")
+        value, body = await peer.receive()
+        assert value["error"] is None and json.loads(body) == {"output": "next"}
+
+
+async def test_late_cancel_after_collection_cannot_withdraw_another_root() -> None:
+    """A completed call's in-flight cancellation is an idempotent no-op."""
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def handler(call: Invocation) -> dict[str, JsonValue]:
+        if call.call_id == "call-2":
+            entered.set()
+            await release.wait()
+        return {"output": call.call_id}
+
+    app = CapabilityApp()
+    app.unary("example", handler)
+    async with running(app, concurrency=2) as peer:
+        await peer.invoke("call-1")
+        value, _ = await peer.receive()
+        assert value["error"] is None
+        await peer.invoke("call-2")
+        await entered.wait()
+        await peer.send("cancel", call_id="call-1")
+        await peer.health()
+        release.set()
+        value, body = await peer.receive()
+        assert value["call_id"] == "call-2" and value["error"] is None
+        assert json.loads(body) == {"output": "call-2"}

@@ -186,3 +186,26 @@ does not establish any of those installed behaviors.
 Candidate manifests include both versions; consumers must select the full
 versioned profile ID instead of collapsing entries to a family name.
 This contract does not select a router, classifier, provider or model.
+
+
+## Native host observer API (0.7.0rc4)
+
+Python `TransportV2Observer` and the equivalent Node wrapper observe exact call
+identity, direction, mode, sequence, independent half-close, and terminal/end
+through the shared native lifecycle. `accept_input` / `accept_output` (Node
+`acceptInput` / `acceptOutput`) admit complete protocol-six packets and return
+canonical projections plus separate raw media. Invalid observations permanently
+fence the observer. Inspecting or serializing it reveals no call or content.
+
+`transport_v2_media_size` (Node `transportV2MediaSize`) validates a bounded header
+before a host allocates the media body. The complete packet must still be admitted;
+a valid allocation hint does not prove framing, sequencing or authority.
+
+`input_completed`, `output_terminated`, `finished` and `failed` are independent
+structural observations. A terminal alone does not prove cleanup: `finished`
+requires its matching end. Even that pair does not authenticate a caller, consume
+a one-use startup/stream grant, prove an application control result or authorize
+delivery. The host must enforce these separately, along with current policy,
+signed schemas, bounded queues, process custody and cancellation cleanup. No
+profile fingerprint, issued contract, output allowance or generation lifetime is
+changed by this additive API.

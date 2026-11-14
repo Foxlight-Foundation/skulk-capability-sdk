@@ -186,6 +186,7 @@ def main() -> None:
                 "pytest",
                 "-q",
                 "kernel/bindings/python/tests",
+                "tests_native",
                 "--basetemp",
                 str(OUTPUT / "python-test-scratch"),
             ],

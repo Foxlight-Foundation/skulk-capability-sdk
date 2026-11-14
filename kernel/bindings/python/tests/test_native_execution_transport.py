@@ -12,6 +12,85 @@ import pytest
 from tools.check_transport_profile import Native, fixture, python_case
 
 
+def test_host_observer_binding_lifecycle_witnesses() -> None:
+    """Use the same bounded lifecycle witnesses as the real Node binding."""
+    path = Path(__file__).resolve().parents[3] / "contracts/host-observer-cases.json"
+    traces = json.loads(path.read_text())["traces"]
+    for trace in traces:
+        observer = native.TransportV2Observer("call", trace["mode"])
+        for item in trace["steps"]:
+            wire = native.encode_transport_v2_packet(
+                json.dumps(item["projection"]), bytes.fromhex(item["media_hex"])
+            )
+            accept = (
+                observer.accept_input
+                if item["side"] == "input"
+                else observer.accept_output
+            )
+            if item["expected"][3]:
+                with pytest.raises(ValueError):
+                    accept(wire)
+            else:
+                projection, media = accept(wire)
+                assert json.loads(projection) == json.loads(
+                    native.decode_transport_v2_packet(wire)[0]
+                )
+                assert media.hex() == item["media_hex"]
+            assert [
+                observer.input_completed,
+                observer.output_terminated,
+                observer.finished,
+                observer.failed,
+            ] == item["expected"], trace["id"]
+        assert repr(observer) == "TransportV2Observer()"
+    for call_id, mode in [
+        ("", "bidirectional"),
+        ("call", "unary"),
+        ("\ud800", "bidirectional"),
+        ("call", "\ud800"),
+    ]:
+        with pytest.raises(ValueError):
+            native.TransportV2Observer(call_id, mode)
+    for raw in [b"", b"\x00", b"\x00\x00\x00\x02{}"]:
+        observer = native.TransportV2Observer("call", "bidirectional")
+        with pytest.raises(ValueError):
+            observer.accept_output(raw)
+        assert observer.failed
+
+
+def test_host_header_hint_is_bounded_and_profile_specific() -> None:
+    """Refuse oversized or foreign hints before a host allocates media bytes."""
+    wire = native.encode_transport_v2_packet(
+        json.dumps(
+            {
+                "call_id": "call",
+                "direction": "provider_to_caller",
+                "sequence": 1,
+                "kind": "chunk",
+                "media": {"kind": "inline", "media_type": "audio/pcm"},
+            }
+        ),
+        b"\x00\xff",
+    )
+    size = int.from_bytes(wire[:4], "big")
+    header = wire[4 : 4 + size]
+    assert native.transport_v2_media_size(header) == 2
+    original = json.loads(header)
+    for field, value in [
+        ("media_size", 1048577),
+        ("protocol", 4),
+        ("profile_digest", "0" * 64),
+        ("media_size", True),
+    ]:
+        with pytest.raises(ValueError):
+            native.transport_v2_media_size(
+                json.dumps(dict(original, **{field: value})).encode()
+            )
+    for invalid in [b"", b"x" * 65537, b"\xff"]:
+        with pytest.raises(ValueError):
+            native.transport_v2_media_size(invalid)
+
+
 def startup(socket: str) -> native.ManagedV2Contract:
     """Use an independently captured synthetic managed startup with no account."""
     root = Path(__file__).resolve().parents[4]

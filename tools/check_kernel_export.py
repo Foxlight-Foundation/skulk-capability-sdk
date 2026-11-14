@@ -112,6 +112,8 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/tests/host_streams.rs",
+        "kernel/contracts/host-observer-cases.json",
         "kernel/bindings/node/tests/execution-transport.test.mjs",
         "kernel/bindings/node/tests/execution-calls.test.mjs",
         "kernel/bindings/python/tests/test_native_execution_transport.py",

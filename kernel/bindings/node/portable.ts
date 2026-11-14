@@ -476,3 +476,39 @@ export async function openCallV2Control(startup: ManagedV2Contract, seconds: num
     close: () => channel.close(),
   });
 }
+
+/** Validate a header before allocating media; still admit the complete packet. */
+export function transportV2MediaSize(header: Uint8Array): number {
+  return native.transportV2MediaSize(Buffer.from(header));
+}
+
+/** Pure protocol-six host observation. This object does not authenticate callers,
+ * consume startup grants, dispatch work, or replace the required control result. */
+export class TransportV2Observer {
+  readonly #observer: InstanceType<typeof native.TransportV2Observer>;
+  /** Bind one actual call identity and a declared non-unary mode. */
+  constructor(callId: string, mode: 'server_streaming' | 'client_streaming' | 'bidirectional') {
+    this.#observer = new native.TransportV2Observer(callId, mode);
+    Object.freeze(this);
+  }
+  /** Admit caller frames and half-close using the shared compiled lifecycle. */
+  acceptInput(packet: Uint8Array): {projection: string; media: Uint8Array} {
+    return this.#observer.acceptInput(Buffer.from(packet));
+  }
+  /** Admit provider frames and exactly one matching terminal/end pair. */
+  acceptOutput(packet: Uint8Array): {projection: string; media: Uint8Array} {
+    return this.#observer.acceptOutput(Buffer.from(packet));
+  }
+  /** Observe a successful caller half-close or a server-only input direction. */
+  get inputCompleted(): boolean { return this.#observer.inputCompleted; }
+  /** A terminal alone never proves cleanup or control completion. */
+  get outputTerminated(): boolean { return this.#observer.outputTerminated; }
+  /** Require the exact terminal/end pair; host authority stays separate. */
+  get finished(): boolean { return this.#observer.finished; }
+  /** Any invalid packet permanently fences this observer. */
+  get failed(): boolean { return this.#observer.failed; }
+  /** Avoid implicit diagnostic serialization of call identity or frame content. */
+  toJSON(): {kind: string} { return {kind: 'TransportV2Observer'}; }
+  /** Keep routine inspection free of call identities and payloads. */
+  [inspect.custom](): string { return 'TransportV2Observer()'; }
+}

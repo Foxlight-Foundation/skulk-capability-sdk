@@ -5,7 +5,7 @@ operations, transactional storage, streaming media and declared credential reads
 The SDK is licensed under [MIT](LICENSE.md). Source and package downloads require
 no Foxlight account. A publishing account is separate from runtime authority.
 
-SDK0.5.9rc1 retains the qualified protocol-4 authoring interfaces.
+SDK0.5.9rc2 retains the qualified protocol-4 authoring interfaces.
 Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
 `CapabilityApp` have separate qualification gates. The new explicit

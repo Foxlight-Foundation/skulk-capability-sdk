@@ -685,7 +685,9 @@ class CapabilityApp:
                                 "media": output.media_metadata,
                                 "error": None
                                 if output.error is None
-                                else {"code": output.error},
+                                # Native terminals require a message. Keep it
+                                # empty so backend exception text cannot leak.
+                                else {"code": output.error, "message": ""},
                             }
                             await stream.send_output(
                                 json.dumps(projection, allow_nan=False), output.media

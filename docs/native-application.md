@@ -1,6 +1,6 @@
 # Native Python application runtime
 
-SDK **0.5.9rc1** provides `skulk_capability_sdk.application` as an explicit
+SDK **0.5.9rc2** provides `skulk_capability_sdk.application` as an explicit
 prerelease author runtime. The existing protocol-4 modules retain their frozen
 schemas and bytes. Importing the SDK does not import a native extension or select
 a runtime. This module requires the separately installed, immutable native
@@ -111,7 +111,9 @@ JSON schema. A blob reference remains metadata: the SDK never fetches caller
 URLs or resolves paths supplied by a frame.
 
 An output iterator supplies chunks followed by exactly one `completed`, `failed`
-or `cancelled` terminal. After the first terminal, the runtime closes the iterator without resuming
+or `cancelled` terminal. Declared failure/cancellation codes carry an empty,
+sanitized message; backend exception text is never included. After the first
+terminal, the runtime closes the iterator without resuming
 ordinary handler code. Put teardown in `finally` or register invocation resources.
 The compiled channel holds the terminal until protected iterator/resource
 cleanup finishes; then it sends one end marker. Control completion follows stream

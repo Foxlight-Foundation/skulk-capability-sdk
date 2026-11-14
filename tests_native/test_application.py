@@ -452,6 +452,84 @@ async def test_stream_media_halfclose_and_terminal_after_cleanup(mode: Mode) -> 
         assert value["error"] is None and json.loads(body) == {}
 
 
+@pytest.mark.parametrize(
+    "mode", ["server_streaming", "client_streaming", "bidirectional"]
+)
+@pytest.mark.parametrize("kind", ["failed", "cancelled"])
+async def test_declared_stream_failure_waits_for_cleanup_and_allows_reuse(
+    mode: Mode, kind: Literal["failed", "cancelled"]
+) -> None:
+    """Actual native terminals stay sanitized and publish only after cleanup."""
+    cleaning, release = asyncio.Event(), asyncio.Event()
+
+    async def handler(
+        call: Invocation, inputs: AsyncIterator[InputFrame]
+    ) -> AsyncGenerator[OutputFrame]:
+        if mode != "server_streaming":
+            assert [frame.projection["kind"] async for frame in inputs] == [
+                "started",
+                "completed",
+            ]
+        if call.call_id == "call-2":
+            yield OutputFrame("completed", {"output": "next"})
+            return
+        try:
+            yield OutputFrame(
+                kind, error="provider_error" if kind == "failed" else "cancelled"
+            )
+        finally:
+            cleaning.set()
+            await release.wait()
+
+    app = CapabilityApp()
+    app.stream("example", handler)
+    async with running(app, mode) as peer:
+        for call_id in ["call-1", "call-2"]:
+            await peer.invoke(call_id)
+            reader, writer = await asyncio.wait_for(peer.streams.get(), 3)
+            hello = _OBJECT.validate_json(await header(reader))
+            assert hello["call_id"] == call_id
+            if mode != "server_streaming":
+                for sequence, input_kind in enumerate(["started", "completed"]):
+                    writer.write(
+                        native.encode_transport_v2_packet(
+                            document(
+                                {
+                                    "call_id": call_id,
+                                    "direction": "caller_to_provider",
+                                    "sequence": sequence,
+                                    "kind": input_kind,
+                                }
+                            ).decode(),
+                            b"",
+                        )
+                    )
+                await writer.drain()
+            pending = asyncio.create_task(header(reader))
+            if call_id == "call-1":
+                await asyncio.wait_for(cleaning.wait(), 3)
+                await peer.health()
+                assert not pending.done()
+                release.set()
+            terminal = _OBJECT.validate_python(
+                _OBJECT.validate_json(await asyncio.wait_for(pending, 3))["frame"]
+            )
+            if call_id == "call-1":
+                assert terminal["kind"] == kind
+                assert terminal["error"] == {
+                    "code": "provider_error" if kind == "failed" else "cancelled",
+                    "message": "",
+                }
+            else:
+                assert terminal["kind"] == "completed"
+                assert terminal["payload"] == {"output": "next"}
+            end = _OBJECT.validate_json(await header(reader))
+            assert _OBJECT.validate_python(end["frame"])["kind"] == "end"
+            value, body = await peer.receive()
+            assert value["error"] is None and json.loads(body) == {}
+        await peer.health()
+
+
 async def test_timeout_waits_for_handler_cleanup() -> None:
     """An explicit finite generation budget terminates with a sanitized timeout."""
     closed = asyncio.Event()

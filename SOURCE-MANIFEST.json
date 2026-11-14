@@ -73,8 +73,8 @@
       "adjustment": "Standalone-package import grouping only"
     },
     "skulk_capability_sdk/application.py": {
-      "source_sha256": "4b6e488810767ad33a4a8c4a0e84129e824f4078c66958214672c3b14ec58a71",
-      "exported_sha256": "4b6e488810767ad33a4a8c4a0e84129e824f4078c66958214672c3b14ec58a71",
+      "source_sha256": "194f3179933a840eb75a1337fadef4db3206871dd6323404e06ec4afd51f07b6",
+      "exported_sha256": "194f3179933a840eb75a1337fadef4db3206871dd6323404e06ec4afd51f07b6",
       "adjustment": "Public native author runtime addition; no private host/provider source or imports"
     }
   }

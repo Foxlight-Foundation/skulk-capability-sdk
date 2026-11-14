@@ -257,6 +257,12 @@ class Invocation:
     context: CallContext = field(repr=False)
     _resources: AsyncExitStack = field(default_factory=AsyncExitStack, repr=False)
 
+    @property
+    def version(self) -> str:
+        """Return the exact signed capability version admitted for this invocation."""
+        target = _OBJECT.validate_python(self.context.export()["executor"], strict=True)
+        return _TEXT.validate_python(target["version"], strict=True)
+
     async def enter_resource[Resource](
         self, context: AbstractAsyncContextManager[Resource]
     ) -> Resource:
@@ -304,6 +310,24 @@ type StreamHandler = Callable[
     [Invocation, AsyncIterator[InputFrame]], AsyncGenerator[OutputFrame]
 ]
 type SurfaceReports = Callable[[], list[dict[str, JsonValue]]]
+type _HandlerKey = tuple[str, str | None]
+
+
+def _bound_handlers[Handler](
+    registered: dict[_HandlerKey, Handler],
+    descriptors: dict[tuple[str, str], dict[str, JsonValue]],
+) -> dict[_HandlerKey, Handler]:
+    bound: dict[_HandlerKey, Handler] = {}
+    for (identifier, version), handler in registered.items():
+        matches = [
+            key
+            for key in descriptors
+            if key[0] == identifier and (version is None or key[1] == version)
+        ]
+        if len(matches) != 1 or matches[0] in bound:
+            raise ValueError("application handler version is ambiguous or undeclared")
+        bound[matches[0]] = handler
+    return bound
 
 
 @final
@@ -323,27 +347,28 @@ class CapabilityApp:
         surfaces: SurfaceReports = lambda: [],
     ) -> None:
         """Configure cheap cached health observations; neither callback performs I/O."""
-        self._unary: dict[str, UnaryHandler] = {}
-        self._streams: dict[str, StreamHandler] = {}
+        self._unary: dict[_HandlerKey, UnaryHandler] = {}
+        self._streams: dict[_HandlerKey, StreamHandler] = {}
         self._setup, self._ready, self._surfaces = setup, ready, surfaces
         self._serving = False
 
-    def unary(self, capability_id: str, handler: UnaryHandler) -> None:
-        """Register one async unary handler before startup validation."""
-        self._register(capability_id)
-        self._unary[capability_id] = handler
+    def unary(
+        self, capability_id: str, handler: UnaryHandler, *, version: str | None = None
+    ) -> None:
+        """Register unary behavior; specify versions for multi-version IDs."""
+        self._register(capability_id, version)
+        self._unary[capability_id, version] = handler
 
-    def stream(self, capability_id: str, handler: StreamHandler) -> None:
-        """Register a server/client/bidirectional async output iterator."""
-        self._register(capability_id)
-        self._streams[capability_id] = handler
+    def stream(
+        self, capability_id: str, handler: StreamHandler, *, version: str | None = None
+    ) -> None:
+        """Register stream behavior with optional exact version selection."""
+        self._register(capability_id, version)
+        self._streams[capability_id, version] = handler
 
-    def _register(self, capability_id: str) -> None:
-        if (
-            self._serving
-            or capability_id in self._unary
-            or capability_id in self._streams
-        ):
+    def _register(self, capability_id: str, version: str | None) -> None:
+        key = capability_id, version
+        if self._serving or key in self._unary or key in self._streams:
             raise ValueError("application handler is already bound")
 
     async def serve(self, configuration_descriptor: int) -> None:
@@ -374,9 +399,14 @@ class CapabilityApp:
         manifest = _OBJECT.validate_python(value["manifest"], strict=True)
         contracts = _OBJECT.validate_python(manifest["contracts"], strict=True)
         descriptors = {
-            str(d["id"]): d
+            (
+                _TEXT.validate_python(d["id"], strict=True),
+                _TEXT.validate_python(d["version"], strict=True),
+            ): d
             for d in _OBJECTS.validate_python(contracts["descriptors"], strict=True)
         }
+        self._unary = _bound_handlers(self._unary, descriptors)
+        self._streams = _bound_handlers(self._streams, descriptors)
         if set(descriptors) != self._unary.keys() | self._streams.keys():
             raise ValueError("registered handlers differ from the signed manifest")
         for identifier, descriptor in descriptors.items():
@@ -414,7 +444,7 @@ class CapabilityApp:
         native: _Native,
         startup: _Record,
         value: dict[str, JsonValue],
-        descriptors: dict[str, dict[str, JsonValue]],
+        descriptors: dict[tuple[str, str], dict[str, JsonValue]],
     ) -> None:
         manifest = _OBJECT.validate_python(value["manifest"], strict=True)
         bounds = _OBJECT.validate_python(manifest["bounds"], strict=True)
@@ -457,7 +487,8 @@ class CapabilityApp:
                 fields = _OBJECT.validate_json(context.canonical())
                 target = _OBJECT.validate_python(fields["executor"], strict=True)
                 identifier = _TEXT.validate_python(target["capability_id"], strict=True)
-                descriptor = descriptors[identifier]
+                version = _TEXT.validate_python(target["version"], strict=True)
+                descriptor = descriptors[identifier, version]
                 mode = _TEXT.validate_python(descriptor["io_mode"], strict=True)
                 if (
                     target["node_id"] != value["node_id"]
@@ -506,7 +537,8 @@ class CapabilityApp:
                     if mode == "unary":
                         async with _owned_context(resources):
                             result = _OBJECT.validate_python(
-                                await self._unary[identifier](invocation), strict=True
+                                await self._unary[identifier, version](invocation),
+                                strict=True,
                             )
                             schema = descriptor["output_schema"]
                             if schema is not None and not native.PortableSchema(
@@ -649,7 +681,9 @@ class CapabilityApp:
                 async with _owned_context(aclosing(inputs())) as ingress:
                     async with _owned_context(
                         aclosing(
-                            self._streams[invocation.capability_id](invocation, ingress)
+                            self._streams[invocation.capability_id, invocation.version](
+                                invocation, ingress
+                            )
                         )
                     ) as outputs:
                         sequence = 1
@@ -669,7 +703,6 @@ class CapabilityApp:
                             result_schema = descriptor["output_schema"]
                             if (
                                 output.kind == "completed"
-                                and output.payload is not None
                                 and result_schema is not None
                                 and not native.PortableSchema(
                                     json.dumps(result_schema)

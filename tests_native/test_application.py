@@ -132,15 +132,21 @@ class Peer:
         payload: bytes = b'{ "input" : "hello" }',
         seconds: float | None = None,
         wrong_revision: bool = False,
+        version: str | None = None,
+        wrong_version: bool = False,
     ) -> None:
         """Bind an original caller to exact target and raw request bytes."""
         manifest = _OBJECT.validate_python(self.startup["manifest"])
         contracts = _OBJECT.validate_python(manifest["contracts"])
-        descriptor = _OBJECTS.validate_python(contracts["descriptors"])[0]
+        descriptor = next(
+            d
+            for d in _OBJECTS.validate_python(contracts["descriptors"])
+            if version is None or d["version"] == version
+        )
         target: dict[str, JsonValue] = {
             "node_id": self.startup["node_id"],
             "capability_id": descriptor["id"],
-            "version": descriptor["version"],
+            "version": "9.9.9" if wrong_version else descriptor["version"],
             "behavior": descriptor["behavior"],
             "processing_domain": descriptor["processing_domain"],
             "descriptor_revision": "b" * 64
@@ -193,7 +199,12 @@ class Peer:
 
 @asynccontextmanager
 async def running(
-    app: CapabilityApp, mode: Mode = "unary", *, concurrency: int = 1
+    app: CapabilityApp,
+    mode: Mode = "unary",
+    *,
+    concurrency: int = 1,
+    variants: tuple[tuple[str, Mode], ...] = (),
+    result_schema: dict[str, JsonValue] | bool | None = None,
 ) -> AsyncGenerator[Peer]:
     """Use real compiled startup/control/stream channels and drain all sockets."""
     writers: list[asyncio.StreamWriter] = []
@@ -210,6 +221,31 @@ async def running(
         )
         value = startup_value(control_path, stream_path, mode)
         manifest = _OBJECT.validate_python(value["manifest"])
+        contracts = _OBJECT.validate_python(manifest["contracts"])
+        if variants:
+            descriptors: list[dict[str, JsonValue]] = []
+            for version, variant_mode in variants:
+                variant = startup_value(control_path, stream_path, variant_mode)
+                variant_manifest = _OBJECT.validate_python(variant["manifest"])
+                variant_contracts = _OBJECT.validate_python(
+                    variant_manifest["contracts"]
+                )
+                descriptor = _OBJECTS.validate_python(variant_contracts["descriptors"])[
+                    0
+                ]
+                descriptor["version"] = version
+                descriptors.append(descriptor)
+            contracts["descriptors"] = TypeAdapter(list[JsonValue]).validate_json(
+                document(descriptors)
+            )
+        if result_schema is not None:
+            result_descriptors = _OBJECTS.validate_python(contracts["descriptors"])
+            for descriptor in result_descriptors:
+                descriptor["output_schema"] = result_schema
+            contracts["descriptors"] = TypeAdapter(list[JsonValue]).validate_json(
+                document(result_descriptors)
+            )
+        manifest["contracts"] = contracts
         bounds = _OBJECT.validate_python(manifest["bounds"])
         bounds["concurrency"] = concurrency
         manifest["bounds"] = bounds
@@ -685,3 +721,43 @@ async def test_late_cancel_after_collection_cannot_withdraw_another_root() -> No
         value, body = await peer.receive()
         assert value["call_id"] == "call-2" and value["error"] is None
         assert json.loads(body) == {"output": "call-2"}
+
+
+async def test_distinct_versions_dispatch_their_signed_modes() -> None:
+    """The same ID can expose independently admitted unary and stream versions."""
+    observed: list[str] = []
+
+    async def unary(call: Invocation) -> dict[str, JsonValue]:
+        observed.append(call.version)
+        return {"unary": True}
+
+    async def stream(
+        call: Invocation, _inputs: AsyncIterator[InputFrame]
+    ) -> AsyncGenerator[OutputFrame]:
+        observed.append(call.version)
+        yield OutputFrame("completed", {"output": "version two"})
+
+    app = CapabilityApp()
+    app.unary("example", unary, version="1.0.0")
+    app.stream("example", stream, version="2.0.0")
+    async with running(
+        app, variants=(("1.0.0", "unary"), ("2.0.0", "server_streaming"))
+    ) as peer:
+        await peer.invoke(version="1.0.0")
+        response, body = await peer.receive()
+        assert response["error"] is None and json.loads(body) == {"unary": True}
+        await peer.invoke("call-2", version="2.0.0")
+        reader, _writer = await asyncio.wait_for(peer.streams.get(), 3)
+        await header(reader)
+        for kind in ("completed", "end"):
+            raw = await header(reader)
+            assert (
+                _OBJECT.validate_python(_OBJECT.validate_json(raw)["frame"])["kind"]
+                == kind
+            )
+        response, body = await peer.receive()
+        assert response["error"] is None and body == b"{}"
+        await peer.invoke("call-3", wrong_version=True)
+        response, body = await peer.receive()
+        assert response["error"] == "invalid_payload" and not body
+        assert observed == ["1.0.0", "2.0.0"]

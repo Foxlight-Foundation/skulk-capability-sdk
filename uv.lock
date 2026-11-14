@@ -689,7 +689,7 @@ wheels = [
 
 [[package]]
 name = "skulk-capability-sdk"
-version = "0.5.9rc2"
+version = "0.5.10rc1"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },

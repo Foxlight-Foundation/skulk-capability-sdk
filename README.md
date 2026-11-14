@@ -5,12 +5,12 @@ operations, transactional storage, streaming media and declared credential reads
 The SDK is licensed under [MIT](LICENSE.md). Source and package downloads require
 no Foxlight account. A publishing account is separate from runtime authority.
 
-SDK0.5.8rc1 retains the qualified protocol-4 authoring interfaces.
+SDK0.5.9rc1 retains the qualified protocol-4 authoring interfaces.
 Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
 `CapabilityApp` have separate qualification gates. The new explicit
 [native Python application runtime](docs/native-application.md) uses the published
-0.7.0rc3 execution candidate; installing this SDK does not switch an installed
+0.7.0rc3 or 0.7.0rc4 execution candidate; installing this SDK does not switch an installed
 runtime or migrate an application.
 
 Python 3.13 is required. The SDK itself needs no compiler, GPU, model or fleet

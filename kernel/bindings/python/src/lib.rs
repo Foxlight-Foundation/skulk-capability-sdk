@@ -984,6 +984,8 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(decode_transport_v2_control, module)?)?;
     module.add_function(wrap_pyfunction!(encode_transport_v2_packet, module)?)?;
     module.add_function(wrap_pyfunction!(decode_transport_v2_packet, module)?)?;
+    module.add_function(wrap_pyfunction!(transport_v2_media_size, module)?)?;
+    module.add_class::<TransportV2Observer>()?;
     module.add_function(wrap_pyfunction!(open_transport_v2_stream, module)?)?;
     module.add_function(wrap_pyfunction!(open_transport_v2_control, module)?)?;
     module.add_function(wrap_pyfunction!(calls_v2_profile_digest, module)?)?;
@@ -1515,6 +1517,83 @@ fn decode_transport_v2_packet<'py>(
         transport_v2::projection(&packet).map_err(stream_error)?,
         PyBytes::new(py, &packet.media),
     ))
+}
+
+/// Admit a bounded header hint before allocating its separate raw media body.
+#[pyfunction]
+fn transport_v2_media_size(header: &Bound<'_, PyBytes>) -> PyResult<usize> {
+    transport_v2::media_size(header.as_bytes()).map_err(stream_error)
+}
+
+/// Pure native host observation; no socket, credential or execution authority.
+#[pyclass(module = "_skulk_capability_kernel")]
+struct TransportV2Observer {
+    inner: streams::HostObserver,
+}
+
+#[pymethods]
+impl TransportV2Observer {
+    #[new]
+    fn new(call_id: &Bound<'_, PyString>, mode: &Bound<'_, PyString>) -> PyResult<Self> {
+        let call_id = portable_text(call_id)?;
+        let mode = portable_text(mode)?;
+        Ok(Self {
+            inner: streams::HostObserver::new(&call_id, &mode).map_err(stream_error)?,
+        })
+    }
+    /// Admit exact caller sequencing and half-close through the shared kernel.
+    fn accept_input<'py>(
+        &mut self,
+        py: Python<'py>,
+        bytes: &Bound<'_, PyBytes>,
+    ) -> PyResult<(String, Bound<'py, PyBytes>)> {
+        let packet = self
+            .inner
+            .accept_input(bytes.as_bytes())
+            .map_err(stream_error)?;
+        Ok((
+            transport_v2::projection(&packet).map_err(stream_error)?,
+            PyBytes::new(py, &packet.media),
+        ))
+    }
+    /// Admit provider output and its exact terminal/end acknowledgment.
+    fn accept_output<'py>(
+        &mut self,
+        py: Python<'py>,
+        bytes: &Bound<'_, PyBytes>,
+    ) -> PyResult<(String, Bound<'py, PyBytes>)> {
+        let packet = self
+            .inner
+            .accept_output(bytes.as_bytes())
+            .map_err(stream_error)?;
+        Ok((
+            transport_v2::projection(&packet).map_err(stream_error)?,
+            PyBytes::new(py, &packet.media),
+        ))
+    }
+    /// Report a successful half-close or server-only input direction.
+    #[getter]
+    fn input_completed(&self) -> bool {
+        self.inner.input_completed()
+    }
+    /// Report a terminal independently of the required end/control completion.
+    #[getter]
+    fn output_terminated(&self) -> bool {
+        self.inner.output_terminated()
+    }
+    /// Report the exact terminal/end pair, not host authorization or control success.
+    #[getter]
+    fn finished(&self) -> bool {
+        self.inner.finished()
+    }
+    /// Report an irreversible framing/lifecycle failure without content.
+    #[getter]
+    fn failed(&self) -> bool {
+        self.inner.failed()
+    }
+    fn __repr__(&self) -> &'static str {
+        "TransportV2Observer()"
+    }
 }
 /// Open the startup-bound stream endpoint, deriving its hello in native code.
 #[pyfunction]

@@ -987,6 +987,71 @@ pub fn decode_transport_v2_packet(bytes: Buffer) -> Result<NativePacket> {
         media: Buffer::from(packet.media),
     })
 }
+
+/// Admit a bounded header hint before allocating its separate raw media body.
+#[napi]
+pub fn transport_v2_media_size(header: Buffer) -> Result<u32> {
+    transport_v2::media_size(&header)
+        .map(|size| size as u32)
+        .map_err(stream_error)
+}
+
+/// Pure native host observation; no socket, credential or execution authority.
+#[napi]
+pub struct TransportV2Observer {
+    inner: streams::HostObserver,
+}
+
+#[napi]
+impl TransportV2Observer {
+    /// Bind a structural observer to an exact call and streaming mode.
+    #[napi(constructor)]
+    pub fn new(call_id: Utf16String, mode: Utf16String) -> Result<Self> {
+        let call_id = portable_text(call_id)?;
+        let mode = portable_text(mode)?;
+        Ok(Self {
+            inner: streams::HostObserver::new(&call_id, &mode).map_err(stream_error)?,
+        })
+    }
+    /// Admit exact caller sequencing and half-close through the shared kernel.
+    #[napi]
+    pub fn accept_input(&mut self, bytes: Buffer) -> Result<NativePacket> {
+        let packet = self.inner.accept_input(&bytes).map_err(stream_error)?;
+        Ok(NativePacket {
+            projection: transport_v2::projection(&packet).map_err(stream_error)?,
+            media: Buffer::from(packet.media),
+        })
+    }
+    /// Admit provider output and its exact terminal/end acknowledgment.
+    #[napi]
+    pub fn accept_output(&mut self, bytes: Buffer) -> Result<NativePacket> {
+        let packet = self.inner.accept_output(&bytes).map_err(stream_error)?;
+        Ok(NativePacket {
+            projection: transport_v2::projection(&packet).map_err(stream_error)?,
+            media: Buffer::from(packet.media),
+        })
+    }
+    /// Report a successful half-close or server-only input direction.
+    #[napi(getter)]
+    pub fn input_completed(&self) -> bool {
+        self.inner.input_completed()
+    }
+    /// Report a terminal independently of the required end/control completion.
+    #[napi(getter)]
+    pub fn output_terminated(&self) -> bool {
+        self.inner.output_terminated()
+    }
+    /// Report the exact terminal/end pair, not host authorization or control success.
+    #[napi(getter)]
+    pub fn finished(&self) -> bool {
+        self.inner.finished()
+    }
+    /// Report an irreversible framing/lifecycle failure without content.
+    #[napi(getter)]
+    pub fn failed(&self) -> bool {
+        self.inner.failed()
+    }
+}
 /// Derive endpoint and hello from native-admitted startup, never arbitrary hello text.
 #[napi]
 pub async fn open_transport_v2_stream(

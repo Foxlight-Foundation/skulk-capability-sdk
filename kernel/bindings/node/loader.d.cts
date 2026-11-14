@@ -3,6 +3,15 @@
 import type {Buffer} from 'node:buffer';
 
 type NativePacket = {projection: string; media: Buffer};
+declare class TransportV2Observer {
+  constructor(callId: string, mode: string);
+  acceptInput(packet: Buffer): NativePacket;
+  acceptOutput(packet: Buffer): NativePacket;
+  readonly inputCompleted: boolean;
+  readonly outputTerminated: boolean;
+  readonly finished: boolean;
+  readonly failed: boolean;
+}
 declare class PortableSchema {
   constructor(source: string);
   matches(source: string): boolean;
@@ -53,6 +62,8 @@ declare class NativeCallControl {
   close(): Promise<void>;
 }
 declare const native: {
+  TransportV2Observer: typeof TransportV2Observer;
+  transportV2MediaSize(header: Buffer): number;
   callsV2ProfileDigest(): string;
   callV2PayloadSize(source: string): number;
   encodeCallV2Frame(source: string, payload: Buffer): Buffer;

@@ -581,6 +581,97 @@ impl Lifecycle {
     }
 }
 
+/// Pure host-side observation of one protocol-six stream; this grants no rights.
+/// The enforcing host separately binds startup/call custody and current policy.
+/// Both directions use the same lifecycle as the native author session, while
+/// the provider end marker is observed independently from control completion.
+pub struct HostObserver {
+    state: Lifecycle,
+    call_id: Vec<u32>,
+    ended: bool,
+}
+
+impl HostObserver {
+    /// Bind an exact call and non-unary mode without opening a channel.
+    pub fn new(call_id: &str, mode: &str) -> Result<Self> {
+        if !identifier(call_id) {
+            return Err(StreamError::InvalidFrame);
+        }
+        Ok(Self {
+            state: Lifecycle {
+                input: Sequence::new(call_id, "caller_to_provider", 0),
+                output: Sequence::new(call_id, "provider_to_caller", 1),
+                mode: Mode::parse(mode)?,
+                terminal: None,
+                failure: None,
+                closed: false,
+            },
+            call_id: codec::points(call_id),
+            ended: false,
+        })
+    }
+
+    /// Admit one complete caller packet; invalid ingress permanently fences it.
+    pub fn accept_input(&mut self, bytes: &[u8]) -> Result<Packet> {
+        self.accept(bytes, true)
+    }
+
+    /// Admit provider output and exactly one matching end after its terminal.
+    /// A terminal alone is never evidence that the managed call completed.
+    pub fn accept_output(&mut self, bytes: &[u8]) -> Result<Packet> {
+        self.accept(bytes, false)
+    }
+
+    fn accept(&mut self, bytes: &[u8], input: bool) -> Result<Packet> {
+        let result = (|| {
+            self.state.alive()?;
+            let packet = transport_v2::decode_packet(bytes)?;
+            if input {
+                self.state.incoming(&packet)?;
+            } else if packet.is_end() {
+                if self.state.terminal.is_none()
+                    || get(packet.fields()?, "call_id")
+                        != Some(&Value::String(self.call_id.clone()))
+                {
+                    return Err(StreamError::Sequence);
+                }
+                // The bounded pending terminal is no longer needed after end.
+                self.state.terminal = None;
+                self.state.closed = true;
+                self.ended = true;
+            } else {
+                self.state.outgoing(packet.clone())?;
+            }
+            Ok(packet)
+        })();
+        if let Err(error) = result {
+            self.state.failure.get_or_insert(error);
+        }
+        result
+    }
+
+    /// Report a successful caller half-close, or a mode with no caller ingress.
+    pub fn input_completed(&self) -> bool {
+        self.state.failure.is_none()
+            && (self.state.mode == Mode::Server || self.state.input.terminal)
+    }
+
+    /// Report a provider terminal, independently of its later end marker.
+    pub fn output_terminated(&self) -> bool {
+        self.state.failure.is_none() && self.state.output.terminal
+    }
+
+    /// Require the exact terminal/end pair; control-result admission is external.
+    pub fn finished(&self) -> bool {
+        self.state.failure.is_none() && self.ended
+    }
+
+    /// Report irreversible framing/lifecycle failure without exposing content.
+    pub fn failed(&self) -> bool {
+        self.state.failure.is_some()
+    }
+}
+
 #[derive(Clone, Copy)]
 enum Wire {
     Legacy,

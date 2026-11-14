@@ -380,7 +380,7 @@ pub(crate) fn encode_packet_for(profile: TransportProfile, value: &Packet) -> Re
     bytes.extend_from_slice(&value.media);
     Ok(bytes)
 }
-fn header(profile: TransportProfile, bytes: &[u8]) -> Result<(String, usize)> {
+pub(crate) fn header(profile: TransportProfile, bytes: &[u8]) -> Result<(String, usize)> {
     let canonical = canonical(
         std::str::from_utf8(bytes).map_err(|_| StreamError::InvalidFrame)?,
         MAX_RECORD_BYTES,

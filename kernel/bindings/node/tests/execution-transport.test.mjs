@@ -133,3 +133,37 @@ test('nullable execution authority matches every independent canonical/refusal w
   const bytes=record.canonical();bytes.fill(0);assert.notDeepEqual(record.canonical(),bytes);
   assert.throws(()=>CompositionV2Contract.fromJson('Context',source));
 });
+
+import {TransportV2Observer, transportV2MediaSize} from '../dist/portable.js';
+test('host observer uses identical lifecycle witnesses through the public Node wrapper',()=>{
+  const {traces}=JSON.parse(readFileSync(new URL('../../../contracts/host-observer-cases.json',import.meta.url),'utf8'));
+  for(const trace of traces){
+    const observer=new TransportV2Observer('call',trace.mode);
+    for(const item of trace.steps){
+      const wire=native.encodeTransportV2Packet(JSON.stringify(item.projection),Buffer.from(item.media_hex,'hex'));
+      const accept=()=>item.side==='input'?observer.acceptInput(wire):observer.acceptOutput(wire);
+      if(item.expected[3]) assert.throws(accept,undefined,trace.id);
+      else {
+        const packet=accept();
+        assert.deepEqual(JSON.parse(packet.projection),JSON.parse(native.decodeTransportV2Packet(wire).projection));
+        assert.equal(Buffer.from(packet.media).toString('hex'),item.media_hex);
+      }
+      assert.deepEqual([observer.inputCompleted,observer.outputTerminated,observer.finished,observer.failed],item.expected,trace.id);
+    }
+    assert.equal(inspect(observer),'TransportV2Observer()');
+    assert.equal(JSON.stringify(observer),'{"kind":"TransportV2Observer"}');
+  }
+  for(const [call,mode] of [['','bidirectional'],['call','unary'],['\ud800','bidirectional'],['call','\ud800']]) assert.throws(()=>new native.TransportV2Observer(call,mode));
+  for(const bytes of [Buffer.alloc(0),Buffer.of(0),Buffer.from([0,0,0,2,123,125])]){
+    const observer=new TransportV2Observer('call','bidirectional');
+    assert.throws(()=>observer.acceptOutput(bytes));assert.equal(observer.failed,true);
+  }
+});
+test('host header hints refuse overflow, foreign profiles and malformed bytes before allocation',()=>{
+  const wire=native.encodeTransportV2Packet(JSON.stringify({call_id:'call',direction:'provider_to_caller',sequence:1,kind:'chunk',media:{kind:'inline',media_type:'audio/pcm'}}),Buffer.of(0,255));
+  const header=wire.subarray(4,4+wire.readUInt32BE(0));
+  assert.equal(transportV2MediaSize(header),2);
+  const original=JSON.parse(header);
+  for(const [field,value] of [['media_size',1048577],['protocol',4],['profile_digest','0'.repeat(64)],['media_size',true]]) assert.throws(()=>transportV2MediaSize(Buffer.from(JSON.stringify({...original,[field]:value}))));
+  for(const invalid of [Buffer.alloc(0),Buffer.alloc(65537,120),Buffer.of(255)]) assert.throws(()=>transportV2MediaSize(invalid));
+});

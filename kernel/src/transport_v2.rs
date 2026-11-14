@@ -83,6 +83,11 @@ pub fn encode_packet(packet: &Packet) -> Result<Vec<u8>> {
 pub fn decode_packet(bytes: &[u8]) -> Result<Packet> {
     transport::decode_packet_for(TransportProfile::Execution, bytes)
 }
+/// Validate a bounded header before the host allocates its separate media body.
+/// This hint never admits body bytes; decode the complete packet afterwards.
+pub fn media_size(header: &[u8]) -> Result<usize> {
+    transport::header(TransportProfile::Execution, header).map(|(_, size)| size)
+}
 /// Allow legitimate computation silence; bound partial prefix/header/body I/O.
 pub async fn read_packet(reader: &mut (impl AsyncRead + Unpin)) -> Result<Packet> {
     transport::read_packet_for(TransportProfile::Execution, reader).await

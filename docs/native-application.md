@@ -1,10 +1,12 @@
 # Native Python application runtime
 
-SDK **0.5.8rc1** introduces `skulk_capability_sdk.application` as an explicit
+SDK **0.5.9rc1** provides `skulk_capability_sdk.application` as an explicit
 prerelease author runtime. The existing protocol-4 modules retain their frozen
 schemas and bytes. Importing the SDK does not import a native extension or select
 a runtime. This module requires the separately installed, immutable native
-**0.7.0rc3** execution candidate; another version fails explicitly.
+**0.7.0rc3** or **0.7.0rc4** execution candidates; other versions fail explicitly.
+The rc4 candidate adds host observer APIs while preserving all thirteen wire
+profile identities. The author runtime uses the same execution ABI in both.
 
 Use the wheels from [native-v0.7.0-rc.3](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.3),
 verify their published SHA256SUMS and install the matching platform wheel.
@@ -84,8 +86,12 @@ signed startup/health bounds, independently of model output and generation
 lifetime. A quiet model is not a failed model. Handlers must yield control to the
 event loop, using owned asynchronous resources for provider and media work.
 
-One application currently runs one active call. A second concurrent invoke is a
-channel fault, not queued work or permission to create another effect. Durable
+An application admits up to its signed `bounds.concurrency` live calls (default
+one). Excess admission and duplicate active IDs fault the channel; there is no
+unbounded queue. Cancellation and cleanup belong to each call independently.
+After behavior and cleanup finish, the runtime retains ownership of result
+publication: a late cancel cannot interrupt a partially written result frame.
+The host still decides whether a cancelled result may be delivered. Durable
 operations, author-side delegated calls, declared credentials/preflight, settings
 refresh and TypeScript parity are not implemented by this module.
 
@@ -134,6 +140,7 @@ not a Python replacement validator. It covers exact bytes/original context,
 refusal before behavior, all three streaming modes, separate media, schema and
 terminal refusals, handler/application cleanup (including cancellation during natural terminal or
 schema-refusal teardown), invocation resource custody, repeated cancellation, explicit
-finite timeout and over-thirty-second silent generation with live health. Real
+finite timeout, signed concurrent call isolation, backpressured result publication
+with late cancellation, and over-thirty-second silent generation with live health. Real
 signed installation and protected application-state migration remain separate
 acceptance gates.

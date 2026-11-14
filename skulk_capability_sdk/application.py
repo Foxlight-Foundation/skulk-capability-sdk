@@ -407,7 +407,10 @@ class CapabilityApp:
         }
         self._unary = _bound_handlers(self._unary, descriptors)
         self._streams = _bound_handlers(self._streams, descriptors)
-        if set(descriptors) != self._unary.keys() | self._streams.keys():
+        if (
+            self._unary.keys() & self._streams.keys()
+            or set(descriptors) != self._unary.keys() | self._streams.keys()
+        ):
             raise ValueError("registered handlers differ from the signed manifest")
         for identifier, descriptor in descriptors.items():
             if (descriptor["io_mode"] == "unary") != (identifier in self._unary):

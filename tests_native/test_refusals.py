@@ -164,3 +164,29 @@ async def test_explicit_null_result_schema_accepts_null_terminal() -> None:
             )
         response, body = await peer.receive()
         assert response["error"] is None and body == b"{}"
+
+
+async def test_cross_mode_alias_collision_refuses_before_connect() -> None:
+    """Explicit and shorthand names cannot silently discard a handler after binding."""
+
+    async def unary(_call: Invocation) -> dict[str, JsonValue]:
+        raise AssertionError("startup must refuse before effects")
+
+    async def stream(
+        _call: Invocation, _inputs: AsyncIterator[InputFrame]
+    ) -> AsyncGenerator[OutputFrame]:
+        raise AssertionError("startup must refuse before effects")
+        yield OutputFrame("completed")
+
+    app = CapabilityApp()
+    app.unary("example", unary)
+    app.stream("example", stream, version="1.0.0")
+    value = startup_value(
+        "/tmp/no-control-listener", "/tmp/no-stream-listener", "unary"
+    )
+    record = native.ManagedV2Contract.from_json("Startup", document(value).decode())
+    with tempfile.TemporaryFile() as source:
+        source.write(record.canonical())
+        source.seek(0)
+        with pytest.raises(ValueError, match="registered handlers differ"):
+            await app.serve(os.dup(source.fileno()))

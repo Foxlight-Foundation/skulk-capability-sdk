@@ -1,6 +1,6 @@
 # Native Python application runtime
 
-SDK **0.5.9rc2** provides `skulk_capability_sdk.application` as an explicit
+SDK **0.5.10rc1** provides `skulk_capability_sdk.application` as an explicit
 prerelease author runtime. The existing protocol-4 modules retain their frozen
 schemas and bytes. Importing the SDK does not import a native extension or select
 a runtime. This module requires the separately installed, immutable native
@@ -58,7 +58,12 @@ app.stream("example.speech", speak)
 The signed manifest must declare exactly these IDs, their actual behavior,
 processing domain, version, schema and I/O modes. A unary registration cannot
 stand in for a stream registration. Register before `serve`; registration is
-frozen even when startup fails. Do not point the legacy source-starter/build
+frozen even when startup fails. When a signed ID has several versions, register
+all of them explicitly with `version="1.0.0"` (and the other exact versions).
+The version-less shorthand is accepted only for a unique signed ID; ambiguous
+or undeclared registrations fail before setup or connection. Calls never fall
+back to a different version or mode. `Invocation.version` exposes the admitted
+executor version. Do not point the legacy source-starter/build
 commands at a native app and assume they generate the new signed cohort. Native
 author packaging/onboarding is a separate delivery step.
 
@@ -106,7 +111,9 @@ resource fences. There is no aggregate output-token or media-byte allowance.
 The compiled transport owns framing, separate per-frame media bounds,
 per-direction sequences, half-close and terminal/end state. JSON input/output
 chunks are checked against the exact declared portable schemas; completed payloads
-use the declared output schema. A binary-only chunk is not required to satisfy a
+use the declared output schema, including a missing or null completed payload.
+Portable JSON values are bounded at 64 KiB by the frozen portable/2 profile; use
+declared caller-streaming or bidirectional binary media for larger inputs. A binary-only chunk is not required to satisfy a
 JSON schema. A blob reference remains metadata: the SDK never fetches caller
 URLs or resolves paths supplied by a frame.
 

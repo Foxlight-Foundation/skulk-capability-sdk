@@ -5,11 +5,13 @@ operations, transactional storage, streaming media and declared credential reads
 The SDK is licensed under [MIT](LICENSE.md). Source and package downloads require
 no Foxlight account. A publishing account is separate from runtime authority.
 
-This Python release retains the qualified protocol-4 authoring interfaces.
+SDK0.5.8rc1 retains the qualified protocol-4 authoring interfaces.
 Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
-`CapabilityApp` are separate release gates; this package does not switch the
-installed runtime to unfinished native code.
+`CapabilityApp` have separate qualification gates. The new explicit
+[native Python application runtime](docs/native-application.md) uses the published
+0.7.0rc3 execution candidate; installing this SDK does not switch an installed
+runtime or migrate an application.
 
 Python 3.13 is required. The SDK itself needs no compiler, GPU, model or fleet
 lease. Capability execution also requires a compatible Skulk host; joining a
@@ -27,6 +29,7 @@ The modules are:
 | `streams` | Unary and four-mode streaming lifecycle with bounded media |
 | `credentials` | Read only the credential inputs declared by a capability |
 | `serving` | Bind a capability's own server to the host-approved surface |
+| `application` | Explicit native unary/stream handlers; prerelease and separately selected |
 
 The package contains no provider account integration, gateway signing key,
 installer or supervisor. Installation of this SDK does not authorize effects.
@@ -39,7 +42,7 @@ The initial export contains no repository history from the owner implementation.
 
 [The Python author guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/main/docs/python-authoring.md) covers anonymous wheel installation, a model-free source starter, local run/watch/invoke/debug, unsigned builds, exact runtime acquisition, signing/inspection and revision-fenced host lifecycle commands. The `skulk-capability-tools` package provides `skulk-cap` and compatible legacy publisher entry points.
 
-The CLI and the runtime are separate packages. Runtime recipes retain owner 0.10.5/SDK 0.5.5 while these author interfaces use SDK 0.5.7. Package installation grants no Fabric authority. The local development harness currently exercises unary calls; application-framework, TypeScript and native adoption have separate qualification.
+The CLI and the runtime are separate packages. Runtime recipes retain owner 0.10.5/SDK 0.5.5 while the legacy author interfaces were qualified with SDK 0.5.7. Package installation grants no Fabric authority. The local development harness currently exercises unary calls; native signed packaging, TypeScript and real application adoption have separate qualification.
 
 ## Shared native kernel
 

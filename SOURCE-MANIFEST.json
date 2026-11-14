@@ -4,8 +4,9 @@
   "license_decision_commit": "cb21ff9446511e0a01ab53f652e647d58041941e",
   "files": {
     "skulk_capability_sdk/__init__.py": {
-      "source_sha256": "be59f50d228426ca7f0555e1708a2586ed8d0954f08ddcf65ffa5741420c439e",
-      "exported_sha256": "be59f50d228426ca7f0555e1708a2586ed8d0954f08ddcf65ffa5741420c439e"
+      "source_sha256": "d2b204e1d85afd2086509d91dafd6df65077c731bb32dca45d8a5d324e70d6e9",
+      "exported_sha256": "d2b204e1d85afd2086509d91dafd6df65077c731bb32dca45d8a5d324e70d6e9",
+      "adjustment": "Public native author runtime addition; no private host/provider source or imports"
     },
     "skulk_capability_sdk/_credential_reader.py": {
       "source_sha256": "a42314b92e54e68829af15acbb859f0c4956c089cbc6e3e43e17734adeadef70",
@@ -70,6 +71,11 @@
       "source_sha256": "02dc411090b3bbbe617bbe87b923f60ce9bc6a59c20c8e0606f18d99466701d9",
       "exported_sha256": "6ded152f0271681a9a22035391e3e1156ec50010aef58cdaed21c4c1cd44f18b",
       "adjustment": "Standalone-package import grouping only"
+    },
+    "skulk_capability_sdk/application.py": {
+      "source_sha256": "357b4f9beab53604e39907fcf393ee824eaa75ba0c0df22d68209ea8ccacbbbd",
+      "exported_sha256": "357b4f9beab53604e39907fcf393ee824eaa75ba0c0df22d68209ea8ccacbbbd",
+      "adjustment": "Public native author runtime addition; no private host/provider source or imports"
     }
   }
 }

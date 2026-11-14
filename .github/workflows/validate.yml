@@ -2,7 +2,7 @@ name: Public SDK qualification
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, feature/capability-developer-tooling]
 permissions:
   contents: read
 jobs:
@@ -21,16 +21,23 @@ jobs:
         with:
           version: '0.8.22'
           python-version: '3.13'
-      - run: uv sync --frozen --all-packages --no-editable
+      - run: uv sync --frozen --all-packages --no-editable --group native-runtime
       - run: uv run --no-sync basedpyright --pythonpath .venv/bin/python
       - run: uv run --no-sync ruff check
       - run: uv run --no-sync ruff format --check
-      - run: uv run --no-sync pytest
+      - run: uv run --no-sync pytest --junitxml=.runtime/app-root.xml
+      - run: uv run --no-sync pytest tests_native --junitxml=.runtime/app-native.xml
       - run: uv build --all-packages
       - run: uv run --no-sync python tools/check_export.py
       - run: uv run --no-sync python tools/check_tools_export.py
       - run: git diff --exit-code
+      - run: uv run --no-sync python tools/record_application_qualification.py
       - uses: actions/upload-artifact@v4
         with:
           name: python-sdk-${{ matrix.runner }}
-          path: dist/*
+          path: |
+            dist/*
+            .runtime/app-root.xml
+            .runtime/app-native.xml
+            .runtime/native-app-source.json
+          include-hidden-files: true

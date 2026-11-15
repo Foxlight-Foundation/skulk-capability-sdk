@@ -28,6 +28,7 @@ MODULES = {
     "development.py",
     "host.py",
     "inspection.py",
+    "native_publishing.py",
     "packaging.py",
     "project.py",
     "publication_admission.py",
@@ -42,12 +43,14 @@ MODULES = {
 }
 DATA = {
     f"runtime_recipes/{name}.json"
-    for name in (
-        "macos-arm64",
-        "linux-glibc-x86_64",
-        "linux-glibc-aarch64",
-    )
+    for name in ("macos-arm64", "linux-glibc-x86_64", "linux-glibc-aarch64")
+} | {"native_cohorts/0.7.0rc3.json", "native_cohorts/0.7.0rc4.json"}
+ADDITIONS = {
+    "src/skulk_capability_tools/native_publishing.py",
+    "src/skulk_capability_tools/native_cohorts/0.7.0rc3.json",
+    "src/skulk_capability_tools/native_cohorts/0.7.0rc4.json",
 }
+
 TESTS = {
     f"tests/{name}.py"
     for name in (
@@ -81,6 +84,15 @@ class Extraction(BaseModel):
     adjustment: str
 
 
+class PublicAddition(BaseModel):
+    """Explicit new public source or immutable public-release metadata."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    origin: Literal["authored", "public-release"]
+    source: str = Field(min_length=1, max_length=512)
+
+
 class Provenance(BaseModel):
     """Generic extraction receipt; private runtime history is never exported."""
 
@@ -89,7 +101,8 @@ class Provenance(BaseModel):
     modules: dict[str, Extraction]
     metadata_projections: str
     tests: dict[str, Extraction]
-    format: Literal[1] = 1
+    additions: dict[str, PublicAddition]
+    format: Literal[2] = 2
 
 
 def validate_source() -> None:
@@ -108,6 +121,14 @@ def validate_source() -> None:
                 != record.extracted_sha256
             ):
                 raise ValueError(f"Extraction source hash differs: {name}")
+    if set(manifest.additions) != ADDITIONS:
+        raise ValueError("New public source provenance differs from its positive list")
+    for path, record in manifest.additions.items():
+        if (
+            path not in SOURCE_FILES
+            or hashlib.sha256((TOOLS / path).read_bytes()).hexdigest() != record.sha256
+        ):
+            raise ValueError("Public addition source hash differs")
     for name in MODULES:
         if not name.endswith(".py"):
             continue

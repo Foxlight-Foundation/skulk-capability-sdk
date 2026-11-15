@@ -19,13 +19,14 @@ from ._host_metadata import (
     Settings,
 )
 from .describe import CONTROL_RESPONSE_MAX_BYTES
+from .native_publishing import NativeManifest, NativeRelease
 from .releases import Release
 
 MANAGED_SELECTION_MAX_BYTES: Final = 131072
 """Existing SDK/Core selection and lifecycle journal bound; not an invocation limit."""
 
 
-def configuration_reply_ceiling(manifest: Manifest) -> int:
+def configuration_reply_ceiling(manifest: Manifest | NativeManifest) -> int:
     """Project the schema read with independently bounded saved settings.
 
     Saved settings occupy at most their existing file bound. ASCII escaping
@@ -45,7 +46,7 @@ def configuration_reply_ceiling(manifest: Manifest) -> int:
     )
 
 
-def selection_metadata_sizes(release: Release) -> tuple[int, ...]:
+def selection_metadata_sizes(release: Release | NativeRelease) -> tuple[int, ...]:
     """Project initial retained selection and lifecycle envelopes for this release.
 
     Immutable release fields are exact. Version facts use their full declared
@@ -103,7 +104,9 @@ def selection_metadata_sizes(release: Release) -> tuple[int, ...]:
     )
 
 
-def validate_publication_metadata(release: Release, *, managed: bool) -> None:
+def validate_publication_metadata(
+    release: Release | NativeRelease, *, managed: bool
+) -> None:
     """Refuse unusable configuration or managed selection metadata before output.
 
     Args:

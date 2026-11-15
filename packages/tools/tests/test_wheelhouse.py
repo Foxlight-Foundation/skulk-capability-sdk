@@ -339,3 +339,144 @@ def test_an_unknown_lock_format_is_refused(tmp_path: Path) -> None:
     path.write_text("version = 2\n")
     with pytest.raises(Denied, match="uv lock"):
         load_lock(path)
+
+
+@pytest.mark.parametrize("machine", ["x86_64", "aarch64"])
+def test_native_candidate_floor_is_explicit_and_bounded(machine: str) -> None:
+    """The candidate path admits2.34 native wheels without widening ordinary tags."""
+    family = "linux-glibc-" + machine
+    selected = platform_policy(family, native_candidate=True)
+    assert selected[0] == "manylinux_2_34_" + machine
+    assert platform_policy(family)[0] == "manylinux_2_28_" + machine
+    assert "manylinux_2_35_" + machine not in selected
+    binary = package(
+        "native",
+        "0.7.0rc4",
+        "native-0.7.0rc4-cp313-abi3-manylinux_2_34_" + machine + ".whl",
+    )
+    with pytest.raises(Denied, match="prerelease"):
+        select_wheel(binary, supported_tags(selected))
+    chosen = select_wheel(binary, supported_tags(selected), native_candidate=True)
+    assert chosen.filename == binary.wheels[0].filename
+    with pytest.raises(Denied, match="no binary wheel"):
+        select_wheel(
+            binary, supported_tags(platform_policy(family)), native_candidate=True
+        )
+
+
+def test_native_candidate_closure_does_not_ignore_dependency_constraints() -> None:
+    """Opting into prereleases does not authorize an incompatible locked version."""
+    lock = lock_of(
+        sdk(), package("native", "0.7.0rc4", "native-0.7.0rc4-py3-none-any.whl")
+    )
+    with pytest.raises(Denied, match="prerelease"):
+        runtime_closure(
+            lock,
+            "skulk-capability-nodes",
+            environment(FAMILIES[1]),
+            ("native==0.7.0rc4",),
+        )
+    selected = runtime_closure(
+        lock,
+        "skulk-capability-nodes",
+        environment(FAMILIES[1]),
+        ("native==0.7.0rc4",),
+        native_candidate=True,
+    )
+    assert {item.name for item in selected} == {"skulk-capability-nodes", "native"}
+    with pytest.raises(Denied, match="incompatible"):
+        runtime_closure(
+            lock,
+            "skulk-capability-nodes",
+            environment(FAMILIES[1]),
+            ("native>=1",),
+            native_candidate=True,
+        )
+
+
+@pytest.mark.parametrize("family", FAMILIES)
+def test_same_version_direct_sources_follow_exact_platform_resolution(
+    family: str,
+) -> None:
+    """A universal native lock selects one platform URL without guessing by name."""
+    candidates: list[LockedPackage] = []
+    dependencies: list[dict[str, object]] = []
+    for _platform, marker, filename in [
+        (
+            FAMILIES[0],
+            "sys_platform == 'darwin' and platform_machine == 'arm64'",
+            "native-0.7.0rc4-cp313-abi3-macosx_11_0_arm64.whl",
+        ),
+        (
+            FAMILIES[1],
+            "sys_platform == 'linux' and platform_machine == 'x86_64'",
+            "native-0.7.0rc4-cp313-abi3-manylinux_2_34_x86_64.whl",
+        ),
+        (
+            FAMILIES[2],
+            "sys_platform == 'linux' and platform_machine == 'aarch64'",
+            "native-0.7.0rc4-cp313-abi3-manylinux_2_34_aarch64.whl",
+        ),
+    ]:
+        file = locked(filename)
+        dependencies.append(
+            {
+                "name": "native",
+                "version": "0.7.0rc4",
+                "source": {"url": file.url},
+                "marker": marker,
+            }
+        )
+        candidates.append(
+            LockedPackage.model_validate(
+                {
+                    "name": "native",
+                    "version": "0.7.0rc4",
+                    "source": {"url": file.url},
+                    "resolution-markers": [marker],
+                    "wheels": [file.model_dump()],
+                }
+            )
+        )
+    selected = runtime_closure(
+        lock_of(sdk(*dependencies), *candidates),
+        "skulk-capability-nodes",
+        environment(family),
+        ("native==0.7.0rc4",),
+        native_candidate=True,
+    )
+    native_package = next(item for item in selected if item.name == "native")
+    chosen = select_wheel(
+        native_package,
+        supported_tags(platform_policy(family, native_candidate=True)),
+        native_candidate=True,
+    )
+    assert {file.filename for file in native_package.wheels} == {chosen.filename}
+    assert ("macosx" in chosen.filename) == (family == FAMILIES[0])
+    assert ("aarch64" in chosen.filename) == (family == FAMILIES[2])
+
+
+def test_a_locked_source_reference_is_not_ignored() -> None:
+    """Same-name/version sources remain distinct even when both have valid tags."""
+    first = package(
+        "native",
+        "1.0",
+        "native-1.0-py3-none-any.whl",
+        source={"registry": "https://first.example/simple"},
+    )
+    second = first.model_copy(
+        update={"source": {"registry": "https://second.example/simple"}}
+    )
+    root = sdk({"name": "native", "version": "1.0", "source": second.source})
+    selected = runtime_closure(
+        lock_of(root, first, second), "skulk-capability-nodes", environment(FAMILIES[0])
+    )
+    assert (
+        next(item for item in selected if item.name == "native").source == second.source
+    )
+    with pytest.raises(Denied, match="exactly one"):
+        runtime_closure(
+            lock_of(sdk({"name": "native"}), first, second),
+            "skulk-capability-nodes",
+            environment(FAMILIES[0]),
+        )

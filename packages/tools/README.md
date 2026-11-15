@@ -15,3 +15,10 @@ supervisor, installer and provider implementations are excluded.
 Use the [Python author guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/main/docs/python-authoring.md) for package installation and a complete source-to-host walkthrough. Local development currently exercises unary IPC; the private owner remains independently installed.
 
 The pinned runtime recipes acquire existing public wheel artifacts by exact SHA-256 and size. They include no owner implementation and confer no trust. Independently operated HTTPS feeds need no Foxlight account; hosted catalog submission is a separate service.
+
+The experimental native candidate builder and explicit wheelhouse opt-in are
+documented in the [native publishing guide](../../docs/native-publishing.md).
+They select a separately signed native cohort using the actual public compiled
+reader. The legacy check/dev/inspect and catalog interfaces keep their existing
+protocols. Candidate package creation, distribution and installed authorization
+remain independently qualified.

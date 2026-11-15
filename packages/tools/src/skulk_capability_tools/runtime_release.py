@@ -10,7 +10,7 @@ import sys
 import zipfile
 from email.parser import BytesParser
 from pathlib import Path, PurePosixPath
-from typing import Annotated, Literal, Self, final
+from typing import Annotated, Literal, Protocol, Self, final
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -151,6 +151,11 @@ class RuntimeRelease(Contract):
         return hashlib.sha256(
             json.dumps(self.inventory, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()
+
+    @property
+    def runtime_dependencies(self) -> tuple[str, ...]:
+        """Expose declared roots to the shared data-only wheel verifier."""
+        return self.release.manifest.runtime_dependencies
 
     @property
     def digest(self) -> str:
@@ -322,7 +327,26 @@ def declared_launchers(archive: zipfile.ZipFile) -> dict[str, str]:
     return found
 
 
-def verify_wheels(runtime: RuntimeRelease, directory: Path) -> dict[str, bytes]:
+class WheelInventory(Protocol):
+    """Data-only wheel requirements shared by separately versioned envelopes."""
+
+    @property
+    def wheels(self) -> tuple[RuntimeWheel, ...]:
+        """Return exact signed wheel metadata."""
+        ...
+
+    @property
+    def inventory(self) -> dict[str, str]:
+        """Return distribution versions, independently of publisher trust."""
+        ...
+
+    @property
+    def runtime_dependencies(self) -> tuple[str, ...]:
+        """Return the admitted author declaration's dependency roots."""
+        ...
+
+
+def verify_wheels(runtime: WheelInventory, directory: Path) -> dict[str, bytes]:
     """Verify wheel bytes, native compatibility and complete dependency closure.
 
     Metadata is read as data before pip runs. External requirement URLs, extras,
@@ -386,7 +410,7 @@ def verify_wheels(runtime: RuntimeRelease, directory: Path) -> dict[str, bytes]:
         for name in (
             *ROOT_DEPENDENCIES,
             *providers,
-            *runtime.release.manifest.runtime_dependencies,
+            *runtime.runtime_dependencies,
         )
     ]
     while pending:

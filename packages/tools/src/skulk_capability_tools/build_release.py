@@ -32,6 +32,14 @@ from skulk_capability_tools.describe import (
     validate_discovery_compatibility,
 )
 from skulk_capability_tools.inspection import read_public
+from skulk_capability_tools.native_publishing import (
+    NativeManifest,
+    NativeProfiles,
+    NativeRelease,
+    NativeRuntimeRelease,
+    SignedNativeRuntimeRelease,
+    native_runtime_message,
+)
 from skulk_capability_tools.packaging import (
     archive,
     load_spec,
@@ -135,6 +143,14 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
             "publisher with no Skulk installed, such as a CI runner, build."
         ),
     )
+    parser.add_argument(
+        "--inference-runtime",
+        action="store_true",
+        help=(
+            "Explicitly select managed/2 and release3/runtime5; "
+            "this grants no host authority"
+        ),
+    )
     args = parser.parse_args(argv)
     if sys.platform not in ("darwin", "linux"):
         parser.error("unsupported release host")
@@ -144,9 +160,14 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
         )
     except Denied as refusal:
         parser.error(str(refusal))
-    manifest = Manifest.model_validate_json(
-        read_public(args.manifest, MAX_MANIFEST_BYTES)
-    )
+    manifest_raw = read_public(args.manifest, MAX_MANIFEST_BYTES)
+    manifest: Manifest | NativeManifest
+    if args.inference_runtime:
+        if args.wheelhouse is None:
+            parser.error("native inference manifests require an isolated wheelhouse")
+        manifest = NativeManifest(canonical_json=manifest_raw.decode("utf-8"))
+    else:
+        manifest = Manifest.model_validate_json(manifest_raw)
     validate_manifest(spec, manifest)
     if spec.dependencies and args.wheelhouse is None:
         parser.error("declared capability dependencies require a v2 wheelhouse")
@@ -154,7 +175,19 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
     # reads with a fixed bound; refuse here rather than ship a capability its
     # host cannot list.
     try:
-        validate_discovery_compatibility(manifest)
+        if isinstance(manifest, NativeManifest):
+            # Native discovery carries canonical author bytes, never a legacy
+            # descriptor projection. Account for JSON escaping at the reader.
+            projected = {
+                "node_id": "n" * 128,
+                "manifest": manifest.canonical_json,
+                "manifest_digest": manifest.digest,
+                "status": "configuration_invalid",
+            }
+            if len(json.dumps(projected, ensure_ascii=True).encode()) > 524288:
+                raise ValueError("native discovery metadata exceeds its reader bound")
+        else:
+            validate_discovery_compatibility(manifest)
     except ValueError as error:
         parser.error(str(error))
     template = (
@@ -224,34 +257,60 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
         if wheels
         else dependency_digest()
     )
-    release = Release(
-        publisher=args.publisher,
-        sequence=args.sequence,
-        created_at=int(time.time()),
-        expires_at=args.expires_at,
-        artifact_size=len(raw),
-        manifest=manifest.model_copy(
-            update={
-                "executable": "bundle.pyz",
-                "executable_sha256": hashlib.sha256(raw).hexdigest(),
-            }
-        ),
-        platforms=("darwin" if sys.platform == "darwin" else "linux",),
-        dependency_lock_sha256=lock,
-        skulk_build_sha256=skulk_build,
-        state_schema=args.state_schema,
-        compatible_state_schemas=tuple(args.compatible_state_schema),
-        permissions=tuple(args.permission),
-    )
+    release: Release | NativeRelease
+    if isinstance(manifest, NativeManifest):
+        release = NativeRelease(
+            publisher=args.publisher,
+            sequence=args.sequence,
+            created_at=int(time.time()),
+            expires_at=args.expires_at,
+            artifact_size=len(raw),
+            manifest=manifest.with_artifact(hashlib.sha256(raw).hexdigest()),
+            platforms=("darwin" if sys.platform == "darwin" else "linux",),
+            dependency_lock_sha256=lock,
+            skulk_build_sha256=skulk_build,
+            state_schema=args.state_schema,
+            compatible_state_schemas=tuple(args.compatible_state_schema),
+            permissions=tuple(args.permission),
+        )
+    else:
+        release = Release(
+            publisher=args.publisher,
+            sequence=args.sequence,
+            created_at=int(time.time()),
+            expires_at=args.expires_at,
+            artifact_size=len(raw),
+            manifest=manifest.model_copy(
+                update={
+                    "executable": "bundle.pyz",
+                    "executable_sha256": hashlib.sha256(raw).hexdigest(),
+                }
+            ),
+            platforms=("darwin" if sys.platform == "darwin" else "linux",),
+            dependency_lock_sha256=lock,
+            skulk_build_sha256=skulk_build,
+            state_schema=args.state_schema,
+            compatible_state_schemas=tuple(args.compatible_state_schema),
+            permissions=tuple(args.permission),
+        )
     key = Ed25519PrivateKey.from_private_bytes(read_private(args.private_key, 32))
-    signed: SignedRelease | SignedRuntimeRelease
+    signed: SignedRelease | SignedRuntimeRelease | SignedNativeRuntimeRelease
     runtime_artifacts: dict[str, bytes] = {}
     if wheels:
         if args.wheelhouse is None:
             parser.error("dependency artifacts require a wheelhouse")
-        runtime = RuntimeRelease(
-            release=release, platform=current_platform(), wheels=tuple(wheels)
-        )
+        runtime: RuntimeRelease | NativeRuntimeRelease
+        if isinstance(release, NativeRelease):
+            runtime = NativeRuntimeRelease(
+                release=release,
+                platform=current_platform(),
+                wheels=tuple(wheels),
+                kernel=NativeProfiles.installed(),
+            )
+        else:
+            runtime = RuntimeRelease(
+                release=release, platform=current_platform(), wheels=tuple(wheels)
+            )
         runtime_artifacts = verify_wheels(runtime, args.wheelhouse)
         drifted = modules_differing_from_wheels(raw, runtime_artifacts)
         if drifted:
@@ -260,10 +319,18 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
                 f"carrying the same path ({', '.join(drifted[:5])}); build the "
                 "bundle and the wheelhouse from the same source"
             )
-        signed = SignedRuntimeRelease(
-            runtime=runtime, signature=key.sign(canonical(runtime)).hex()
-        )
+        if isinstance(runtime, NativeRuntimeRelease):
+            signed = SignedNativeRuntimeRelease(
+                runtime=runtime,
+                signature=key.sign(native_runtime_message(runtime)).hex(),
+            )
+        else:
+            signed = SignedRuntimeRelease(
+                runtime=runtime, signature=key.sign(canonical(runtime)).hex()
+            )
     else:
+        if not isinstance(release, Release):
+            parser.error("native inference release requires an isolated runtime")
         signed = SignedRelease(
             release=release, signature=key.sign(canonical(release)).hex()
         )

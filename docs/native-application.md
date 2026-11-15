@@ -1,6 +1,6 @@
 # Native Python application runtime
 
-SDK **0.5.10rc1** provides `skulk_capability_sdk.application` as an explicit
+SDK **0.5.11rc1** provides `skulk_capability_sdk.application` as an explicit
 prerelease author runtime. The existing protocol-4 modules retain their frozen
 schemas and bytes. Importing the SDK does not import a native extension or select
 a runtime. This module requires the separately installed, immutable native
@@ -8,7 +8,7 @@ a runtime. This module requires the separately installed, immutable native
 The rc4 candidate adds host observer APIs while preserving all thirteen wire
 profile identities. The author runtime uses the same execution ABI in both.
 
-Use the wheels from [native-v0.7.0-rc.3](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.3),
+Use the wheels from [native-v0.7.0-rc.4](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.4),
 verify their published SHA256SUMS and install the matching platform wheel.
 Python 3.13+ on macOS ARM64 or glibc Linux x86_64/aarch64 is qualified; a Rust
 compiler and Foxlight account are unnecessary. This source checkout additionally
@@ -63,9 +63,10 @@ all of them explicitly with `version="1.0.0"` (and the other exact versions).
 The version-less shorthand is accepted only for a unique signed ID; ambiguous
 or undeclared registrations fail before setup or connection. Calls never fall
 back to a different version or mode. `Invocation.version` exposes the admitted
-executor version. Do not point the legacy source-starter/build
-commands at a native app and assume they generate the new signed cohort. Native
-author packaging/onboarding is a separate delivery step.
+executor version. Use the [explicit public native builder](native-publishing.md) for managed/2
+release3/runtime5 candidates. The legacy check/dev/inspect and catalog paths
+retain their existing contracts. Building a candidate does not qualify signed
+installed startup, caller authorization or application state adoption.
 
 `Invocation` supplies the exact raw request bytes, an owned JSON payload and a
 read-only `CallContext` projection. The compiled validator checks composition3;

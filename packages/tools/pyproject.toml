@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skulk-capability-tools"
-version = "0.1.0"
+version = "0.2.0rc1"
 description = "Public authoring, packaging and publisher tools for Skulk capabilities"
 readme = "README.md"
 requires-python = ">=3.13"

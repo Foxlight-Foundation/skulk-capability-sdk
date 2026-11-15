@@ -71,6 +71,9 @@ MANYLINUX_FLOOR: Final = (2, 28)
 """Oldest glibc a Linux wheelhouse installs on. Skulk's own engine wheels need
 glibc 2.35, so every Skulk Linux host clears this floor with room to spare."""
 
+NATIVE_MANYLINUX_FLOOR: Final = (2, 34)
+"""Explicit public native candidate floor; ordinary recipes retain their floor."""
+
 BUILD_BACKEND_LOCK: Final = (
     "hatchling==1.32.4 --hash=sha256:"
     "08ecf7548fb48205e7f213d70c71e67b8271b7242093dc3f1da578b42c734a2c",
@@ -114,7 +117,9 @@ _LEGACY_MANYLINUX: Final = {
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
 
 
-def manylinux_platforms(machine: str) -> tuple[str, ...]:
+def manylinux_platforms(
+    machine: str, *, native_candidate: bool = False
+) -> tuple[str, ...]:
     """Linux platform tags a floor host accepts, most specific first.
 
     ``packaging`` derives this list from the running glibc. A release must
@@ -126,7 +131,11 @@ def manylinux_platforms(machine: str) -> tuple[str, ...]:
     """
     oldest = 4 if machine in ("x86_64", "i686") else 16
     platforms: list[str] = []
-    for minor in range(MANYLINUX_FLOOR[1], oldest, -1):
+    for minor in range(
+        NATIVE_MANYLINUX_FLOOR[1] if native_candidate else MANYLINUX_FLOOR[1],
+        oldest,
+        -1,
+    ):
         platforms.append(f"manylinux_2_{minor}_{machine}")
         legacy = _LEGACY_MANYLINUX.get(minor)
         if legacy is not None:
@@ -134,7 +143,7 @@ def manylinux_platforms(machine: str) -> tuple[str, ...]:
     return tuple(platforms)
 
 
-def platform_policy(family: str) -> tuple[str, ...]:
+def platform_policy(family: str, *, native_candidate: bool = False) -> tuple[str, ...]:
     """The wheel platform tags, in preference order, for one release family.
 
     ``family`` is the runtime platform the publisher signs, from
@@ -148,7 +157,9 @@ def platform_policy(family: str) -> tuple[str, ...]:
         # Local builds on Intel Macs only; no published release targets it.
         return tuple(mac_platforms(MACOS_FLOOR, "x86_64"))
     if family in ("linux-glibc-x86_64", "linux-glibc-aarch64"):
-        return manylinux_platforms(family.rsplit("-", 1)[1])
+        return manylinux_platforms(
+            family.rsplit("-", 1)[1], native_candidate=native_candidate
+        )
     raise Denied(f"there is no wheelhouse policy for the {family} platform")
 
 
@@ -214,6 +225,9 @@ class LockedDependency(_LockRecord):
     extra: tuple[str, ...] = Field(
         default=(), description="Extras requested of the required package."
     )
+    source: dict[str, str] | None = Field(
+        default=None, description="Exact locked source when names and versions overlap."
+    )
 
 
 @final
@@ -224,6 +238,11 @@ class LockedPackage(_LockRecord):
     version: str | None = Field(default=None, description="Resolved version.")
     source: dict[str, str] = Field(
         description="One of registry, git, editable, directory, path, url, virtual."
+    )
+    resolution_markers: tuple[str, ...] = Field(
+        default=(),
+        alias="resolution-markers",
+        description="Environment branches selecting this exact locked source.",
     )
     dependencies: tuple[LockedDependency, ...] = Field(
         default=(), description="Runtime requirement edges."
@@ -327,6 +346,8 @@ def runtime_closure(
     root: str,
     environment: Mapping[str, str],
     additional: tuple[str, ...] = (),
+    *,
+    native_candidate: bool = False,
 ) -> tuple[LockedPackage, ...]:
     """The lock's resolution of ``root`` for one environment, sorted by name.
 
@@ -339,11 +360,29 @@ def runtime_closure(
     for package in lock.package:
         by_name.setdefault(canonicalize_name(package.name), []).append(package)
 
-    def resolve(name: str, version: str | None) -> LockedPackage:
+    def marker_applies(marker: str) -> bool:
+        try:
+            return Marker(marker).evaluate(dict(environment))
+        except (InvalidMarker, UndefinedEnvironmentName) as invalid:
+            raise Denied(
+                f"locked source marker cannot be evaluated: {invalid}"
+            ) from None
+
+    def resolve(
+        name: str, version: str | None, source: dict[str, str] | None = None
+    ) -> LockedPackage:
+        # One version may be issued as distinct platform-specific direct URLs.
+        # The lock's exact source and environment branch select it; wheel tags
+        # alone must not guess between publishers or silently choose a URL.
         candidates = [
             package
             for package in by_name.get(canonicalize_name(name), [])
-            if version is None or package.version == version
+            if (version is None or package.version == version)
+            and (source is None or package.source == source)
+            and (
+                not package.resolution_markers
+                or any(marker_applies(marker) for marker in package.resolution_markers)
+            )
         ]
         if len(candidates) != 1:
             raise Denied(
@@ -358,7 +397,10 @@ def runtime_closure(
     pending = [resolve(root, None)]
     for requirement in declared_requirements(additional):
         package = resolve(requirement.name, None)
-        if released_version(package) not in requirement.specifier:
+        if not requirement.specifier.contains(
+            released_version(package, native_candidate=native_candidate),
+            prereleases=native_candidate,
+        ):
             raise Denied("locked capability dependency is incompatible")
         pending.append(package)
     while pending:
@@ -385,29 +427,35 @@ def runtime_closure(
                     f"{package.name} requests the {', '.join(dependency.extra)} "
                     f"extra of {dependency.name}; a runtime installs no extras"
                 )
-            pending.append(resolve(dependency.name, dependency.version))
+            pending.append(
+                resolve(dependency.name, dependency.version, dependency.source)
+            )
     return tuple(selected[name] for name in sorted(selected))
 
 
-def released_version(package: LockedPackage) -> Version:
-    """The package's version, refusing a prerelease or an unversioned package."""
+def released_version(
+    package: LockedPackage, *, native_candidate: bool = False
+) -> Version:
+    """Require a locked version, with prereleases allowed only by explicit opt-in."""
     try:
         version = Version(package.version or "")
     except InvalidVersion:
         raise Denied(f"{package.name} has no released version in the lock") from None
-    if version.is_prerelease:
+    if version.is_prerelease and not native_candidate:
         raise Denied(f"{package.name} {version} is a prerelease")
     return version
 
 
-def select_wheel(package: LockedPackage, tags: Sequence[Tag]) -> LockedFile:
+def select_wheel(
+    package: LockedPackage, tags: Sequence[Tag], *, native_candidate: bool = False
+) -> LockedFile:
     """The locked wheel a floor host prefers, or a refusal naming the gap.
 
     Ranking follows ``tags``: the wheel whose best tag comes first wins, and a
     tie (one file listed under two spellings) falls to the filename so the
     choice never depends on the lock's order.
     """
-    version = released_version(package)
+    version = released_version(package, native_candidate=native_candidate)
     rank = {tag: index for index, tag in enumerate(tags)}
     best: tuple[int, str, LockedFile] | None = None
     for file in package.wheels:
@@ -493,7 +541,9 @@ def git_source(value: str) -> tuple[str, str | None, str]:
     return repository, subdirectory, commit
 
 
-def build_from_source(lock_directory: Path, work: Path) -> Build:
+def build_from_source(
+    lock_directory: Path, work: Path, *, native_candidate: bool = False
+) -> Build:
     """Build source-locked packages with ``uv build`` and the pinned backend.
 
     Git sources are fetched at their locked commit (credentials, when the
@@ -549,7 +599,7 @@ def build_from_source(lock_directory: Path, work: Path) -> Build:
         return checkouts[key]
 
     def build(package: LockedPackage) -> tuple[str, bytes]:
-        version = released_version(package)
+        version = released_version(package, native_candidate=native_candidate)
         if "git" in package.source:
             repository, subdirectory, commit = git_source(package.source["git"])
             directory = checkout(repository, commit) / (subdirectory or ".")
@@ -601,6 +651,7 @@ def build_wheelhouse(
     fetch: Fetch,
     build: Build,
     additional: tuple[str, ...] = (),
+    native_candidate: bool = False,
 ) -> WheelhouseReport:
     """Place the runtime closure's exact wheels in a new, owner-only directory.
 
@@ -608,15 +659,17 @@ def build_wheelhouse(
     without a network or a build backend. Nothing is written until every
     package has a wheel, so a refusal leaves no partial wheelhouse.
     """
-    platforms = platform_policy(family)
+    platforms = platform_policy(family, native_candidate=native_candidate)
     tags = supported_tags(platforms)
-    closure = runtime_closure(lock, root, environment, additional)
+    closure = runtime_closure(
+        lock, root, environment, additional, native_candidate=native_candidate
+    )
     if len(closure) > MAX_WHEELS:
         raise Denied(f"the runtime needs {len(closure)} wheels; at most {MAX_WHEELS}")
     staged: list[tuple[str, bytes, Literal["locked", "built"]]] = []
     for package in closure:
         if "registry" in package.source or "url" in package.source:
-            file = select_wheel(package, tags)
+            file = select_wheel(package, tags, native_candidate=native_candidate)
             content = fetch(file, min(file.size or MAX_WHEEL_BYTES, MAX_WHEEL_BYTES))
             if (file.size is not None and len(content) != file.size) or (
                 hashlib.sha256(content).hexdigest() != file.sha256
@@ -670,6 +723,14 @@ def main(argv: list[str] | None = None) -> None:
         default=DEFAULT_ROOT,
         help="The package whose locked closure the runtime carries",
     )
+    parser.add_argument(
+        "--native-candidate",
+        action="store_true",
+        help=(
+            "Opt into locked prereleases and the native glibc2.34 floor; "
+            "this does not select a runtime protocol or authorize installation"
+        ),
+    )
     args = parser.parse_args(argv)
     if sys.implementation.name != "cpython" or sys.version_info[:2] != PYTHON_VERSION:
         parser.error("build the wheelhouse with CPython 3.13, the release interpreter")
@@ -693,8 +754,13 @@ def main(argv: list[str] | None = None) -> None:
                 family=current_platform(),
                 environment=platform_environment(current_platform()),
                 fetch=fetch_locked(client),
-                build=build_from_source(args.lock.resolve().parent, Path(work)),
+                build=build_from_source(
+                    args.lock.resolve().parent,
+                    Path(work),
+                    native_candidate=args.native_candidate,
+                ),
                 additional=additional,
+                native_candidate=args.native_candidate,
             )
     except (Denied, httpx.HTTPError) as refusal:
         parser.error(str(refusal))

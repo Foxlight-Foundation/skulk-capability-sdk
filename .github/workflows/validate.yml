@@ -21,7 +21,7 @@ jobs:
         with:
           version: '0.8.22'
           python-version: '3.13'
-      - run: uv sync --frozen --all-packages --no-editable --group native-runtime
+      - run: uv sync --frozen --all-packages --no-editable --group native-runtime --reinstall-package skulk-capability-sdk --reinstall-package skulk-capability-tools
       - run: uv run --no-sync basedpyright --pythonpath .venv/bin/python
       - run: uv run --no-sync ruff check
       - run: uv run --no-sync ruff format --check

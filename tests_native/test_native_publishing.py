@@ -20,6 +20,7 @@ from skulk_capability_tools.native_publishing import (
     native_cohort,
     native_runtime_message,
 )
+from skulk_capability_tools.publication_admission import validate_publication_metadata
 from skulk_capability_tools.release_runtime import ROOT_DEPENDENCIES
 from skulk_capability_tools.releases import Release
 from skulk_capability_tools.runtime_release import (
@@ -105,6 +106,26 @@ def test_native_identity_and_artifact_binding_use_the_actual_compiled_reader() -
     assert following.executable_sha256 == "b" * 64
     assert following.bundle_id == original.bundle_id
     assert following.runtime_dependencies == original.runtime_dependencies
+
+
+@pytest.mark.parametrize("schema", [True, False, None, {"type": "object"}])
+def test_publication_preserves_compiled_configuration_schema(
+    schema: dict[str, JsonValue] | bool | None,
+) -> None:
+    """Valid boolean author schemas reach publication size and selection admission."""
+    value = startup_value("/tmp/publisher-control", "/tmp/publisher-stream", "unary")
+    fields = value["manifest"]
+    assert isinstance(fields, dict)
+    contracts = fields["contracts"]
+    assert isinstance(contracts, dict)
+    contracts["configuration_schema"] = schema
+    manifest = NativeManifest(canonical_json=json.dumps(value["manifest"]))
+    assert manifest.configuration_schema == schema
+    release = runtime().release.model_dump(mode="json")
+    release["manifest"] = manifest.model_dump(mode="json")
+    validate_publication_metadata(
+        NativeRelease.model_validate_json(json.dumps(release)), managed=True
+    )
 
 
 def test_exact_native_signature_domains_do_not_widen_legacy_readers() -> None:

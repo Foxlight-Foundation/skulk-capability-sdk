@@ -26,8 +26,8 @@ _OBJECT = TypeAdapter(dict[str, JsonValue])
 _OBJECTS = TypeAdapter(list[dict[str, JsonValue]])
 _TEXT = TypeAdapter(str)
 _TEXTS = TypeAdapter(tuple[str, ...])
-_SCHEMA: TypeAdapter[dict[str, JsonValue] | None] = TypeAdapter(
-    dict[str, JsonValue] | None
+_SCHEMA: TypeAdapter[dict[str, JsonValue] | bool | None] = TypeAdapter(
+    dict[str, JsonValue] | bool | None
 )
 _COHORTS = {
     "0.7.0rc3": "da446b54ddd8996ea21cbd61f1155bc1e840ddfff2e36f435ffc973806c865ae",
@@ -172,7 +172,7 @@ class NativeManifest(Contract):
         return _TEXTS.validate_json(json.dumps(value))
 
     @property
-    def configuration_schema(self) -> dict[str, JsonValue] | None:
+    def configuration_schema(self) -> dict[str, JsonValue] | bool | None:
         """Project the native schema for separate host metadata-size admission."""
         value = _OBJECT.validate_json(self.canonical_json)["contracts"]
         return _SCHEMA.validate_python(

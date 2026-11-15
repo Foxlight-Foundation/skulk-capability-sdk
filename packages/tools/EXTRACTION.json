@@ -12,7 +12,7 @@
     },
     "src/skulk_capability_tools/native_publishing.py": {
       "origin": "authored",
-      "sha256": "a87fb6c2a6ebfe2dbfc7e5045e6678c98bce2fdb405f7dee898aa243176bf61c",
+      "sha256": "2861333f3d79e532cc368e182edfc5482aa8456e93235648659114b0810e36fd",
       "source": "Authored after public SDK base e18d7681a077c5fd458ac5c5f64d724a2413ece4 using public native ABI and public Core release3/runtime5 contracts; no owner implementation imports."
     }
   },

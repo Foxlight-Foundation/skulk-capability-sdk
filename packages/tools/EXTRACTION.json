@@ -2,7 +2,7 @@
   "additions": {
     "src/skulk_capability_tools/native_catalog.py": {
       "origin": "authored",
-      "sha256": "f485db486df6e9cb2248500f6a2296e7599a6032b9e55c7cd7931cc9bf356307",
+      "sha256": "065f37d29700afab633150efa24b0f6d78d63703950e8a1a4b976f698a60c30a",
       "source": "Authored from public native ABI, catalog-four and runtime-five contracts on public SDK base4361305db103fea95e86daf905cc8de3d90dc50f; no private owner/provider implementation imports."
     },
     "src/skulk_capability_tools/native_cohorts/0.7.0rc3.json": {

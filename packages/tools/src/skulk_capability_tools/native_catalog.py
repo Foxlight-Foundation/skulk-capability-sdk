@@ -128,8 +128,12 @@ class NativeCatalogEntry(Contract):
     operations: bool = Field(
         default=False, description="Whether durable work is declared."
     )
-    steward_risks: tuple[Literal["observation", "billable", "effect"], ...] = Field(
-        default=(), max_length=3, description="Declared Steward exposure risk classes."
+    steward_risks: tuple[
+        Literal["observation", "billable", "effect", "inference"], ...
+    ] = Field(
+        default=(),
+        max_length=4,
+        description="Declared native Steward exposure risk classes.",
     )
     expires_at: int = Field(gt=0, description="Referenced release expiry.")
     native: NativeCatalogBinding = Field(

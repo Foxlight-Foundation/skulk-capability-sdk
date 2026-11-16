@@ -30,6 +30,8 @@ from skulk_capability_tools.native_feed import (
     read_native_built,
 )
 from skulk_capability_tools.native_publishing import (
+    NativeManifest,
+    NativeRuntimeRelease,
     SignedNativeRuntimeRelease,
     native_runtime_message,
 )
@@ -273,6 +275,38 @@ def test_catalog_projection_binds_full_compiled_identity_and_processing_domains(
     assert entry.transfer_bytes == signed.runtime.release.artifact_size + sum(
         wheel.size for wheel in signed.runtime.wheels
     )
+
+
+def test_native_catalog_preserves_compiled_inference_steward_risk() -> None:
+    """A legal native inference exposure is discoverable with its actual risk."""
+    selected = runtime()
+    value = _OBJECT.validate_json(selected.release.manifest.canonical_json)
+    contracts = _OBJECT.validate_python(value["contracts"], strict=True)
+    descriptors = contracts["descriptors"]
+    assert isinstance(descriptors, list) and isinstance(descriptors[0], dict)
+    descriptor = descriptors[0]
+    assert descriptor["behavior"] == "inference"
+    value["steward"] = [
+        {
+            "qualified_id": str(descriptor["id"]) + "@" + str(descriptor["version"]),
+            "behavior": "inference",
+            "risk": "inference",
+        }
+    ]
+    manifest = NativeManifest(canonical_json=json.dumps(value))
+    fields = _OBJECT.validate_json(selected.model_dump_json())
+    release = _OBJECT.validate_python(fields["release"], strict=True)
+    release["manifest"] = _OBJECT.validate_json(manifest.model_dump_json())
+    fields["release"] = release
+    selected = NativeRuntimeRelease.model_validate_json(json.dumps(fields))
+    key = Ed25519PrivateKey.generate()
+    signed = SignedNativeRuntimeRelease(
+        runtime=selected, signature=key.sign(native_runtime_message(selected)).hex()
+    )
+    entry = native_entry_from_record(
+        signed.model_dump_json().encode(), "https://example.test/native/1/"
+    )
+    assert entry.steward_risks == ("inference",)
 
 
 @pytest.mark.parametrize("protocol", [True, 4.0, "4", 3, 5])

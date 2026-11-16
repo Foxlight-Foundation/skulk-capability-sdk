@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from pydantic import JsonValue, TypeAdapter, ValidationError
 from skulk_capability_tools import build_catalog, inspection
 from skulk_capability_tools.assemble_feed import (
+    ReferenceWheel,
     ReleaseExpectation,
     ReleaseReference,
 )
@@ -214,6 +215,51 @@ def test_native_signer_refuses_changed_artifact_before_any_wheel_loading(
     atomic_private(tmp_path / "bundle.pyz", b"a")
     with pytest.raises(Denied, match="bytes differ"):
         read_native_built(tmp_path)
+
+
+@pytest.mark.parametrize("fault", ["none", "missing", "hash", "registry"])
+def test_native_signer_requires_independent_size_for_hash_locked_direct_urls(
+    fault: str,
+) -> None:
+    """URL locks need matching independent sizes; registry rules stay unchanged."""
+    built, expected, lock = native_policy_fixture()
+    kernel = next(
+        item for item in lock.package if item.name == "skulk-capability-kernel"
+    )
+    file = kernel.wheels[0]
+    selected = kernel.model_copy(
+        update={
+            "source": {"registry": "https://example.test/simple"}
+            if fault == "registry"
+            else {"url": str(file.url)},
+            "wheels": (file.model_copy(update={"size": None}),),
+        }
+    )
+    lock = lock.model_copy(
+        update={
+            "package": tuple(
+                selected if item.name == kernel.name else item for item in lock.package
+            )
+        }
+    )
+    reference = expected.reference.model_copy(
+        update={
+            "built_wheels": {}
+            if fault == "missing"
+            else {
+                file.filename: ReferenceWheel(
+                    sha256="d" * 64 if fault == "hash" else file.sha256,
+                    size=file.size or 1,
+                ),
+            }
+        }
+    )
+    expected = expected.model_copy(update={"reference": reference})
+    if fault == "none":
+        check_native_release_set([built], expected, lock, "skulk-capability-sdk")
+    else:
+        with pytest.raises(Denied):
+            check_native_release_set([built], expected, lock, "skulk-capability-sdk")
 
 
 def test_explicit_publication_reader_preserves_native_signature_and_identity() -> None:

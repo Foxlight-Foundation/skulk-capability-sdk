@@ -257,7 +257,19 @@ def expected_wheels(
         if "registry" in package.source or "url" in package.source:
             file = select_wheel(package, tags, native_candidate=native_candidate)
             if file.size is None:
-                raise Denied(f"the lock records no size for {file.filename}")
+                reference_file = reference.built_wheels.get(file.filename)
+                if (
+                    not native_candidate
+                    or "url" not in package.source
+                    or reference_file is None
+                    or reference_file.sha256 != file.sha256
+                ):
+                    raise Denied(f"the lock records no size for {file.filename}")
+                # A direct URL's locked hash remains mandatory. Its missing
+                # size comes only from an independently acquired/rebuilt input,
+                # never from the candidate the publisher is about to sign.
+                expected[file.filename] = reference_file
+                continue
             expected[file.filename] = ReferenceWheel(sha256=file.sha256, size=file.size)
             continue
         matches = [

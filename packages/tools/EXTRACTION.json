@@ -17,7 +17,7 @@
     },
     "src/skulk_capability_tools/native_feed.py": {
       "origin": "authored",
-      "sha256": "ffdbbb7b50a39b4a22cac152e61ae1f43c35a8868c67af6bbb3d8538507117ef",
+      "sha256": "a12b9da1a3e60d14e144c902e420513d5243a06b552f393965a533ad0d590a1f",
       "source": "Authored from public native ABI, catalog-four and runtime-five contracts on public SDK base4361305db103fea95e86daf905cc8de3d90dc50f; no private owner/provider implementation imports."
     },
     "src/skulk_capability_tools/native_publishing.py": {
@@ -41,7 +41,7 @@
   "modules": {
     "assemble_feed.py": {
       "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing; explicit native publication and recipe paths, issued legacy defaults and signing domains preserved",
-      "extracted_sha256": "29b0a5f9fd076aef01fccf15ec9de644463bd46a8419f1090e1e93d802e3b981",
+      "extracted_sha256": "686caa66e1a64d5b0685218f8a3027a02e66b765e5aaab50f5dc37a446cd04a6",
       "source_sha256": "b4bda5397822085495c9c9696422000b9b54a7df7515bbcfaf4cdc73d1fa2179"
     },
     "build_catalog.py": {

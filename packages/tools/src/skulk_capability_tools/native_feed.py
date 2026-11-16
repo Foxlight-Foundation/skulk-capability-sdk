@@ -39,6 +39,7 @@ from .native_catalog import (
 from .native_publishing import (
     NativeRuntimeRelease,
     SignedNativeRuntimeRelease,
+    native_cohort,
     native_runtime_message,
 )
 from .publication_admission import validate_publication_metadata
@@ -103,23 +104,41 @@ def read_native_built(directory: Path) -> NativeBuiltRelease:
 
 
 def native_release_reference(directory: Path, lock: Lockfile) -> ReleaseReference:
-    """Record an independent bundle, exact native wrapper and source-built wheels."""
+    """Record rebuilt inputs and independently acquired direct-URL asset sizes."""
     built = read_native_built(directory)
     registry = {
         str(canonicalize_name(package.name))
         for package in lock.package
-        if "registry" in package.source or "url" in package.source
+        if "registry" in package.source
     }
     release = built.runtime.release
+    wheels = {
+        wheel.filename: ReferenceWheel(size=wheel.size, sha256=wheel.sha256)
+        for wheel in built.runtime.wheels
+        if wheel.distribution[0] not in registry
+    }
+    # The independent rebuild runs on one platform. Other native binaries have
+    # immutable independently qualified public receipts, so their exact sizes
+    # do not need to be nominated by a candidate build on those platforms.
+    platforms = TypeAdapter(list[dict[str, JsonValue]]).validate_python(
+        native_cohort(built.runtime.kernel.version)["platforms"], strict=True
+    )
+    for item in platforms:
+        asset = TypeAdapter(dict[str, JsonValue]).validate_python(
+            item["wheel"], strict=True
+        )
+        filename = TypeAdapter(str).validate_python(asset["name"], strict=True)
+        receipt = ReferenceWheel.model_validate(
+            {"sha256": asset["sha256"], "size": asset["size"]}
+        )
+        if filename in wheels and wheels[filename] != receipt:
+            raise Denied("independent native binary differs from its public receipt")
+        wheels[filename] = receipt
     return ReleaseReference(
         bundle_sha256=release.manifest.executable_sha256,
         bundle_size=release.artifact_size,
         manifest_sha256=hashlib.sha256(canonical(release.manifest)).hexdigest(),
-        built_wheels={
-            wheel.filename: ReferenceWheel(size=wheel.size, sha256=wheel.sha256)
-            for wheel in built.runtime.wheels
-            if wheel.distribution[0] not in registry
-        },
+        built_wheels=wheels,
     )
 
 

@@ -62,3 +62,10 @@ initial 404; signatures, accepted version and revision floors never downgrade.
 Qualification must separately record the actual platform, normally installed
 application, Core/owner identities and published input custody. Metadata tests
 alone do not qualify an application installation or real-account use.
+
+Native rebuild references include source-built wheels and directly acquired
+URL wheels when the lock records a hash without a size. Each direct URL still
+needs its exact locked SHA-256; the size comes from an independent acquisition,
+never the candidate. Other-platform native binary sizes come from the immutable
+qualified cohort receipt. Ordinary registry locks and legacy signing retain
+their original requirement for a recorded exact size.

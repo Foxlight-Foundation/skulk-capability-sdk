@@ -13,6 +13,7 @@ from pydantic import JsonValue
 
 from skulk_capability_sdk.contracts import Denied
 
+from .native_publishing import SignedNativeRuntimeRelease
 from .publication_records import (
     publication_digest,
     publication_message,
@@ -47,13 +48,19 @@ def inspect_release(
     The returned host-version result checks only an explicitly supplied version.
     Installation and execution require the host's independent authorization.
     """
-    record = read_publication_record(read_public(path, RELEASE_METADATA_MAX_BYTES))
+    raw = read_public(path, RELEASE_METADATA_MAX_BYTES)
+    record = read_publication_record(raw)
     trust = PublisherTrust.model_validate_json(read_public(trust_path, 65536))
     release = publication_release(record)
     runtime = publication_runtime(record)
     now = int(time.time())
     public = trust.publishers.get(release.publisher)
     revoked = {release.manifest.executable_sha256}
+    if isinstance(record, SignedNativeRuntimeRelease):
+        # Native distribution and host consent retain both the nested release
+        # identity and the exact served record identity, independently of its
+        # runtime identity. Every supported withdrawal must stop publication.
+        revoked.update((record.runtime.release.digest, hashlib.sha256(raw).hexdigest()))
     if runtime is not None:
         revoked.add(runtime.digest)
         revoked.update(wheel.sha256 for wheel in runtime.wheels)

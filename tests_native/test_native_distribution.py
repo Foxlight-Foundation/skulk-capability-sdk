@@ -358,7 +358,18 @@ def test_catalog_builder_requires_native_opt_in_and_uses_separate_signature(
         SignedCatalog.model_validate_json(raw)
 
 
-@pytest.mark.parametrize("refusal", ["signature", "publisher", "expired", "revoked"])
+@pytest.mark.parametrize(
+    "refusal",
+    [
+        "signature",
+        "publisher",
+        "expired",
+        "revoked",
+        "release-revoked",
+        "record-revoked",
+        "wheel-revoked",
+    ],
+)
 def test_public_native_inspection_authenticates_actual_original_claims(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, refusal: str
 ) -> None:
@@ -390,7 +401,13 @@ def test_public_native_inspection_authenticates_actual_original_claims(
     elif refusal == "expired":
         trust = trust.model_copy(update={"expires_at": 149})
     else:
-        trust = trust.model_copy(update={"revoked_artifacts": (signed.runtime.digest,)})
+        identity = {
+            "revoked": signed.runtime.digest,
+            "release-revoked": signed.runtime.release.digest,
+            "record-revoked": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "wheel-revoked": signed.runtime.wheels[0].sha256,
+        }[refusal]
+        trust = trust.model_copy(update={"revoked_artifacts": (identity,)})
     trust_path.write_text(trust.model_dump_json())
     with pytest.raises(Denied):
         inspection.inspect_release(path, trust_path)

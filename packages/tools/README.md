@@ -22,3 +22,50 @@ They select a separately signed native cohort using the actual public compiled
 reader. The legacy check/dev/inspect and catalog interfaces keep their existing
 protocols. Candidate package creation, distribution and installed authorization
 remain independently qualified.
+
+## Native distribution candidates
+
+Tools `0.2.0rc2` add explicit native publication paths. Install the qualified
+public native kernel cohort before reading managed/2 declarations; no compiler
+or private Git checkout is needed. These tools do not grant installation,
+execution, account access or provider usage.
+
+- `capability-catalog --native` authenticates native runtime-five records and
+  signs a separate protocol-four catalog. Full manifest revision, exact native
+  source/version/ABI profiles and processing domains remain explicit. Without
+  this flag, a native record is refused. Legacy catalogs keep their schemas
+  and signing bytes.
+- `capability-feed --native` accepts runtime-five candidates only. It checks
+  bounded artifact bytes, the exact independent publisher policy and platform
+  set, the caller's frozen lock, and independently rebuilt bundle, native
+  manifest wrapper and source-built wheels before signing. The independent
+  reference can be produced with `native_feed.native_release_reference` in a
+  separate rebuild job. The output is `catalog-v4.json` plus immutable
+  `<bundle>/<sequence>/<platform>/` release directories. The signer does not
+  install or execute capability or owner wheels. Each publication run needs
+  a new sequence; never rerun a signing attempt under an issued sequence.
+- `skulk-cap inspect` and `skulk-cap publish` authenticate native signature
+  domains and hash the allowlisted artifacts. Local web-root publication
+  does not establish HTTPS availability or host authorization.
+- `skulk-cap runtime --native --recipe reviewed-native.json --platform
+  linux-glibc-x86_64 --output wheelhouse` acquires an explicitly supplied format-two
+  recipe. It binds owner and SDK versions, immutable owner source, qualified
+  runtime provenance, exact native cohort and full bounded wheel inventory.
+  Every download is anonymous HTTPS and size/hash checked. The recipe is an
+  acquisition input, independently of release trust. It is not a claim that
+  a native owner binary has already been published at a stable public URL.
+
+Serve native catalogs separately from the legacy `catalog.json` and
+`catalog-v3.json` projections. Deploy a compatible reader before publishing
+native entries. Built-in readers may probe older versions only after a genuine
+initial 404; signatures, accepted version and revision floors never downgrade.
+Qualification must separately record the actual platform, normally installed
+application, Core/owner identities and published input custody. Metadata tests
+alone do not qualify an application installation or real-account use.
+
+Native rebuild references include source-built wheels and directly acquired
+URL wheels when the lock records a hash without a size. Each direct URL still
+needs its exact locked SHA-256; the size comes from an independent acquisition,
+never the candidate. Other-platform native binary sizes come from the immutable
+qualified cohort receipt. Ordinary registry locks and legacy signing retain
+their original requirement for a recorded exact size.

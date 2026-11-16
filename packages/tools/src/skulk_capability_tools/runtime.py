@@ -13,6 +13,7 @@ from skulk_capability_sdk.contracts import Denied
 from skulk_capability_sdk.storage import atomic_private, secure_directory
 
 from .inspection import read_public
+from .native_runtime_recipe import NativeRuntimeRecipe
 from .wheelhouse import LockedFile, fetch_locked
 
 
@@ -29,7 +30,9 @@ class RuntimeRecipe(BaseModel):
     wheels: tuple[LockedFile, ...] = Field(min_length=1, max_length=64)
 
 
-def acquire(recipe: RuntimeRecipe, output: Path) -> dict[str, str | int]:
+def acquire(
+    recipe: RuntimeRecipe | NativeRuntimeRecipe, output: Path
+) -> dict[str, str | int]:
     """Verify every anonymous download before creating any output artifact."""
     if len({wheel.filename for wheel in recipe.wheels}) != len(recipe.wheels):
         raise Denied("Runtime recipe contains duplicate filenames")
@@ -71,7 +74,27 @@ def main(arguments: list[str]) -> None:
         choices=("macos-arm64", "linux-glibc-x86_64", "linux-glibc-aarch64"),
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--native",
+        action="store_true",
+        help="Read an explicit native format-two recipe",
+    )
+    parser.add_argument(
+        "--recipe",
+        type=Path,
+        help="Reviewed native recipe JSON; never installation trust",
+    )
     options = parser.parse_args(arguments)
-    path = Path(__file__).with_name("runtime_recipes") / f"{options.platform}.json"
-    recipe = RuntimeRecipe.model_validate_json(read_public(path, 131072))
+    if options.native != (options.recipe is not None):
+        parser.error("--native and --recipe are required together")
+    recipe: RuntimeRecipe | NativeRuntimeRecipe
+    if options.native:
+        recipe = NativeRuntimeRecipe.model_validate_json(
+            read_public(options.recipe, 131072)
+        )
+        if recipe.platform != options.platform:
+            parser.error("native recipe platform differs from --platform")
+    else:
+        path = Path(__file__).with_name("runtime_recipes") / f"{options.platform}.json"
+        recipe = RuntimeRecipe.model_validate_json(read_public(path, 131072))
     print(json.dumps(acquire(recipe, options.output), sort_keys=True))

@@ -11,11 +11,17 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from packaging.specifiers import SpecifierSet
 from pydantic import JsonValue
 
-from skulk_capability_sdk.contracts import Denied, canonical
+from skulk_capability_sdk.contracts import Denied
 
-from .catalog import signed_claims, signed_record
+from .native_publishing import SignedNativeRuntimeRelease
+from .publication_records import (
+    publication_digest,
+    publication_message,
+    publication_release,
+    publication_runtime,
+    read_publication_record,
+)
 from .releases import RELEASE_METADATA_MAX_BYTES, PublisherTrust
-from .runtime_release import SignedRuntimeRelease
 
 
 def read_public(path: Path, limit: int) -> bytes:
@@ -42,20 +48,22 @@ def inspect_release(
     The returned host-version result checks only an explicitly supplied version.
     Installation and execution require the host's independent authorization.
     """
-    record = signed_record(read_public(path, RELEASE_METADATA_MAX_BYTES))
+    raw = read_public(path, RELEASE_METADATA_MAX_BYTES)
+    record = read_publication_record(raw)
     trust = PublisherTrust.model_validate_json(read_public(trust_path, 65536))
-    claims = signed_claims(record)
-    release = (
-        record.runtime.release
-        if isinstance(record, SignedRuntimeRelease)
-        else record.release
-    )
+    release = publication_release(record)
+    runtime = publication_runtime(record)
     now = int(time.time())
     public = trust.publishers.get(release.publisher)
     revoked = {release.manifest.executable_sha256}
-    if isinstance(record, SignedRuntimeRelease):
-        revoked.add(record.runtime.digest)
-        revoked.update(wheel.sha256 for wheel in record.runtime.wheels)
+    if isinstance(record, SignedNativeRuntimeRelease):
+        # Native distribution and host consent retain both the nested release
+        # identity and the exact served record identity, independently of its
+        # runtime identity. Every supported withdrawal must stop publication.
+        revoked.update((record.runtime.release.digest, hashlib.sha256(raw).hexdigest()))
+    if runtime is not None:
+        revoked.add(runtime.digest)
+        revoked.update(wheel.sha256 for wheel in runtime.wheels)
     if (
         public is None
         or now >= trust.expires_at
@@ -66,7 +74,7 @@ def inspect_release(
         raise Denied("release trust, expiry or revocation refused")
     try:
         Ed25519PublicKey.from_public_bytes(bytes.fromhex(public)).verify(
-            bytes.fromhex(record.signature), canonical(claims)
+            bytes.fromhex(record.signature), publication_message(record)
         )
     except (InvalidSignature, ValueError):
         raise Denied("release signature refused") from None
@@ -77,8 +85,8 @@ def inspect_release(
             or hashlib.sha256(bundle).hexdigest() != release.manifest.executable_sha256
         ):
             raise Denied("bundle differs from signed bytes")
-        if isinstance(record, SignedRuntimeRelease):
-            for wheel in record.runtime.wheels:
+        if runtime is not None:
+            for wheel in runtime.wheels:
                 content = read_public(artifacts / wheel.filename, wheel.size)
                 if (
                     len(content) != wheel.size
@@ -92,7 +100,7 @@ def inspect_release(
         "bundle_version": release.manifest.bundle_version,
         "publisher": release.publisher,
         "sequence": release.sequence,
-        "release_sha256": claims.digest,
+        "release_sha256": publication_digest(record),
         "declared_host_version_compatible": (
             declared_host_version in SpecifierSet(release.manifest.skulk_requires)
             if declared_host_version is not None

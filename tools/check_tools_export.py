@@ -29,6 +29,10 @@ MODULES = {
     "host.py",
     "inspection.py",
     "native_publishing.py",
+    "publication_records.py",
+    "native_runtime_recipe.py",
+    "native_feed.py",
+    "native_catalog.py",
     "packaging.py",
     "project.py",
     "publication_admission.py",
@@ -46,6 +50,10 @@ DATA = {
     for name in ("macos-arm64", "linux-glibc-x86_64", "linux-glibc-aarch64")
 } | {"native_cohorts/0.7.0rc3.json", "native_cohorts/0.7.0rc4.json"}
 ADDITIONS = {
+    "src/skulk_capability_tools/publication_records.py",
+    "src/skulk_capability_tools/native_runtime_recipe.py",
+    "src/skulk_capability_tools/native_feed.py",
+    "src/skulk_capability_tools/native_catalog.py",
     "src/skulk_capability_tools/native_publishing.py",
     "src/skulk_capability_tools/native_cohorts/0.7.0rc3.json",
     "src/skulk_capability_tools/native_cohorts/0.7.0rc4.json",

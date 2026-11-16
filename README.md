@@ -5,7 +5,7 @@ operations, transactional storage, streaming media and declared credential reads
 The SDK is licensed under [MIT](LICENSE.md). Source and package downloads require
 no Foxlight account. A publishing account is separate from runtime authority.
 
-SDK0.5.11rc1 retains the qualified protocol-4 authoring interfaces.
+SDK0.5.12rc1 retains the qualified protocol-4 authoring interfaces.
 Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
 `CapabilityApp` have separate qualification gates. The new explicit
@@ -51,3 +51,9 @@ interfaces and the `skulk.portable/1` candidate. Its [profile reference](docs/na
 and independent conformance corpus describe the available boundary. Kernel
 qualification builds remain separate from the released Python SDK contract and
 managed-runtime adoption.
+
+Native distribution candidates use author tools `0.2.0rc2`. Explicit
+`capability-feed --native` and `capability-catalog --native` preserve runtime-five
+and catalog-four signature domains and full native identities. Issued legacy
+formats and default runtime acquisition recipes remain unchanged. See
+[distribution tools](packages/tools/README.md#native-distribution-candidates).

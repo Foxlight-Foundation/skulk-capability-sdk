@@ -689,7 +689,7 @@ wheels = [
 
 [[package]]
 name = "skulk-capability-sdk"
-version = "0.5.11rc1"
+version = "0.5.12rc1"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },
@@ -745,7 +745,7 @@ native-runtime = [
 
 [[package]]
 name = "skulk-capability-tools"
-version = "0.2.0rc1"
+version = "0.2.0rc2"
 source = { editable = "packages/tools" }
 dependencies = [
     { name = "anyio" },

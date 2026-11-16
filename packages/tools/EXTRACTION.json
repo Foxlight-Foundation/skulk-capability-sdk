@@ -1,5 +1,10 @@
 {
   "additions": {
+    "src/skulk_capability_tools/native_catalog.py": {
+      "origin": "authored",
+      "sha256": "f485db486df6e9cb2248500f6a2296e7599a6032b9e55c7cd7931cc9bf356307",
+      "source": "Authored from public native ABI, catalog-four and runtime-five contracts on public SDK base4361305db103fea95e86daf905cc8de3d90dc50f; no private owner/provider implementation imports."
+    },
     "src/skulk_capability_tools/native_cohorts/0.7.0rc3.json": {
       "origin": "public-release",
       "sha256": "da446b54ddd8996ea21cbd61f1155bc1e840ddfff2e36f435ffc973806c865ae",
@@ -10,23 +15,38 @@
       "sha256": "3702b717039632845f68557c87d10551480501505230134d973b04644b14e2d2",
       "source": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.4/native-candidates.json"
     },
+    "src/skulk_capability_tools/native_feed.py": {
+      "origin": "authored",
+      "sha256": "ffdbbb7b50a39b4a22cac152e61ae1f43c35a8868c67af6bbb3d8538507117ef",
+      "source": "Authored from public native ABI, catalog-four and runtime-five contracts on public SDK base4361305db103fea95e86daf905cc8de3d90dc50f; no private owner/provider implementation imports."
+    },
     "src/skulk_capability_tools/native_publishing.py": {
       "origin": "authored",
       "sha256": "2861333f3d79e532cc368e182edfc5482aa8456e93235648659114b0810e36fd",
       "source": "Authored after public SDK base e18d7681a077c5fd458ac5c5f64d724a2413ece4 using public native ABI and public Core release3/runtime5 contracts; no owner implementation imports."
+    },
+    "src/skulk_capability_tools/native_runtime_recipe.py": {
+      "origin": "authored",
+      "sha256": "3a6e7a6b72f6f50794565f48d938b93e613a12b44ea459e8949f44515c59187f",
+      "source": "Authored from public native ABI, catalog-four and runtime-five contracts on public SDK base4361305db103fea95e86daf905cc8de3d90dc50f; no private owner/provider implementation imports."
+    },
+    "src/skulk_capability_tools/publication_records.py": {
+      "origin": "authored",
+      "sha256": "6e735aa2aa8d5472321ad4e8e185c35c7fa7a747521a683d47f134cd98504408",
+      "source": "Authored from public native ABI, catalog-four and runtime-five contracts on public SDK base4361305db103fea95e86daf905cc8de3d90dc50f; no private owner/provider implementation imports."
     }
   },
   "format": 2,
   "metadata_projections": "Only public retained selection/settings shapes; installation and supervision implementations excluded",
   "modules": {
     "assemble_feed.py": {
-      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing",
-      "extracted_sha256": "1a63690d313a6a13f3bbd2955de5e4a6b9847f709488b94020a90f57bb2d9b7a",
+      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing; explicit native publication and recipe paths, issued legacy defaults and signing domains preserved",
+      "extracted_sha256": "29b0a5f9fd076aef01fccf15ec9de644463bd46a8419f1090e1e93d802e3b981",
       "source_sha256": "b4bda5397822085495c9c9696422000b9b54a7df7515bbcfaf4cdc73d1fa2179"
     },
     "build_catalog.py": {
-      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing",
-      "extracted_sha256": "10039ac2d07e7cb47534cac46c502f9c680f32037395a13cee85fdb2ddad1bf0",
+      "adjustment": "Public namespace/import boundary; share and enforce complete signed catalog reader envelope before writing; explicit native publication and recipe paths, issued legacy defaults and signing domains preserved",
+      "extracted_sha256": "8f9915803baaee89cdea07ba9729fbae60f26acd941c6d4f37b5da2cc08859db",
       "source_sha256": "f8ad2983f9a628775b5ecad65ee7aee6f1ca722abe4ac10e11257007f1dbd728"
     },
     "build_release.py": {

@@ -59,6 +59,7 @@ from .catalog import (
     verify_catalog,
 )
 from .describe import validate_discovery_compatibility
+from .native_catalog import NativeCatalog
 from .publication_admission import validate_publication_metadata
 from .releases import (
     RELEASE_METADATA_MAX_BYTES,
@@ -234,6 +235,8 @@ def expected_wheels(
     family: str,
     reference: ReleaseReference,
     additional: tuple[str, ...] = (),
+    *,
+    native_candidate: bool = False,
 ) -> dict[str, ReferenceWheel]:
     """The exact wheels a release for one platform must carry, by filename.
 
@@ -242,13 +245,17 @@ def expected_wheels(
     digest. A package built from locked source must have exactly one wheel of
     its locked name and version in the independent rebuild.
     """
-    tags = supported_tags(platform_policy(family))
+    tags = supported_tags(platform_policy(family, native_candidate=native_candidate))
     expected: dict[str, ReferenceWheel] = {}
     for package in runtime_closure(
-        lock, root, platform_environment(family), additional
+        lock,
+        root,
+        platform_environment(family),
+        additional,
+        native_candidate=native_candidate,
     ):
         if "registry" in package.source or "url" in package.source:
-            file = select_wheel(package, tags)
+            file = select_wheel(package, tags, native_candidate=native_candidate)
             if file.size is None:
                 raise Denied(f"the lock records no size for {file.filename}")
             expected[file.filename] = ReferenceWheel(sha256=file.sha256, size=file.size)
@@ -512,7 +519,9 @@ def verify_feed(
     return catalog
 
 
-def _summary(catalog: Catalog, document: bytes, public: str) -> Mapping[str, object]:
+def _summary(
+    catalog: Catalog | NativeCatalog, document: bytes, public: str
+) -> Mapping[str, object]:
     return {
         "publisher": catalog.publisher,
         "public_key": public,
@@ -542,6 +551,11 @@ def main(argv: list[str] | None = None) -> None:
     throwaway key.
     """
     parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
+    parser.add_argument(
+        "--native",
+        action="store_true",
+        help="Explicit runtime-five candidates and catalog-four feed",
+    )
     key_source = parser.add_mutually_exclusive_group(required=True)
     key_source.add_argument("--private-key", type=Path, help="Owner-only key file")
     key_source.add_argument(
@@ -607,32 +621,57 @@ def main(argv: list[str] | None = None) -> None:
             reference=ReleaseReference.model_validate_json(args.reference.read_bytes()),
         )
         lock = load_lock(args.lock)
-        built = [read_built(directory) for directory in args.releases]
-        assemble(
-            built,
-            key,
-            expectation=expectation,
-            lock=lock,
-            root=args.root,
-            feed_url=args.feed_url,
-            revision=args.catalog_revision,
-            expires_at=args.catalog_expires_at,
-            output=args.output,
-            now=now,
-        )
         public = key.public_key().public_bytes_raw().hex()
         trust = PublisherTrust(
             revision=1,
             expires_at=args.catalog_expires_at,
             publishers={args.publisher: public},
         )
-        catalog = verify_feed(args.output, args.feed_url, trust, now=now)
+        if args.native:
+            from .native_feed import (
+                assemble_native,
+                read_native_built,
+                verify_native_feed,
+            )
+
+            assemble_native(
+                [read_native_built(directory) for directory in args.releases],
+                key,
+                expectation=expectation,
+                lock=lock,
+                root=args.root,
+                feed_url=args.feed_url,
+                revision=args.catalog_revision,
+                expires_at=args.catalog_expires_at,
+                output=args.output,
+                now=now,
+            )
+            native_catalog = verify_native_feed(
+                args.output, args.feed_url, trust, now=now
+            )
+            document = (args.output / "catalog-v4.json").read_bytes()
+            summary = _summary(native_catalog, document, public)
+        else:
+            assemble(
+                [read_built(directory) for directory in args.releases],
+                key,
+                expectation=expectation,
+                lock=lock,
+                root=args.root,
+                feed_url=args.feed_url,
+                revision=args.catalog_revision,
+                expires_at=args.catalog_expires_at,
+                output=args.output,
+                now=now,
+            )
+            catalog = verify_feed(args.output, args.feed_url, trust, now=now)
+            document = (args.output / "catalog.json").read_bytes()
+            summary = _summary(catalog, document, public)
     except (Denied, ValidationError, ValueError, OSError) as refusal:
         parser.error(str(refusal))
     if args.trust_output is not None:
         atomic_private(args.trust_output, trust.model_dump_json().encode())
-    document = (args.output / "catalog.json").read_bytes()
-    print(json.dumps(_summary(catalog, document, public), indent=2))
+    print(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":

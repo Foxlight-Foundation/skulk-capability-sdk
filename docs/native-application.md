@@ -176,7 +176,10 @@ to retire the application channel to fence uncertain work. Cleanup cannot issue
 new delegations after cancellation. The SDK finishes an already-started frame
 write before publishing parent completion, retains bounded correlation for an
 already-crossing late response, and closes owned resources on channel loss. It
-never reconnects an uncertain request.
+also releases a child wait already inside owned cleanup when the parent retires;
+local cleanup does not depend on a response from a cancelled host scope. A
+stream's buffered successful terminal is fenced before it can be flushed after
+retirement. The SDK never reconnects an uncertain request.
 
 The native tests compose two independently implemented public application handlers
 through the released compiled codec and admission kernel. They qualify author-side

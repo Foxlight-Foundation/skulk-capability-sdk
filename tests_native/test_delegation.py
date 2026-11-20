@@ -590,6 +590,112 @@ async def test_streaming_parent_can_await_a_unary_child() -> None:
         assert response["error"] is None
 
 
+async def test_stream_terminal_is_not_flushed_after_abandoning_child() -> None:
+    """A buffered completed terminal cannot precede a cancelled control result."""
+    sent = asyncio.Event()
+    children: list[asyncio.Task[object]] = []
+
+    async def handler(
+        call: Invocation, _inputs: AsyncIterator[InputFrame]
+    ) -> AsyncGenerator[OutputFrame]:
+        children.append(asyncio.create_task(call.call(endpoint(), {"input": "child"})))
+        await sent.wait()
+        yield OutputFrame("completed", {"output": "incorrect success"})
+
+    app = CapabilityApp()
+    app.stream("example", handler)
+    async with running(app, "server_streaming") as peer:
+        await peer.invoke()
+        reader, _writer = await asyncio.wait_for(peer.streams.get(), 3)
+        await header(reader)
+        request, _body = await peer.receive()
+        sent.set()
+        response, body = await peer.receive()
+        assert response["error"] == "cancelled" and not body
+        assert await asyncio.wait_for(reader.read(1), 2) == b""
+        await asyncio.gather(*children, return_exceptions=True)
+        await reply(peer, request, error="cancelled")
+        await peer.health()
+
+
+@pytest.mark.parametrize("cleanup", ["handler_finally", "resource_exit"])
+async def test_timeout_retires_client_before_cleanup_starts(cleanup: str) -> None:
+    """Neither handler finally nor resource exit may issue work after expiry."""
+    refused = asyncio.Event()
+
+    async def cleanup_call(call: Invocation) -> None:
+        try:
+            await call.call(endpoint(), {"input": "late-effect"})
+        except ValueError:
+            refused.set()
+
+    @asynccontextmanager
+    async def resource(call: Invocation) -> AsyncGenerator[None]:
+        try:
+            yield
+        finally:
+            await cleanup_call(call)
+
+    async def handler(call: Invocation) -> dict[str, JsonValue]:
+        if cleanup == "resource_exit":
+            await call.enter_resource(resource(call))
+        try:
+            await asyncio.Event().wait()
+        finally:
+            if cleanup == "handler_finally":
+                await cleanup_call(call)
+        return {}
+
+    app = CapabilityApp()
+    app.unary("example", handler)
+    async with running(app) as peer:
+        await peer.invoke(seconds=0.1)
+        response, body = await peer.receive()
+        late_effect = response["kind"] == "delegate"
+        if late_effect:
+            await reply(peer, response, error="denied")
+            response, body = await peer.receive()
+        assert not late_effect, "timeout cleanup dispatched a new child"
+        assert response["error"] == "timeout" and not body and refused.is_set()
+        await peer.health()
+
+
+async def test_timeout_retires_a_child_already_waiting_in_owned_cleanup() -> None:
+    """Expiry wakes a client wait even after resource exit took cleanup ownership."""
+
+    @asynccontextmanager
+    async def resource(call: Invocation) -> AsyncGenerator[None]:
+        try:
+            yield
+        finally:
+            await call.call(endpoint(), {"input": "cleanup-child"})
+
+    async def handler(call: Invocation) -> dict[str, JsonValue]:
+        await call.enter_resource(resource(call))
+        return {}
+
+    app = CapabilityApp()
+    app.unary("example", handler)
+    async with running(app) as peer:
+        await peer.invoke(seconds=0.2)
+        request, _body = await peer.receive()
+        assert request["kind"] == "delegate"
+        response_task = asyncio.create_task(peer.receive())
+        try:
+            response, body = await asyncio.wait_for(asyncio.shield(response_task), 0.8)
+            early = True
+        except TimeoutError:
+            # Drain the old failing implementation before asserting, so the
+            # regression itself cannot leave an immortal cleanup task behind.
+            early = False
+            await reply(peer, request, error="cancelled")
+            response, body = await asyncio.wait_for(response_task, 2)
+        assert early, "retirement left owned cleanup waiting for a child response"
+        assert response["error"] == "timeout" and not body
+        await reply(peer, request, error="cancelled")
+        await peer.health()
+
+
 async def test_channel_loss_drains_pending_call_and_application_resources() -> None:
     """Disconnect never reconnects or replays an uncertain child."""
     cleaned = asyncio.Event()

@@ -150,7 +150,9 @@ async def _finish_owned[Value](task: asyncio.Task[Value]) -> Value:
 
 
 async def _during[Value](
-    work: Callable[[], Awaitable[Value]], seconds: float | None
+    work: Callable[[], Awaitable[Value]],
+    seconds: float | None,
+    retire: Callable[[], None],
 ) -> Value:
     """Disarm the caller's timer before cancelling and draining owned behavior."""
 
@@ -164,8 +166,12 @@ async def _during[Value](
             # then may cleanup cancel the separately owned handler, once.
             return await asyncio.shield(task)
     finally:
-        if not task.done() and task.cancelling() == 0:
-            task.cancel()
+        if not task.done():
+            # Expiry must remove client authority before handler/resource
+            # finally blocks run outside the now-disarmed generation timer.
+            retire()
+            if task.cancelling() == 0:
+                task.cancel()
 
         async def drain() -> None:
             await asyncio.gather(task, return_exceptions=True)
@@ -382,6 +388,14 @@ class _Delegations:
 
     def retire(self) -> None:
         self.active = False
+        if self.pending is not None and not self.pending.received:
+            # Cleanup may already own an uncancellable resource exit awaiting a
+            # child. Wake that wait without requiring a response from a scope
+            # the host may have cancelled. Correlation remains until late input
+            # is consumed; this synthetic wake never counts as a host reply.
+            self.pending.abandoned = True
+            if not self.pending.reply.done():
+                self.pending.reply.set_result(_DelegatedReply(b"", "cancelled"))
 
     async def close(self) -> None:
         self.active = False
@@ -830,9 +844,10 @@ class CapabilityApp:
                             descriptor,
                             mode,
                             seconds,
+                            job,
                         )
 
-                job.work = asyncio.create_task(_during(handle, seconds))
+                job.work = asyncio.create_task(_during(handle, seconds, job.retire))
                 await asyncio.shield(job.work)
                 if job.cancelled:
                     raise asyncio.CancelledError
@@ -943,6 +958,7 @@ class CapabilityApp:
         descriptor: dict[str, JsonValue],
         mode: str,
         seconds: float | None,
+        job: _InvocationJob,
     ) -> None:
         stream = await native.open_transport_v2_stream(
             startup, invocation.call_id, mode, seconds
@@ -1020,6 +1036,10 @@ class CapabilityApp:
                                 break
             # The compiled stream retains its terminal until the iterator has
             # closed, then sends exactly one end. Control result follows cleanup.
+            # Cleanup may retire a parent with an unjoined child. Its buffered
+            # success must never cross the media socket before control refuses it.
+            if job.cancelled:
+                raise asyncio.CancelledError
             await stream.finish()
         finally:
 

@@ -5,13 +5,20 @@ operations, transactional storage, streaming media and declared credential reads
 The SDK is licensed under [MIT](LICENSE.md). Source and package downloads require
 no Foxlight account. A publishing account is separate from runtime authority.
 
-SDK0.5.12rc1 retains the qualified protocol-4 authoring interfaces.
+SDK0.5.13rc1 retains the qualified protocol-4 authoring interfaces.
 Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
-`CapabilityApp` have separate qualification gates. The new explicit
+`CapabilityApp` have separate qualification gates. The explicit
 [native Python application runtime](docs/native-application.md) uses the published
 0.7.0rc3 or 0.7.0rc4 execution candidate; installing this SDK does not switch an installed
 runtime or migrate an application.
+
+The native Python candidate also provides an invocation-scoped unary client:
+`CapabilityEndpoint`, `Invocation.call`, `CallReply` and `CapabilityCallError`.
+It preserves exact destination and request identities over the published
+calls/2 execution ABI. See [native application clients](docs/native-application.md#call-an-exact-capability).
+This does not establish signed installed composition or complete SDK1's
+TypeScript, durable-work and public author journeys.
 
 Python 3.13 is required. The SDK itself needs no compiler, GPU, model or fleet
 lease. Capability execution also requires a compatible Skulk host; joining a

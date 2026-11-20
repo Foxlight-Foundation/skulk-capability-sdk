@@ -5,6 +5,8 @@ dispatches startup-bound calls received on the compiled protected channel. It
 does not implement a host, resolve destinations or read provider credentials.
 """
 
+from __future__ import annotations
+
 import asyncio
 import hashlib
 import importlib
@@ -38,6 +40,15 @@ _DEADLINE: TypeAdapter[int | None] = TypeAdapter(int | None)
 _NUMBER = TypeAdapter(float)
 _INTEGER = TypeAdapter(int)
 type StreamMode = Literal["server_streaming", "client_streaming", "bidirectional"]
+type CallErrorCode = Literal[
+    "invalid_payload",
+    "provider_error",
+    "timeout",
+    "denied",
+    "outcome_unknown",
+    "cancelled",
+]
+_CALL_ERROR: TypeAdapter[CallErrorCode] = TypeAdapter(CallErrorCode)
 
 
 class _Record(Protocol):
@@ -76,7 +87,9 @@ class _Native(Protocol):
     def CompositionV3Contract(self) -> _Factory: ...
     @property
     def PortableSchema(self) -> _SchemaFactory: ...
+    def portable_v2_contract_json(self, name: str, source: str) -> bytes: ...
     def portable_v2_contract_digest(self, name: str, source: str) -> str: ...
+    def composition_v3_profile_digest(self) -> str: ...
     def calls_v2_profile_digest(self) -> str: ...
     def encode_call_v2_frame(self, source: str, payload: bytes) -> bytes: ...
     def open_call_v2_control(
@@ -105,9 +118,15 @@ class _InvocationJob:
     task: asyncio.Task[None] | None = None
     work: asyncio.Task[None] | None = None
     cancelled: bool = False
+    calls: _Delegations | None = None
+
+    def retire(self) -> None:
+        self.cancelled = True
+        if self.calls is not None:
+            self.calls.retire()
 
     def cancel(self) -> None:
-        self.cancelled = True
+        self.retire()
         if (
             self.work is not None
             and not self.work.done()
@@ -131,7 +150,9 @@ async def _finish_owned[Value](task: asyncio.Task[Value]) -> Value:
 
 
 async def _during[Value](
-    work: Callable[[], Awaitable[Value]], seconds: float | None
+    work: Callable[[], Awaitable[Value]],
+    seconds: float | None,
+    retire: Callable[[], None],
 ) -> Value:
     """Disarm the caller's timer before cancelling and draining owned behavior."""
 
@@ -145,8 +166,12 @@ async def _during[Value](
             # then may cleanup cancel the separately owned handler, once.
             return await asyncio.shield(task)
     finally:
-        if not task.done() and task.cancelling() == 0:
-            task.cancel()
+        if not task.done():
+            # Expiry must remove client authority before handler/resource
+            # finally blocks run outside the now-disarmed generation timer.
+            retire()
+            if task.cancelling() == 0:
+                task.cancel()
 
         async def drain() -> None:
             await asyncio.gather(task, return_exceptions=True)
@@ -247,6 +272,245 @@ class CallContext:
 
 @final
 @dataclass(frozen=True, slots=True, repr=False)
+class CapabilityEndpoint:
+    """An exact descriptor and installed destination, never an execution grant.
+
+    Obtain descriptors through the application's discovery/configuration surface.
+    The host independently verifies the actual signed destination, original caller
+    and current policy at dispatch. Readiness is not a permission snapshot.
+    """
+
+    node_id: str
+    _descriptor: bytes = field(repr=False)
+
+    @classmethod
+    def from_descriptor(
+        cls, node_id: str, descriptor: dict[str, JsonValue]
+    ) -> CapabilityEndpoint:
+        """Copy a descriptor admitted by the explicit compiled portable/2 reader."""
+        canonical = _native().portable_v2_contract_json(
+            "Descriptor", json.dumps(descriptor, allow_nan=False)
+        )
+        return cls(node_id, canonical)
+
+    def descriptor(self) -> dict[str, JsonValue]:
+        """Return an owned descriptor copy, including its exact version and mode."""
+        return _OBJECT.validate_json(self._descriptor)
+
+    def canonical_descriptor(self) -> bytes:
+        """Return exact admitted descriptor bytes without implying signed custody."""
+        return self._descriptor
+
+
+@final
+@dataclass(frozen=True, slots=True, repr=False)
+class CallReply:
+    """A successful unary response with exact bytes and an owned JSON projection."""
+
+    raw_payload: bytes = field(repr=False)
+
+    @property
+    def payload(self) -> dict[str, JsonValue]:
+        """Return a fresh object; mutations do not change the original response."""
+        return _OBJECT.validate_json(self.raw_payload)
+
+
+@final
+class CapabilityCallError(RuntimeError):
+    """A bounded host error; contains no backend diagnostics or request content."""
+
+    def __init__(self, code: CallErrorCode) -> None:
+        """Retain only a closed error code, without inferring retry permission."""
+        self.code = _CALL_ERROR.validate_python(code, strict=True)
+        super().__init__(f"capability call failed: {self.code}")
+
+
+@dataclass(slots=True, repr=False)
+class _DelegatedReply:
+    body: bytes = field(repr=False)
+    error: CallErrorCode | None = None
+
+
+@dataclass(slots=True, repr=False)
+class _PendingDelegation:
+    request_id: str
+    reply: asyncio.Future[_DelegatedReply]
+    received: bool = False
+    abandoned: bool = False
+
+
+class _Delegations:
+    """One active-parent client, sharing the app's sole protected control reader."""
+
+    def __init__(
+        self,
+        native: _Native,
+        control: _Control,
+        frame: Callable[..., str],
+        call_id: str,
+        context: dict[str, JsonValue],
+        cancel_parent: Callable[[], None],
+    ) -> None:
+        self.native, self.control, self.frame = native, control, frame
+        self.call_id, self.context = call_id, context
+        self.cancel_parent = cancel_parent
+        self.sequence = 0
+        self.active = True
+        self.pending: _PendingDelegation | None = None
+        self.sending: asyncio.Task[None] | None = None
+
+    def receive(self, request: dict[str, JsonValue], body: bytes) -> None:
+        pending = self.pending
+        if (
+            pending is None
+            or pending.received
+            or request["request_id"] != pending.request_id
+        ):
+            raise ValueError("application delegated result correlation refused")
+        pending.received = True
+        error = request["error"]
+        response = _DelegatedReply(
+            body,
+            None if error is None else _CALL_ERROR.validate_python(error, strict=True),
+        )
+        if not pending.reply.done():
+            pending.reply.set_result(response)
+        if pending.abandoned:
+            self.pending = None
+
+    def awaiting_reply(self) -> bool:
+        return self.pending is not None and not self.pending.received
+
+    def abandon(self) -> None:
+        # There is no child-cancel frame in calls/2. Retire the parent rather
+        # than free its slot for a new effect while an old child may still run.
+        self.active = False
+        if self.pending is not None:
+            self.pending.abandoned = True
+        self.cancel_parent()
+
+    def retire(self) -> None:
+        self.active = False
+        if self.pending is not None and not self.pending.received:
+            # Cleanup may already own an uncancellable resource exit awaiting a
+            # child. Wake that wait without requiring a response from a scope
+            # the host may have cancelled. Correlation remains until late input
+            # is consumed; this synthetic wake never counts as a host reply.
+            self.pending.abandoned = True
+            if not self.pending.reply.done():
+                self.pending.reply.set_result(_DelegatedReply(b"", "cancelled"))
+
+    async def close(self) -> None:
+        self.active = False
+        if self.pending is not None:
+            self.abandon()
+            if not self.pending.reply.done():
+                self.pending.reply.set_result(_DelegatedReply(b"", "cancelled"))
+        if self.sending is not None:
+            # A complete frame belongs to us once sending starts. Cancellation
+            # cannot publish parent completion across a partially written child.
+            await _finish_owned(self.sending)
+
+    async def call(
+        self,
+        destination: CapabilityEndpoint,
+        payload: dict[str, JsonValue] | bytes,
+        deadline_unix_ms: int | None,
+    ) -> CallReply:
+        if not self.active or self.pending is not None:
+            raise ValueError("application delegation is closed or already pending")
+        if self.sequence >= 2**64 - 1:
+            raise ValueError("application delegation sequence exhausted")
+        canonical = self.native.portable_v2_contract_json(
+            "Descriptor", destination.canonical_descriptor().decode()
+        )
+        fields = _OBJECT.validate_json(canonical)
+        if fields["io_mode"] != "unary":
+            raise ValueError("application unary call requires a unary destination")
+        body = (
+            payload
+            if isinstance(payload, bytes)
+            else json.dumps(payload, allow_nan=False).encode()
+        )
+        if not self.native.PortableSchema(json.dumps(fields["input_schema"])).matches(
+            body.decode()
+        ):
+            raise ValueError("application delegated input schema refused")
+        request_id = f"{self.sequence + 1:064x}"
+        request = self.native.CompositionV3Contract.from_json(
+            "DelegateRequest",
+            json.dumps(
+                {
+                    "protocol": 3,
+                    "contract_profile": "skulk.composition/3",
+                    "profile_digest": self.native.composition_v3_profile_digest(),
+                    "kind": "delegate",
+                    "request_id": request_id,
+                    "parent_scope_id": self.context["scope_id"],
+                    "parent_request_sha256": self.context["request_sha256"],
+                    "request_sha256": hashlib.sha256(body).hexdigest(),
+                    "destination": {
+                        "node_id": destination.node_id,
+                        "capability_id": fields["id"],
+                        "version": fields["version"],
+                        "descriptor_revision": self.native.portable_v2_contract_digest(
+                            "Descriptor", canonical.decode()
+                        ),
+                        "behavior": fields["behavior"],
+                        "processing_domain": fields["processing_domain"],
+                    },
+                    "deadline_unix_ms": self.context["deadline_unix_ms"]
+                    if deadline_unix_ms is None
+                    else deadline_unix_ms,
+                },
+                allow_nan=False,
+            ),
+        )
+        metadata = self.frame(
+            "delegate",
+            parent_call_id=self.call_id,
+            request=_OBJECT.validate_json(request.canonical()),
+            payload_size=len(body),
+        )
+        # Compile the complete frame before consuming a sequence or owning I/O.
+        self.native.encode_call_v2_frame(metadata, body)
+        pending = _PendingDelegation(
+            request_id, asyncio.get_running_loop().create_future()
+        )
+        self.pending = pending
+        self.sequence += 1
+
+        async def send() -> None:
+            await self.control.send(metadata, body)
+
+        self.sending = asyncio.create_task(send())
+        try:
+            await asyncio.shield(self.sending)
+            reply = await asyncio.shield(pending.reply)
+            if pending.abandoned or not self.active:
+                raise asyncio.CancelledError
+            if reply.error is not None:
+                if reply.error == "outcome_unknown":
+                    # An uncertainty report cannot authorize a replacement effect
+                    # under the same parent, even when the author handles it.
+                    self.retire()
+                raise CapabilityCallError(reply.error)
+            schema = fields["output_schema"]
+            if schema is not None and not self.native.PortableSchema(
+                json.dumps(schema)
+            ).matches(reply.body.decode()):
+                raise ValueError("application delegated result schema refused")
+            return CallReply(reply.body)
+        finally:
+            if pending.received and not pending.abandoned:
+                self.pending = None
+            else:
+                self.abandon()
+            await _finish_owned(self.sending)
+
+
+@final
+@dataclass(frozen=True, slots=True, repr=False)
 class Invocation:
     """One startup-bound request with exact bytes and original caller context."""
 
@@ -256,6 +520,7 @@ class Invocation:
     raw_payload: bytes = field(repr=False)
     context: CallContext = field(repr=False)
     _resources: AsyncExitStack = field(default_factory=AsyncExitStack, repr=False)
+    _calls: _Delegations | None = field(default=None, repr=False)
 
     @property
     def version(self) -> str:
@@ -273,6 +538,25 @@ class Invocation:
         This does not protect arbitrary cleanup hidden inside a backend function.
         """
         return await self._resources.enter_async_context(context)
+
+    async def call(
+        self,
+        destination: CapabilityEndpoint,
+        payload: dict[str, JsonValue] | bytes,
+        *,
+        deadline_unix_ms: int | None = None,
+    ) -> CallReply:
+        """Await one exact unary destination under this active original caller.
+
+        Raw bytes retain their identity; objects are encoded once. The host
+        rechecks permission and narrows deadlines. At most one child is pending
+        per parent, with no queue, retry, fallback or implicit generation timeout.
+        Cancelling/abandoning a pending child retires the parent; drain calls
+        before returning. This method grants no authority to exported contexts.
+        """
+        if self._calls is None:
+            raise ValueError("application invocation has no active call client")
+        return await self._calls.call(destination, payload, deadline_unix_ms)
 
 
 @final
@@ -511,6 +795,11 @@ class CapabilityApp:
                 ).matches(body.decode()):
                     raise ValueError("application input schema refused")
                 resources = AsyncExitStack()
+                calls = _Delegations(
+                    native, control, frame, call_id, fields, job.retire
+                )
+                job.calls = calls
+                resources.push_async_callback(calls.close)
                 invocation = Invocation(
                     call_id,
                     identifier,
@@ -518,6 +807,7 @@ class CapabilityApp:
                     body,
                     CallContext(context.canonical()),
                     resources,
+                    calls,
                 )
                 seconds = _SECONDS.validate_python(
                     request["remaining_seconds"], strict=True
@@ -557,10 +847,13 @@ class CapabilityApp:
                             descriptor,
                             mode,
                             seconds,
+                            job,
                         )
 
-                job.work = asyncio.create_task(_during(handle, seconds))
+                job.work = asyncio.create_task(_during(handle, seconds, job.retire))
                 await asyncio.shield(job.work)
+                if job.cancelled:
+                    raise asyncio.CancelledError
                 encoded = json.dumps(result, allow_nan=False).encode()
                 native.encode_call_v2_frame(
                     frame(
@@ -572,6 +865,8 @@ class CapabilityApp:
                 error = "cancelled"
             except TimeoutError:
                 error = "timeout"
+            except CapabilityCallError as refusal:
+                error = refusal.code
             except (KeyError, ValueError):
                 error = "invalid_payload"
             except Exception:
@@ -614,7 +909,12 @@ class CapabilityApp:
                     for identifier, job in list(jobs.items()):
                         if job.task is not None and job.task.done():
                             job.task.result()
-                            del jobs[identifier]
+                            # Local cancellation may finish behavior before the
+                            # host finishes its child-cleanup slot. Keep that
+                            # one reply correlation within signed concurrency;
+                            # unrelated completed IDs need no retained history.
+                            if job.calls is None or not job.calls.awaiting_reply():
+                                del jobs[identifier]
                     if len(jobs) >= capacity:
                         raise ValueError("application workload capacity exceeded")
                     call_id = _TEXT.validate_python(request["call_id"], strict=True)
@@ -632,6 +932,14 @@ class CapabilityApp:
                     # an absent ID creates no work and grants no authority.
                     if call_id in jobs:
                         jobs[call_id].cancel()
+                elif kind == "delegate_result":
+                    parent = _TEXT.validate_python(
+                        request["parent_call_id"], strict=True
+                    )
+                    job = jobs.get(parent)
+                    if job is None or job.calls is None:
+                        raise ValueError("application delegated parent refused")
+                    job.calls.receive(request, body)
                 else:
                     raise ValueError("application control direction refused")
         finally:
@@ -658,6 +966,7 @@ class CapabilityApp:
         descriptor: dict[str, JsonValue],
         mode: str,
         seconds: float | None,
+        job: _InvocationJob,
     ) -> None:
         stream = await native.open_transport_v2_stream(
             startup, invocation.call_id, mode, seconds
@@ -735,6 +1044,10 @@ class CapabilityApp:
                                 break
             # The compiled stream retains its terminal until the iterator has
             # closed, then sends exactly one end. Control result follows cleanup.
+            # Cleanup may retire a parent with an unjoined child. Its buffered
+            # success must never cross the media socket before control refuses it.
+            if job.cancelled:
+                raise asyncio.CancelledError
             await stream.finish()
         finally:
 

@@ -134,7 +134,8 @@ class Peer:
         wrong_revision: bool = False,
         version: str | None = None,
         wrong_version: bool = False,
-    ) -> None:
+        allowed_targets: tuple[dict[str, JsonValue], ...] = (),
+    ) -> dict[str, JsonValue]:
         """Bind an original caller to exact target and raw request bytes."""
         manifest = _OBJECT.validate_python(self.startup["manifest"])
         contracts = _OBJECT.validate_python(manifest["contracts"])
@@ -168,7 +169,7 @@ class Peer:
             "scope_id": "1" * 64,
             "parent_scope_id": None,
             "executor": target,
-            "allowed_targets": [target],
+            "allowed_targets": [target, *allowed_targets],
             "allowed_processing_domains": ["external"],
             "ancestry": [],
             "request_sha256": hashlib.sha256(payload).hexdigest(),
@@ -184,6 +185,7 @@ class Peer:
             context=context,
             remaining_seconds=seconds,
         )
+        return context
 
     async def health(self) -> None:
         """Prove the sole reader handles health independently of model silence."""
@@ -205,6 +207,7 @@ async def running(
     concurrency: int = 1,
     variants: tuple[tuple[str, Mode], ...] = (),
     result_schema: dict[str, JsonValue] | bool | None = None,
+    node_id: str | None = None,
 ) -> AsyncGenerator[Peer]:
     """Use real compiled startup/control/stream channels and drain all sockets."""
     writers: list[asyncio.StreamWriter] = []
@@ -220,6 +223,8 @@ async def running(
             str(Path(directory) / "stream"),
         )
         value = startup_value(control_path, stream_path, mode)
+        if node_id is not None:
+            value["node_id"] = node_id
         manifest = _OBJECT.validate_python(value["manifest"])
         contracts = _OBJECT.validate_python(manifest["contracts"])
         if variants:

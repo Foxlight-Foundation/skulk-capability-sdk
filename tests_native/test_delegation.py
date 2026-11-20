@@ -696,6 +696,44 @@ async def test_timeout_retires_a_child_already_waiting_in_owned_cleanup() -> Non
         await peer.health()
 
 
+async def test_late_child_reply_survives_completed_parent_collection() -> None:
+    """An active host cleanup slot outlives locally completed behavior, boundedly."""
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def handler(call: Invocation) -> dict[str, JsonValue]:
+        if call.call_id == "parent":
+            return (await call.call(endpoint(), {"input": "child"})).payload
+        if call.call_id == "held-root":
+            entered.set()
+            await release.wait()
+        return {"ok": True}
+
+    app = CapabilityApp()
+    app.unary("example", handler)
+    async with running(app, concurrency=2) as peer:
+        await peer.invoke("parent")
+        request, _body = await peer.receive()
+        await peer.send("cancel", call_id="parent")
+        response, body = await peer.receive()
+        assert response["error"] == "cancelled" and not body
+        # Many later completions must neither evict the still-crossing child
+        # nor accumulate an unbounded completed-ID history.
+        for index in range(6):
+            await peer.invoke(f"other-{index}")
+            response, _body = await peer.receive()
+            assert response["error"] is None
+        await peer.invoke("held-root")
+        await asyncio.wait_for(entered.wait(), 2)
+        await reply(peer, request, error="cancelled")
+        await peer.health()
+        release.set()
+        response, _body = await peer.receive()
+        assert response["call_id"] == "held-root" and response["error"] is None
+        await peer.invoke("after-cleanup")
+        response, _body = await peer.receive()
+        assert response["error"] is None
+
+
 async def test_channel_loss_drains_pending_call_and_application_resources() -> None:
     """Disconnect never reconnects or replays an uncertain child."""
     cleaned = asyncio.Event()

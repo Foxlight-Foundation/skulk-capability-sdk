@@ -181,6 +181,14 @@ local cleanup does not depend on a response from a cancelled host scope. A
 stream's buffered successful terminal is fenced before it can be flushed after
 retirement. The SDK never reconnects an uncertain request.
 
+A pending child retains its parent correlation even if local behavior has ended
+and other invocations arrive. This state counts within signed concurrency, rather
+than an unbounded completed-ID cache. A conforming host must finalize the admitted
+child response before freeing that parent cleanup slot for further admission.
+Host cancellation/finalization is part of the matching installed-host acceptance;
+a host that abandons child finalization is refused rather than silently releasing
+the SDK's pending slot.
+
 The native tests compose two independently implemented public application handlers
 through the released compiled codec and admission kernel. They qualify author-side
 bytes, context, schemas, health, correlation and cancellation ownership. Their

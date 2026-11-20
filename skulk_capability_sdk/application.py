@@ -378,6 +378,9 @@ class _Delegations:
         if pending.abandoned:
             self.pending = None
 
+    def awaiting_reply(self) -> bool:
+        return self.pending is not None and not self.pending.received
+
     def abandon(self) -> None:
         # There is no child-cancel frame in calls/2. Retire the parent rather
         # than free its slot for a new effect while an old child may still run.
@@ -906,7 +909,12 @@ class CapabilityApp:
                     for identifier, job in list(jobs.items()):
                         if job.task is not None and job.task.done():
                             job.task.result()
-                            del jobs[identifier]
+                            # Local cancellation may finish behavior before the
+                            # host finishes its child-cleanup slot. Keep that
+                            # one reply correlation within signed concurrency;
+                            # unrelated completed IDs need no retained history.
+                            if job.calls is None or not job.calls.awaiting_reply():
+                                del jobs[identifier]
                     if len(jobs) >= capacity:
                         raise ValueError("application workload capacity exceeded")
                     call_id = _TEXT.validate_python(request["call_id"], strict=True)

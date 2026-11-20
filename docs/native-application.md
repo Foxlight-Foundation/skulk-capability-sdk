@@ -1,6 +1,6 @@
 # Native Python application runtime
 
-SDK **0.5.11rc1** provides `skulk_capability_sdk.application` as an explicit
+SDK **0.5.13rc1** provides `skulk_capability_sdk.application` as an explicit
 prerelease author runtime. The existing protocol-4 modules retain their frozen
 schemas and bytes. Importing the SDK does not import a native extension or select
 a runtime. This module requires the separately installed, immutable native
@@ -22,10 +22,11 @@ uv run --no-sync pytest tests_native
 
 A compatible host must separately select the signed runtime5/release3 managed2
 closure. Installing a Python package grants no caller/effect authority and does
-not convert an existing installed application. Current normal owner/Core
-admission is qualified for exact same-host unary calls. The public app's native
-stream socket tests qualify its author side; they do not claim that owner/Core
-stream admission or a real provider application's migration is complete.
+not convert an existing installed application. The public app's native socket
+tests qualify its author side. Those tests alone do not qualify installed
+owner/Core admission, signed application composition or provider adoption; retain
+separate host and application qualification only for their exact checked versions
+and scope.
 
 ## Register explicit handlers
 
@@ -98,8 +99,90 @@ unbounded queue. Cancellation and cleanup belong to each call independently.
 After behavior and cleanup finish, the runtime retains ownership of result
 publication: a late cancel cannot interrupt a partially written result frame.
 The host still decides whether a cancelled result may be delivered. Durable
-operations, author-side delegated calls, declared credentials/preflight, settings
-refresh and TypeScript parity are not implemented by this module.
+operations, delegated streaming clients, declared credentials/preflight,
+settings refresh and TypeScript parity are not implemented by this module.
+
+## Call an exact capability
+
+An active invocation can call an explicitly selected unary destination. Build a
+`CapabilityEndpoint` from that installed application's ID and its exact portable/2
+descriptor. The descriptor may come from application configuration or a discovery
+surface; constructing or parsing it establishes no signed provenance or permission.
+The host rechecks the live signed destination, original caller and current policy
+before dispatch. The client performs no discovery, model selection or routing.
+
+```python
+from pydantic import JsonValue
+
+from skulk_capability_sdk.application import (
+    CapabilityEndpoint, Invocation,
+)
+
+async def call_selected(
+    invocation: Invocation,
+    installed_id: str,
+    descriptor: dict[str, JsonValue],
+) -> dict[str, JsonValue]:
+    destination = CapabilityEndpoint.from_descriptor(installed_id, descriptor)
+    reply = await invocation.call(destination, {"input": "application task"})
+    return reply.payload
+```
+
+`Invocation.call` returns `CallReply`. `raw_payload` preserves the exact response
+bytes and `payload` returns an owned object on each access. Pass raw UTF-8 JSON
+object bytes when request whitespace/numeric spelling must be retained; an object
+argument is encoded once. Input and successful output are checked against the
+selected descriptor's portable schemas. A streaming descriptor is refused before
+writing, rather than silently adapted to unary behavior.
+
+The SDK binds the parent scope and original parent request from the admitted
+invocation; an application cannot replace these fields through ordinary payload
+data. The request names the exact installed destination, descriptor revision,
+version, behavior and processing domain. These are claims for the host to verify,
+never a bearer credential or a replacement for host authentication. Exporting a
+`CallContext` does not create an active client, and a retained invocation cannot
+issue calls after it finishes.
+
+The default child deadline inherits the parent's nullable authority deadline.
+An explicit `deadline_unix_ms` requests an absolute Unix-millisecond ceiling;
+the host intersects it with the actual parent/caller lifetime and any applicable
+owner ceiling. A later timestamp or null cannot extend parent authority. There is
+no implicit overall generation timer, request allowance, retry or fallback. Health
+and bounded partial I/O continue independently while a child is silent.
+
+At most one delegation is pending per invocation; an overlapping call refuses
+locally without a queue. Other admitted parent invocations remain independent.
+Parent-scoped increasing u64 sequences use the frozen calls/2 encoding. Local
+structural/schema refusals consume no sequence; a host-refused admitted request
+consumes its sequence. The next explicit call uses the next identity without a
+completed-request ledger.
+
+`CapabilityCallError.code` is one of `denied`, `invalid_payload`, `provider_error`,
+`timeout`, `cancelled` or `outcome_unknown`. No raw backend exception text is
+exposed. An error never authorizes replay; the SDK does not retry or automatically
+choose another destination. Uncaught errors propagate their bounded code to the
+parent's result. Applications may handle known refusals explicitly within their
+remaining host authority.
+An `outcome_unknown` response permanently retires this invocation's client. The
+application may report that uncertainty, but cannot issue a replacement effect
+under the same parent.
+
+Await and drain delegated calls before returning. Cancelling or abandoning a
+pending child permanently retires the parent's client and prevents a successful
+parent result, even if application code catches cancellation. Calls/2 has no
+separate child-cancel frame: host-initiated cancellation drains its scoped child
+before accepting parent completion; unilateral abandonment may require the host
+to retire the application channel to fence uncertain work. Cleanup cannot issue
+new delegations after cancellation. The SDK finishes an already-started frame
+write before publishing parent completion, retains bounded correlation for an
+already-crossing late response, and closes owned resources on channel loss. It
+never reconnects an uncertain request.
+
+The native tests compose two independently implemented public application handlers
+through the released compiled codec and admission kernel. They qualify author-side
+bytes, context, schemas, health, correlation and cancellation ownership. Their
+synthetic host peers do not establish production authentication, signed installed
+application composition or the complete clean public author journey.
 
 ## Lifetime, streaming and cancellation
 

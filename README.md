@@ -42,6 +42,7 @@ The modules are:
 | `database` | Transactional SQLite journals |
 | `streams` | Unary and four-mode streaming lifecycle with bounded media |
 | `credentials` | Read only the credential inputs declared by a capability |
+| `jobs` | Native durable inference jobs with original-caller isolation and shared scheduling |
 | `serving` | Bind a capability's own server to the host-approved surface |
 | `application` | Explicit native unary/stream handlers; prerelease and separately selected |
 

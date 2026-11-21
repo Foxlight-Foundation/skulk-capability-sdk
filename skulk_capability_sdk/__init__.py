@@ -9,7 +9,9 @@ needs to speak to its host, and nothing about how the host works.
 
 The separate application module supplies explicit native unary/stream handlers
 for the published execution cohort. It never guesses a legacy/native profile,
-implements a host, or reads provider credentials. Native startup/caller admission
+implements a host or sends provider requests. Declared credentials use the
+read-only startup projection; jobs supplies native durable inference authoring.
+Native startup/caller admission
 and compatible installation remain independently host-owned.
 """
 

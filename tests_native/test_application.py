@@ -135,6 +135,8 @@ class Peer:
         version: str | None = None,
         wrong_version: bool = False,
         allowed_targets: tuple[dict[str, JsonValue], ...] = (),
+        capability_id: str | None = None,
+        caller_id: str = "client:synthetic-private",
     ) -> dict[str, JsonValue]:
         """Bind an original caller to exact target and raw request bytes."""
         manifest = _OBJECT.validate_python(self.startup["manifest"])
@@ -142,7 +144,8 @@ class Peer:
         descriptor = next(
             d
             for d in _OBJECTS.validate_python(contracts["descriptors"])
-            if version is None or d["version"] == version
+            if (version is None or d["version"] == version)
+            and (capability_id is None or d["id"] == capability_id)
         )
         target: dict[str, JsonValue] = {
             "node_id": self.startup["node_id"],
@@ -161,7 +164,7 @@ class Peer:
             "contract_profile": "skulk.composition/3",
             "profile_digest": native.composition_v3_profile_digest(),
             "kind": "context",
-            "caller_id": "client:synthetic-private",
+            "caller_id": caller_id,
             "caller_kind": "client",
             "issuer_node_id": "core-profile:synthetic",
             "policy_revision": "a" * 64,
@@ -170,7 +173,7 @@ class Peer:
             "parent_scope_id": None,
             "executor": target,
             "allowed_targets": [target, *allowed_targets],
-            "allowed_processing_domains": ["external"],
+            "allowed_processing_domains": [target["processing_domain"]],
             "ancestry": [],
             "request_sha256": hashlib.sha256(payload).hexdigest(),
             "deadline_unix_ms": None
@@ -216,6 +219,9 @@ async def running(
     node_id: str | None = None,
     credential_inputs: list[dict[str, JsonValue]] | None = None,
     credential_config: str | None = None,
+    descriptors: list[dict[str, JsonValue]] | None = None,
+    operations: dict[str, JsonValue] | None = None,
+    configuration: dict[str, JsonValue] | None = None,
 ) -> AsyncGenerator[Peer]:
     """Use real compiled startup/control/stream channels and drain all sockets."""
     writers: list[asyncio.StreamWriter] = []
@@ -240,8 +246,16 @@ async def running(
             )
         value["credential_config"] = credential_config
         contracts = _OBJECT.validate_python(manifest["contracts"])
+        if configuration is not None:
+            contracts["configuration_schema"] = True
+        value["configuration"] = configuration
+        if descriptors is not None:
+            contracts["descriptors"] = TypeAdapter(list[JsonValue]).validate_json(
+                document(descriptors)
+            )
+        manifest["operations"] = operations
         if variants:
-            descriptors: list[dict[str, JsonValue]] = []
+            variant_descriptors: list[dict[str, JsonValue]] = []
             for version, variant_mode in variants:
                 variant = startup_value(control_path, stream_path, variant_mode)
                 variant_manifest = _OBJECT.validate_python(variant["manifest"])
@@ -252,9 +266,9 @@ async def running(
                     0
                 ]
                 descriptor["version"] = version
-                descriptors.append(descriptor)
+                variant_descriptors.append(descriptor)
             contracts["descriptors"] = TypeAdapter(list[JsonValue]).validate_json(
-                document(descriptors)
+                document(variant_descriptors)
             )
         if result_schema is not None:
             result_descriptors = _OBJECTS.validate_python(contracts["descriptors"])

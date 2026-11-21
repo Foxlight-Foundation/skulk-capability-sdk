@@ -4,9 +4,9 @@
   "license_decision_commit": "cb21ff9446511e0a01ab53f652e647d58041941e",
   "files": {
     "skulk_capability_sdk/__init__.py": {
-      "source_sha256": "d2b204e1d85afd2086509d91dafd6df65077c731bb32dca45d8a5d324e70d6e9",
-      "exported_sha256": "d2b204e1d85afd2086509d91dafd6df65077c731bb32dca45d8a5d324e70d6e9",
-      "adjustment": "Public native author runtime addition; no private host/provider source or imports"
+      "source_sha256": "e9c207a8f1f87696529c80a22fbbfb947990968f3c0052557f6e4bfe9bb3bd18",
+      "exported_sha256": "e9c207a8f1f87696529c80a22fbbfb947990968f3c0052557f6e4bfe9bb3bd18",
+      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     },
     "skulk_capability_sdk/_credential_reader.py": {
       "source_sha256": "a42314b92e54e68829af15acbb859f0c4956c089cbc6e3e43e17734adeadef70",
@@ -26,8 +26,9 @@
       "exported_sha256": "d294bc7be863e0d47990d79334081c29e1bc745cb679ad0d23bfd1f7be599777"
     },
     "skulk_capability_sdk/operations.py": {
-      "source_sha256": "dc752bbd2113acd6a7526db771d0c0473e4443ba830813c297e527777ba30122",
-      "exported_sha256": "dc752bbd2113acd6a7526db771d0c0473e4443ba830813c297e527777ba30122"
+      "source_sha256": "85ae342aa89307ad59049296ae29ceeb9df225771b867879456a25bf2fccb578",
+      "exported_sha256": "85ae342aa89307ad59049296ae29ceeb9df225771b867879456a25bf2fccb578",
+      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     },
     "skulk_capability_sdk/py.typed": {
       "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -74,9 +75,19 @@
       "adjustment": "Standalone-package import grouping only"
     },
     "skulk_capability_sdk/application.py": {
-      "source_sha256": "4c6663bd4acbe62fa5bd8fb1624b1743c2958769291839c4ff97710c013f3a65",
-      "exported_sha256": "4c6663bd4acbe62fa5bd8fb1624b1743c2958769291839c4ff97710c013f3a65",
-      "adjustment": "Public native-admitted credential access; no private host/provider source or imports"
+      "source_sha256": "11d8fafa7f425cb6c23f1468d6281c6c6e1cbc65c75779d4d059319ee7af7877",
+      "exported_sha256": "11d8fafa7f425cb6c23f1468d6281c6c6e1cbc65c75779d4d059319ee7af7877",
+      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
+    },
+    "skulk_capability_sdk/jobs.py": {
+      "source_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",
+      "exported_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",
+      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
+    },
+    "skulk_capability_sdk/runtime.py": {
+      "source_sha256": "8128f83936b8a8a2f631167877ce43b97cf7277a3abd83e602d380c7fb00fcd8",
+      "exported_sha256": "8128f83936b8a8a2f631167877ce43b97cf7277a3abd83e602d380c7fb00fcd8",
+      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     }
   }
 }

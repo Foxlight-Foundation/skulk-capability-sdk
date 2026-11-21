@@ -104,9 +104,11 @@ one). Excess admission and duplicate active IDs fault the channel; there is no
 unbounded queue. Cancellation and cleanup belong to each call independently.
 After behavior and cleanup finish, the runtime retains ownership of result
 publication: a late cancel cannot interrupt a partially written result frame.
-The host still decides whether a cancelled result may be delivered. Durable
-operations, preflight, hot settings refresh and TypeScript parity are not
-implemented by this module.
+The host still decides whether a cancelled result may be delivered. The separate
+[native durable job facade](native-jobs.md) owns inference jobs beyond one RPC.
+Generic local preflight is available with a compatible owner and a declared
+`local` profile. Provider-specific preflight, hot settings refresh and TypeScript
+parity remain separately gated.
 
 ## Read declared credentials
 

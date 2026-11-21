@@ -216,6 +216,7 @@ async def running(
     concurrency: int = 1,
     variants: tuple[tuple[str, Mode], ...] = (),
     result_schema: dict[str, JsonValue] | bool | None = None,
+    input_schema: dict[str, JsonValue] | bool | None = None,
     node_id: str | None = None,
     credential_inputs: list[dict[str, JsonValue]] | None = None,
     credential_config: str | None = None,
@@ -270,13 +271,17 @@ async def running(
             contracts["descriptors"] = TypeAdapter(list[JsonValue]).validate_json(
                 document(variant_descriptors)
             )
-        if result_schema is not None:
-            result_descriptors = _OBJECTS.validate_python(contracts["descriptors"])
-            for descriptor in result_descriptors:
-                descriptor["output_schema"] = result_schema
-            contracts["descriptors"] = TypeAdapter(list[JsonValue]).validate_json(
-                document(result_descriptors)
-            )
+        for field, schema in (
+            ("input_schema", input_schema),
+            ("output_schema", result_schema),
+        ):
+            if schema is not None:
+                result_descriptors = _OBJECTS.validate_python(contracts["descriptors"])
+                for descriptor in result_descriptors:
+                    descriptor[field] = schema
+                contracts["descriptors"] = TypeAdapter(list[JsonValue]).validate_json(
+                    document(result_descriptors)
+                )
         manifest["contracts"] = contracts
         bounds = _OBJECT.validate_python(manifest["bounds"])
         bounds["concurrency"] = concurrency

@@ -48,7 +48,7 @@ pythonpath = ["."]
 
 [tool.basedpyright]
 typeCheckingMode = "strict"
-include = ["skulk_capability_sdk", "tests", "tools", "packages/tools", "kernel/bindings/python", "tests_native"]
+include = ["skulk_capability_sdk", "tests", "tools", "packages/tools", "kernel/bindings/python", "tests_native", "tests_typescript"]
 extraPaths = ["kernel/bindings/python", "tests_native"]
 
 [tool.ruff]

@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "files": {
+    "LICENSE.md": "e1083846db4922b82e350093e2b2bc825d4289f0712ddfab88275a0a5f64ea34",
+    "README.md": "9416b58efb7b7febb343d85c28a8d5486672b2c9b7bf84e5491db81d72049ce0",
+    "npm-shrinkwrap.json": "d7ae490d21fcac92e5dbe295b10b878d04fefa51a06aefa7503cb507dba225ca",
+    "package.json": "6066a7816691d43a2075075fedc3352b8b1397a9bba0a7a554b526d9fa69f2a3",
+    "src/application.ts": "034b8f6917fba0cddb934bb2692f99a9e1ef37a084da3719356dcb4bd9d4bca8",
+    "src/calls.ts": "e663f1eddd917e0d41e6f46a1dcadbaf02035dd3dd5a9b968fd8435382073ae4",
+    "src/cohort.ts": "4d7951b358cb450e68f56f58af3ce7b5be40caeab1a3d8343b2e83b0e5f97660",
+    "src/contracts.ts": "9541c05cbdc0f3f535cada2cb06a4f9085dd1076c7f80c903aa14cb7810ee202",
+    "src/index.ts": "f9a63130e3802f14057becd1f3499c1236fedb78f750ecaea11821c60e0195ac",
+    "src/json.ts": "9cad96ade022039ee7844c7b7074175af11bd2f484c43f2ad21248a61ff32165",
+    "src/native-api.d.cts": "f98bd9a914ea120127e16e10f21f2ac4349acffd5595871f9c64397bf480cc89",
+    "src/native.ts": "d61b3adeaebc947a28ee62bcc4b46796015708f6561da1853544f8fa5390c389",
+    "src/resources.ts": "1768e0b0948ec1e3ca78f56f16bf3f98cd3e5153befff3213bd7b50e04fb385c",
+    "tools/copy-types.mjs": "ff7d0e516660fb8821869f376fe382a9396390afba23718cf71af2f273eb9e03",
+    "tsconfig.json": "5f1a7b7c00a880f3a0b9ce500e3b2748e161789317f000cfca8f4f3917fefee8"
+  }
+}

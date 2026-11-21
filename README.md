@@ -67,6 +67,12 @@ and independent conformance corpus describe the available boundary. Kernel
 qualification builds remain separate from the released Python SDK contract and
 managed-runtime adoption.
 
+The [TypeScript author candidate](docs/typescript-authoring.md) now provides a
+public npm package source for native application setup, unary/four-mode handlers,
+owned resources and invocation-scoped unary/stream clients. Its clean-package
+qualification is separate from stable publication, declared credentials/durable
+parity and the normal signed Node author installation journey.
+
 Native distribution candidates use author tools `0.2.0rc2`. Explicit
 `capability-feed --native` and `capability-catalog --native` preserve runtime-five
 and catalog-four signature domains and full native identities. Issued legacy

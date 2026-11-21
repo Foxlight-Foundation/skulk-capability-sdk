@@ -71,7 +71,9 @@ async fn respond(runner: &Runner, command: &Command, response: &str) {
     tokio::task::yield_now().await;
 }
 async fn state(runner: &Runner, id: &str, expected: &str) {
-    timeout(Duration::from_secs(1), async {
+    // A previous durable write can still be unwinding SQLite's two-second
+    // busy wait. This asserts state truth, not a one-second storage latency SLO.
+    timeout(Duration::from_secs(3), async {
         loop {
             if runner
                 .status(id.into())
@@ -202,7 +204,9 @@ async fn refusal_is_pending_failure_and_a_new_id_can_still_run() {
 
 #[tokio::test]
 async fn cancel_acknowledgment_does_not_claim_the_backend_has_stopped() {
-    let (_root, runner, _) = fixture(100, 0.2, "{}");
+    // This fixture awaits durable SQLite work before answering the adapter.
+    // It tests cancellation/persistence truth, not subsecond host I/O latency.
+    let (_root, runner, _) = fixture(100, 2.0, "{}");
     runner
         .reserve(Some("op".into()), "{}".into())
         .await
@@ -1090,7 +1094,9 @@ async fn restart_same_handle_recovers_accepted_work_after_locked_shutdown_cleanu
 
 #[tokio::test]
 async fn failed_terminal_persistence_reconciles_owned_work_before_fresh_admission() {
-    let (root, runner, _) = fixture(100, 0.2, "{}");
+    // This fixture awaits durable SQLite work before answering the adapter.
+    // It tests cancellation/persistence truth, not subsecond host I/O latency.
+    let (root, runner, _) = fixture(100, 2.0, "{}");
     runner
         .reserve(Some("owned".into()), "{}".into())
         .await

@@ -563,15 +563,19 @@ impl Lifecycle {
         }
         Ok(())
     }
-    fn outgoing(&mut self, packet: Packet) -> Result<Option<Packet>> {
+    fn observe_output(&mut self, packet: &Packet) -> Result<()> {
         self.alive()?;
         if packet.is_end() {
             return Err(StreamError::Sequence);
         }
-        self.output.accept(&packet)?;
+        self.output.accept(packet)?;
         if self.mode == Mode::Client && packet.kind().as_deref() == Some("chunk") {
             return Err(StreamError::ClientChunk);
         }
+        Ok(())
+    }
+    fn outgoing(&mut self, packet: Packet) -> Result<Option<Packet>> {
+        self.observe_output(&packet)?;
         if packet.is_terminal() {
             self.terminal = Some(packet);
             Ok(None)
@@ -626,23 +630,35 @@ impl HostObserver {
         let result = (|| {
             self.state.alive()?;
             let packet = transport_v2::decode_packet(bytes)?;
+            self.observe(&packet, input)?;
+            Ok(packet)
+        })();
+        if let Err(error) = result {
+            self.state.failure.get_or_insert(error);
+        }
+        result
+    }
+
+    /// Share lifecycle admission with native I/O without copying binary media.
+    /// The caller must have admitted the packet with transport/2 first.
+    pub(crate) fn observe(&mut self, packet: &Packet, input: bool) -> Result<()> {
+        let result = (|| {
+            self.state.alive()?;
             if input {
-                self.state.incoming(&packet)?;
+                self.state.incoming(packet)?;
             } else if packet.is_end() {
-                if self.state.terminal.is_none()
+                if !self.state.output.terminal
                     || get(packet.fields()?, "call_id")
                         != Some(&Value::String(self.call_id.clone()))
                 {
                     return Err(StreamError::Sequence);
                 }
-                // The bounded pending terminal is no longer needed after end.
-                self.state.terminal = None;
                 self.state.closed = true;
                 self.ended = true;
             } else {
-                self.state.outgoing(packet.clone())?;
+                self.state.observe_output(packet)?;
             }
-            Ok(packet)
+            Ok(())
         })();
         if let Err(error) = result {
             self.state.failure.get_or_insert(error);

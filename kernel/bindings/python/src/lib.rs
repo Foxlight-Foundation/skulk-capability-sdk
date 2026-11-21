@@ -987,6 +987,7 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(transport_v2_media_size, module)?)?;
     module.add_class::<TransportV2Observer>()?;
     module.add_function(wrap_pyfunction!(open_transport_v2_stream, module)?)?;
+    module.add_function(wrap_pyfunction!(open_transport_v2_client_stream, module)?)?;
     module.add_function(wrap_pyfunction!(open_transport_v2_control, module)?)?;
     module.add_function(wrap_pyfunction!(calls_v2_profile_digest, module)?)?;
     module.add_function(wrap_pyfunction!(call_v2_payload_size, module)?)?;
@@ -1011,6 +1012,7 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(input_digest, module)?)?;
     module.add_class::<NativeJournal>()?;
     module.add_class::<NativeStream>()?;
+    module.add_class::<NativeCallerStream>()?;
     module.add_class::<NativeOperationRunner>()?;
     module.add_function(wrap_pyfunction!(operation_runner, module)?)?;
     module.add_function(wrap_pyfunction!(open_stream, module)?)?;
@@ -1124,6 +1126,91 @@ impl NativeStream {
             Ok(())
         })
     }
+}
+
+/// Caller-side media channel; successful end is separate from control completion.
+#[pyclass(module = "_skulk_capability_kernel")]
+struct NativeCallerStream {
+    inner: Arc<skulk_capability_kernel::caller_streams::CallerSession>,
+}
+#[pymethods]
+impl NativeCallerStream {
+    /// Send caller input, preserving a completed frame as an input half-close.
+    fn send_input<'py>(
+        &self,
+        py: Python<'py>,
+        projection: &Bound<'_, PyString>,
+        media: &Bound<'_, PyBytes>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        if media.as_bytes().len() > streams::MAX_MEDIA_BYTES {
+            return Err(stream_error(streams::StreamError::MediaBound));
+        }
+        let packet = self
+            .inner
+            .packet(&portable_text(projection)?, media.as_bytes().to_vec())
+            .map_err(stream_error)?;
+        let session = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            session.send_input(packet).await.map_err(stream_error)
+        })
+    }
+    /// None requires a matching provider terminal and end; failure stays sticky.
+    fn next_output<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let session = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            match session.next_output().await.map_err(stream_error)? {
+                Some(packet) => Ok(Some((
+                    session.projection(&packet).map_err(stream_error)?,
+                    Python::attach(|py| PyBytes::new(py, &packet.media).unbind()),
+                ))),
+                None => Ok(None),
+            }
+        })
+    }
+    /// Require drained media end and close; delegate_finished remains host-owned.
+    fn finish<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let session = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            session.finish().await.map_err(stream_error)
+        })
+    }
+    /// Fence pending operations and await every owned transport task.
+    fn close<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let session = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            session.close().await;
+            Ok(())
+        })
+    }
+}
+
+/// Open the caller role on a host-assigned transport/2 media grant.
+#[pyfunction]
+#[pyo3(signature = (startup, call_id, mode, seconds=None))]
+fn open_transport_v2_client_stream<'py>(
+    py: Python<'py>,
+    startup: &ManagedV2Contract,
+    call_id: String,
+    mode: String,
+    seconds: Option<&Bound<'_, PyAny>>,
+) -> PyResult<Bound<'py, PyAny>> {
+    let seconds = execution_seconds(seconds)?;
+    let record = managed_v2::Record::from_json(
+        startup.record.name(),
+        std::str::from_utf8(startup.record.canonical())
+            .map_err(|_| stream_error(streams::StreamError::InvalidFrame))?,
+    )
+    .map_err(portable_error)?;
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let session = skulk_capability_kernel::caller_streams::CallerSession::open(
+            &record, &call_id, &mode, seconds,
+        )
+        .await
+        .map_err(stream_error)?;
+        Ok(NativeCallerStream {
+            inner: Arc::new(session),
+        })
+    })
 }
 
 /// Open one authenticated protocol-4 local stream, sharing the Rust reactor.

@@ -30,6 +30,14 @@ declare class NativeJournal {
   releaseOwnership(): void;
   close(): void;
 }
+/** Caller transport ownership; media end is distinct from delegate_finished. */
+declare class NativeCallerStream {
+  private constructor();
+  sendInput(projection: string, media: Buffer): Promise<void>;
+  nextOutput(): Promise<NativePacket | null>;
+  finish(): Promise<void>;
+  close(): Promise<void>;
+}
 declare class NativeStream {
   private constructor();
   nextInput(): Promise<NativePacket | null>;
@@ -79,6 +87,7 @@ declare const native: {
   encodeTransportV2Packet(projection: string, media: Buffer): Buffer;
   decodeTransportV2Packet(packet: Buffer): NativePacket;
   openTransportV2Stream(startup: string, callId: string, mode: string, seconds: number | null): Promise<NativeStream>;
+  openTransportV2ClientStream(startup: string, callId: string, mode: string, seconds: number | null): Promise<NativeCallerStream>;
   openTransportV2Control(startup: string, seconds: number): Promise<NativeControl>;
 
   callsProfileDigest(): string;

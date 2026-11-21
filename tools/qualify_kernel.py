@@ -187,10 +187,31 @@ def main() -> None:
                 "-q",
                 "kernel/bindings/python/tests",
                 "tests_native",
+                "--ignore=tests_native/test_native_distribution.py",
+                "--ignore=tests_native/test_native_publishing.py",
                 "--basetemp",
                 str(OUTPUT / "python-test-scratch"),
             ],
             python_env,
+        ),
+        end="",
+    )
+    # A binary under qualification has no immutable public release receipt yet.
+    # Exercise artifact/signature custody with the separately locked published
+    # kernel; never invent that receipt or reuse its identity for new binaries.
+    print(
+        run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "tests_native/test_native_distribution.py",
+                "tests_native/test_native_publishing.py",
+                "--basetemp",
+                str(OUTPUT / "published-test-scratch"),
+            ],
+            env,
         ),
         end="",
     )

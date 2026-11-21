@@ -12,7 +12,7 @@ the profile and its limits.
 Build from the repository root with Rust 1.94.1, Node 22 and Python 3.13:
 
 ```sh
-uv sync --frozen --all-packages --no-editable
+uv sync --frozen --all-packages --no-editable --group native-runtime
 uv run --no-sync python tools/check_kernel_export.py
 uv run --no-sync python -m tools.qualify_kernel
 ```
@@ -22,6 +22,9 @@ Rust and binding tests, checks a typed TypeScript consumer, audits both archive
 contents and compares all 1,959 portable outcomes through three backends. These
 are maintainer artifacts; building them does not select an installed runtime.
 The report records `runtime_adoption: false`.
+New binary binding/application checks run against the wheel just built. Signed
+publishing/distribution checks independently run against the immutable public
+kernel pinned by `native-runtime`; a new binary cannot borrow an issued receipt.
 
 The existing Python SDK retains its released contract. The portable envelope is
 not yet the complete managed manifest/startup/installation interface. Historical
@@ -110,3 +113,9 @@ watchdogs and bounded active admission remain mandatory. Complete independent
 corpus reports cover all thirteen profile IDs, with real socket and virtual
 clock lifecycle checks. Installed host authorization and first-party state
 migration remain separate acceptance gates; no router or classifier is selected.
+
+The rc5 source adds the inverse caller media role in both native bindings and
+the typed Node facade. See [caller media](../docs/native-caller-streams.md) for
+half-close, terminal/end, cancellation and separate control-finalization rules.
+This additive ABI does not change the thirteen frozen wire profiles or select
+new runtime pins; public binary and matched installed acceptance remain separate.

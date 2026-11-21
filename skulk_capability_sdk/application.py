@@ -104,6 +104,7 @@ def _native() -> _Native:
     if importlib.metadata.version("skulk-capability-kernel") not in {
         "0.7.0rc3",
         "0.7.0rc4",
+        "0.7.0rc5",
     }:
         raise ValueError("native application requires the explicit execution cohort")
     return cast(

@@ -5,6 +5,8 @@
 //! surrogate code points; normal JSON serializers are not substitutes for it.
 
 #[cfg(unix)]
+pub mod caller_streams;
+#[cfg(unix)]
 pub mod calls;
 #[cfg(unix)]
 pub mod calls_v2;

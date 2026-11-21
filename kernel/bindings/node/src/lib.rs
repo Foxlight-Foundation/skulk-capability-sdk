@@ -680,6 +680,72 @@ impl NativeStream {
     }
 }
 
+/// Caller media role, using the same compiled sequence/mode rules as the host.
+#[napi]
+pub struct NativeCallerStream {
+    inner: Arc<skulk_capability_kernel::caller_streams::CallerSession>,
+}
+#[napi]
+impl NativeCallerStream {
+    /// Completed input is a half-close, independent of provider output.
+    #[napi]
+    pub async fn send_input(&self, projection: Utf16String, media: Buffer) -> Result<()> {
+        if media.len() > streams::MAX_MEDIA_BYTES {
+            return Err(stream_error(streams::StreamError::MediaBound));
+        }
+        let packet = self
+            .inner
+            .packet(&portable_text(projection)?, media.to_vec())
+            .map_err(stream_error)?;
+        self.inner.send_input(packet).await.map_err(stream_error)
+    }
+    /// Null requires provider terminal/end; control finalization is separate.
+    #[napi]
+    pub async fn next_output(&self) -> Result<Option<NativePacket>> {
+        self.inner
+            .next_output()
+            .await
+            .map_err(stream_error)?
+            .map(|packet| {
+                Ok(NativePacket {
+                    projection: self.inner.projection(&packet).map_err(stream_error)?,
+                    media: Buffer::from(packet.media),
+                })
+            })
+            .transpose()
+    }
+    /// Require drained end and close; never fabricate delegate_finished.
+    #[napi]
+    pub async fn finish(&self) -> Result<()> {
+        self.inner.finish().await.map_err(stream_error)
+    }
+    /// Fence operations and await the owned native tasks/socket.
+    #[napi]
+    pub async fn close(&self) {
+        self.inner.close().await;
+    }
+}
+
+/// Open a caller channel bound to admitted startup and host-assigned media ID.
+#[napi]
+pub async fn open_transport_v2_client_stream(
+    startup: Utf16String,
+    call_id: String,
+    mode: String,
+    seconds: Option<f64>,
+) -> Result<NativeCallerStream> {
+    let startup = managed_v2::Record::from_json("Startup", &portable_text(startup)?)
+        .map_err(portable_error)?;
+    let session = skulk_capability_kernel::caller_streams::CallerSession::open(
+        &startup, &call_id, &mode, seconds,
+    )
+    .await
+    .map_err(stream_error)?;
+    Ok(NativeCallerStream {
+        inner: Arc::new(session),
+    })
+}
+
 /// Native authenticated stream setup; no runtime helper process is started.
 #[napi]
 pub async fn open_stream(

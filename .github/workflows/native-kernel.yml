@@ -41,7 +41,7 @@ jobs:
           node-version: '22.23.2'
       - run: rustup toolchain install 1.94.1 --profile minimal --component clippy,rustfmt
       - run: rustup override set 1.94.1
-      - run: uv sync --frozen --all-packages --no-editable
+      - run: uv sync --frozen --all-packages --no-editable --group native-runtime
       - run: uv run --no-sync python -m tools.qualify_kernel
       - run: git diff --exit-code
       - uses: actions/upload-artifact@v4

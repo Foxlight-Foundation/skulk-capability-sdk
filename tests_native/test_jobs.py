@@ -693,6 +693,41 @@ async def test_caller_pages_skip_pruned_records_without_counting_other_callers(
         await peer.health()
 
 
+async def test_queued_status_does_not_reveal_other_callers_queue_positions(
+    tmp_path: Path,
+) -> None:
+    """Start, status and list never reveal a position in another caller's queue."""
+    backend, spec = Backend(), definition()
+    app, _ = application(tmp_path / "jobs", backend, spec)
+    async with running(
+        app,
+        descriptors=spec.descriptors(),
+        operations=OperationBounds().model_dump(mode="json"),
+    ) as peer:
+        await request(
+            peer,
+            "work",
+            {"op": "start", "operation_id": "active", "input": {"value": 1}},
+            caller="client:third",
+        )
+        await state(peer, "active", "running", caller="client:third")
+        for caller in ("client:first", "client:second"):
+            frame, started = await request(
+                peer,
+                "work",
+                {"op": "start", "operation_id": "queued", "input": {"value": 1}},
+                caller=caller,
+            )
+            assert frame["error"] is None and started["queue_position"] is None
+            queued = await state(peer, "queued", "queued", caller=caller)
+            assert queued["queue_position"] is None
+            _, value = await request(peer, "read", {"op": "list"}, caller=caller)
+            page = OperationPage.model_validate_json(json.dumps(value))
+            assert page.active == 1 and len(page.operations) == 1
+            assert page.operations[0].queue_position is None
+        await peer.health()
+
+
 async def test_cancel_during_origin_allocation_cannot_submit_later(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

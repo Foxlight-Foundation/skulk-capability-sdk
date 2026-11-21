@@ -350,6 +350,7 @@ class _State:
                             update={
                                 "operation_id": original_id,
                                 "backend_reference": None,
+                                "queue_position": None,
                                 "input": None,
                                 "result": None,
                             }
@@ -623,8 +624,13 @@ class DurableJobs:
     @staticmethod
     def _status(raw: str, operation_id: str) -> dict[str, JsonValue]:
         status = OperationStatus.model_validate_json(raw)
+        # The native queue is shared; its position discloses other callers' work.
         return status.model_copy(
-            update={"operation_id": operation_id, "backend_reference": None}
+            update={
+                "operation_id": operation_id,
+                "backend_reference": None,
+                "queue_position": None,
+            }
         ).model_dump(mode="json")
 
     async def _read(self, invocation: Invocation) -> dict[str, JsonValue]:

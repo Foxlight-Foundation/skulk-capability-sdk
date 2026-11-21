@@ -80,8 +80,8 @@
       "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     },
     "skulk_capability_sdk/jobs.py": {
-      "source_sha256": "ade1309e74ee342eb426f39318301a47d659ac8c87f4b46599f49eeed7e90c0f",
-      "exported_sha256": "ade1309e74ee342eb426f39318301a47d659ac8c87f4b46599f49eeed7e90c0f",
+      "source_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",
+      "exported_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",
       "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     },
     "skulk_capability_sdk/runtime.py": {

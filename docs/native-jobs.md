@@ -114,7 +114,7 @@ Within an installed node and exact job definition, each original admitted caller
 has its own operation IDs, status, list, logs and cancellation namespace. The
 principal includes its issuer and caller kind. A different caller cannot inspect
 or cancel another caller's job by guessing its display ID. Backend references
-are withheld from responses. List counts and pagination describe only that
+and shared queue positions are withheld from responses. List counts and pagination describe only that
 caller's visible jobs.
 
 Idempotency compares portable canonical input, so `1` and `1.0` have the same

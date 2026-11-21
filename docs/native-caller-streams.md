@@ -5,6 +5,12 @@ channel. It preserves all thirteen issued wire profile identities. Source and
 local qualification are separate from binary publication, high-level application
 clients and matched owner/Core installed acceptance.
 
+The Python author runtime wraps this transport in
+[`Invocation.stream`](native-application.md#call-an-exact-streaming-capability),
+including parent ownership, one pending child, schema checks and exact final
+control correlation. It requires rc5 and matching host support. The typed Node
+API on this page remains the lower-level transport facade.
+
 Python exposes `open_transport_v2_client_stream(startup, media_call_id, mode,
 seconds=None)`. The typed Node facade exposes `openTransportV2ClientStream`
 with the same arguments and a default `null` budget. Use an admitted managed/2

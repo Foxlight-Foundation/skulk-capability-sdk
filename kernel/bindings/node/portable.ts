@@ -287,6 +287,30 @@ export async function openPortableStream(startup: ManagedContract, callId: strin
     close: () => session.close(),
   });
 }
+/** Caller-owned media channel. Media end is separate from delegate_finished. */
+export interface PortableCallerStream {
+  /** Send bounded input; completed half-closes only the caller direction. */
+  sendInput(projection: string, media: Uint8Array): Promise<void>;
+  /** Null requires the provider terminal/end pair; errors permanently fence it. */
+  nextOutput(): Promise<{projection: string; media: Uint8Array} | null>;
+  /** Require consumed end, then close. The host still owns control completion. */
+  finish(): Promise<void>;
+  /** Await all owned native tasks and socket teardown. Call from finally. */
+  close(): Promise<void>;
+}
+/** Open the caller role with the host's actual media grant. Parsing startup or
+ * supplying an ID cannot grant execution; current parent authority stays host-owned. */
+export async function openTransportV2ClientStream(startup: ManagedV2Contract, callId: string, mode: 'server_streaming' | 'client_streaming' | 'bidirectional', seconds: number | null = null): Promise<PortableCallerStream> {
+  if (startup.name !== 'Startup') throw new TypeError('startup record required');
+  const session = await native.openTransportV2ClientStream(Buffer.from(startup.canonical()).toString('utf8'), callId, mode, seconds);
+  return Object.freeze({
+    sendInput: (projection: string, media: Uint8Array) => session.sendInput(projection, Buffer.from(media)),
+    nextOutput: () => session.nextOutput(),
+    finish: () => session.finish(),
+    close: () => session.close(),
+  });
+}
+
 /** Native channel owns deadlines and uncertain I/O; close it from finally. */
 export function openPortableControl(startup: ManagedContract, seconds: number): Promise<PortableControl> {
   if (startup.name !== 'Startup') throw new TypeError('startup record required');

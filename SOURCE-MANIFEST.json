@@ -17,8 +17,9 @@
       "exported_sha256": "545ef221a7529cd7ba691739326ffd5d19c3c6be8cdef72aa07361c224baf06a"
     },
     "skulk_capability_sdk/credentials.py": {
-      "source_sha256": "c983809ce98ee54d39e73a9f5408f9e0b3bfea6bb9dad8be9cfca471b466812b",
-      "exported_sha256": "c983809ce98ee54d39e73a9f5408f9e0b3bfea6bb9dad8be9cfca471b466812b"
+      "source_sha256": "ce9e1c3fe966c2ca2050de5f0ed6c130f2e6756146a07e8c92867c8aed416af0",
+      "exported_sha256": "ce9e1c3fe966c2ca2050de5f0ed6c130f2e6756146a07e8c92867c8aed416af0",
+      "adjustment": "Public native-admitted credential access; no private host/provider source or imports"
     },
     "skulk_capability_sdk/database.py": {
       "source_sha256": "d294bc7be863e0d47990d79334081c29e1bc745cb679ad0d23bfd1f7be599777",
@@ -73,9 +74,9 @@
       "adjustment": "Standalone-package import grouping only"
     },
     "skulk_capability_sdk/application.py": {
-      "source_sha256": "c3ef731a8c6285ee43eb26589d53751383ba6f8d4f8b43efbbb045758050f11c",
-      "exported_sha256": "c3ef731a8c6285ee43eb26589d53751383ba6f8d4f8b43efbbb045758050f11c",
-      "adjustment": "Public invocation-scoped native unary and streaming clients; no private host/provider source or imports"
+      "source_sha256": "4c6663bd4acbe62fa5bd8fb1624b1743c2958769291839c4ff97710c013f3a65",
+      "exported_sha256": "4c6663bd4acbe62fa5bd8fb1624b1743c2958769291839c4ff97710c013f3a65",
+      "adjustment": "Public native-admitted credential access; no private host/provider source or imports"
     }
   }
 }

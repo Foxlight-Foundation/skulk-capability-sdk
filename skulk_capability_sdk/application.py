@@ -2,7 +2,8 @@
 
 The host authenticates callers and owns execution authority. This module only
 dispatches startup-bound calls received on the compiled protected channel. It
-does not implement a host, resolve destinations or read provider credentials.
+does not implement a host or resolve destinations. Declared credential reads
+use the exact protected selection admitted at startup.
 """
 
 from __future__ import annotations
@@ -27,6 +28,8 @@ from typing import Literal, Protocol, cast, final
 
 from pydantic import JsonValue, TypeAdapter
 
+from .credentials import CredentialAccess, CredentialReader
+
 _OBJECT = TypeAdapter(dict[str, JsonValue])
 _TEXT = TypeAdapter(str)
 _OPTIONAL_TEXT: TypeAdapter[str | None] = TypeAdapter(str | None)
@@ -39,6 +42,7 @@ _SECONDS: TypeAdapter[float | None] = TypeAdapter(float | None)
 _DEADLINE: TypeAdapter[int | None] = TypeAdapter(int | None)
 _NUMBER = TypeAdapter(float)
 _INTEGER = TypeAdapter(int)
+_BOOLEAN = TypeAdapter(bool)
 type StreamMode = Literal["server_streaming", "client_streaming", "bidirectional"]
 type CallErrorCode = Literal[
     "invalid_payload",
@@ -229,6 +233,17 @@ class ApplicationStartup:
     """
 
     _canonical: bytes = field(repr=False)
+    _credentials: CredentialReader = field(repr=False)
+
+    @property
+    def credentials(self) -> CredentialReader:
+        """Read declared inputs off-loop, observing rotation on each read.
+
+        The reader cannot write, select another backend or resolve undeclared
+        inputs. Missing required inputs or damaged storage raise a sanitized
+        CredentialUnavailable; an unconfigured optional input returns None.
+        """
+        return self._credentials
 
     @property
     def node_id(self) -> str:
@@ -1150,7 +1165,23 @@ class CapabilityApp:
                     for name in ("node_id", "host_id", "serve_host", "configuration")
                 },
                 allow_nan=False,
-            ).encode()
+            ).encode(),
+            CredentialReader(
+                CredentialAccess(
+                    configuration=_OPTIONAL_TEXT.validate_python(
+                        value["credential_config"], strict=True
+                    ),
+                    declarations=tuple(
+                        (
+                            _TEXT.validate_python(item["credential_id"], strict=True),
+                            _BOOLEAN.validate_python(item["required"], strict=True),
+                        )
+                        for item in _OBJECTS.validate_python(
+                            manifest["credential_inputs"], strict=True
+                        )
+                    ),
+                )
+            ),
         )
 
         async def run() -> None:

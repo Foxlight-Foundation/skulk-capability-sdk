@@ -120,18 +120,29 @@ caller's visible jobs.
 Idempotency compares portable canonical input, so `1` and `1.0` have the same
 native meaning. Reusing an ID with different input refuses. Display pruning
 never removes the durable reservation; a pruned ID cannot start again.
+Rejected starts release their caller-index allocation after the native
+reservation attempt has finished. This never deletes a native replay fence.
+Cancellation before reservation drains that allocation without submitting later;
+cancellation after reservation starts can still leave durable accepted work.
 
 The versioned `skulk.jobs/1` state binding records the installed node, exact
 signed descriptor identities and admitted operation bounds. A restart or update
 cannot silently increase an already accepted job's runtime limit. Changing these
 bounds requires an explicit qualified migration that preserves existing work
-and replay fences. Its journal contains a matching binding and caller
-origin metadata. This is a new facade namespace around the shared existing
+and replay fences. Both its native journal and separate `origins.sqlite` caller
+index contain matching bindings. All live journal observations and writes go
+through the native API; Python SQLite owns only the separate caller index.
+This avoids competing SQLite implementations accessing one live database.
+Each database retains its own 128MiB ceiling; exhausted storage refuses without
+resetting accepted work. This is a new facade namespace around the shared existing
 journal format; legacy hashes, old journals and issued profiles are unchanged.
 A changed definition/node, missing marker or missing/corrupt/truncated initialized
 journal requires explicit recovery. The service never relabels an old journal,
 resets its reservations or automatically adopts another node's jobs. Keep the
-whole state directory together in backups. Consumer migration/restore must be
+whole state directory together in backups. List observations and restart index
+cleanup are bounded; an expired list observation refuses instead of reporting
+partial counts. Index cleanup never removes uncertain work or native replay
+fences. Consumer migration/restore must be
 qualified before a release changes these identities.
 
 After restart, queued/pending jobs that never reached submission become failed

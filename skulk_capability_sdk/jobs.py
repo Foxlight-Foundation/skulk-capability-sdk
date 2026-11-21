@@ -13,7 +13,7 @@ import hashlib
 import json
 import sqlite3
 import time
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -48,11 +48,15 @@ _OBJECT = TypeAdapter(dict[str, JsonValue])
 _OBJECTS = TypeAdapter(list[dict[str, JsonValue]])
 _TEXT = TypeAdapter(str)
 _INTEGER = TypeAdapter(int)
+_STATUS: TypeAdapter[OperationStatus | None] = TypeAdapter(OperationStatus | None)
 _PRINCIPAL_FIELDS = ("caller_id", "caller_kind", "issuer_node_id")
+_MAX_DATABASE_BYTES = 128 * 1024**2
+_OBSERVATION_SECONDS = 2.0
 
 
 class _Journal(Protocol):
     def close(self) -> None: ...
+    def transact(self, request: str) -> str: ...
 
 
 class _Schema(Protocol):
@@ -197,18 +201,87 @@ class JobDefinition:
         )
 
 
-_ORIGINS = """
+_BINDING = """
 CREATE TABLE IF NOT EXISTS native_job_binding (
     singleton INTEGER PRIMARY KEY CHECK(singleton=1),
     binding_digest TEXT NOT NULL
 );
+"""
+_ORIGINS = (
+    _BINDING
+    + """
 CREATE TABLE IF NOT EXISTS native_job_origins (
     internal_id TEXT PRIMARY KEY,
     principal TEXT NOT NULL,
     original_id TEXT NOT NULL,
+    sequence INTEGER NOT NULL UNIQUE,
     UNIQUE(principal,original_id)
 );
+CREATE INDEX IF NOT EXISTS native_job_origins_principal_sequence
+ON native_job_origins(principal,sequence);
 """
+)
+
+
+def _origin_rows(
+    database: Database, principal: str | None = None, internal_id: str | None = None
+) -> Generator[tuple[str, str]]:
+    before: int | None = None
+    while True:
+        predicates: list[str] = []
+        parameters: list[str | int] = []
+        for column, value in (("principal", principal), ("internal_id", internal_id)):
+            if value is not None:
+                predicates.append(f"{column}=?")
+                parameters.append(value)
+        if before is not None:
+            predicates.append("sequence<?")
+            parameters.append(before)
+        with database.transaction() as connection:
+            rows: list[tuple[str, str, int]] = connection.execute(
+                "SELECT internal_id,original_id,sequence FROM native_job_origins WHERE "
+                + (" AND ".join(predicates) or "1=1")
+                + " ORDER BY sequence DESC LIMIT ?",
+                (*parameters, PAGE_SIZE),
+            ).fetchall()
+        if not rows:
+            return
+        before = rows[-1][2]
+        for key, original_id, _ in rows:
+            yield key, original_id
+
+
+def _reclaim_origins(
+    journal: _Journal, database: Database, scope: str, internal_id: str | None = None
+) -> None:
+    # Native reservations remain the replay authority, including after pruning.
+    # Remove only maps with no visible work, after reservation completion or
+    # under exclusive restart custody. Never inspect native SQLite concurrently
+    # through a second SQLite implementation in this process.
+    deadline = time.monotonic() + _OBSERVATION_SECONDS
+    for key, _ in _origin_rows(database, internal_id=internal_id):
+        if internal_id is None and time.monotonic() >= deadline:
+            break
+        if _observe(journal, scope, key) is None:
+            with database.transaction() as connection:
+                connection.execute(
+                    "DELETE FROM native_job_origins WHERE internal_id=?", (key,)
+                )
+
+
+def _observe(journal: _Journal, scope: str, key: str) -> OperationStatus | None:
+    return _STATUS.validate_json(
+        journal.transact(
+            _json(
+                {
+                    "method": "status",
+                    "scope": scope,
+                    "operation_id": key,
+                    "now": int(time.time()),
+                }
+            )
+        )
+    )
 
 
 @dataclass(slots=True, repr=False)
@@ -223,6 +296,7 @@ class _State:
     pump: asyncio.Task[None] | None = None
     closing: bool = False
     failed: bool = False
+    reserving: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     def key(self, principal: str, operation_id: str) -> str:
         return _digest(
@@ -232,6 +306,13 @@ class _State:
     def origin(self, principal: str, operation_id: str) -> str:
         key = self.key(principal, operation_id)
         with self.database.transaction() as connection:
+            # SQLite's page ceiling is connection-local. Bound this separate
+            # metadata store without bypassing or writing the native journal.
+            page_size = connection.execute("PRAGMA page_size").fetchone()[0]
+            pages = _MAX_DATABASE_BYTES // page_size
+            actual = connection.execute(f"PRAGMA max_page_count={pages}").fetchone()[0]
+            if actual > pages:
+                raise ValueError("native job journal exceeds its storage bound")
             row = connection.execute(
                 "SELECT principal,original_id FROM native_job_origins "
                 "WHERE internal_id=?",
@@ -244,43 +325,55 @@ class _State:
                 if count >= self.bounds.reservations:
                     raise ValueError("job identity capacity reached")
                 connection.execute(
-                    "INSERT INTO native_job_origins VALUES (?,?,?)",
+                    "INSERT INTO native_job_origins VALUES (?,?,?,"
+                    "(SELECT coalesce(max(sequence),0)+1 FROM native_job_origins))",
                     (key, principal, operation_id),
                 )
             elif row != (principal, operation_id):
                 raise ValueError("job identity differs")
         return key
 
-    def page(
-        self, principal: str, offset: int
-    ) -> tuple[list[tuple[str, str]], int, int]:
-        with self.database.transaction() as connection:
-            rows: list[tuple[str, str]] = connection.execute(
-                "SELECT o.internal_id,o.original_id FROM native_job_origins o "
-                "JOIN operations j ON j.operation_id=o.internal_id "
-                "WHERE o.principal=? AND j.scope=? "
-                "ORDER BY j.sequence DESC LIMIT ? OFFSET ?",
-                (principal, self.scope, PAGE_SIZE + 1, offset),
-            ).fetchall()
-            counts: tuple[int, int] = connection.execute(
-                "SELECT coalesce(sum(j.state IN ('queued','running')),0), "
-                "coalesce(sum(j.state='interrupted'),0) FROM native_job_origins o "
-                "JOIN operations j ON j.operation_id=o.internal_id "
-                "WHERE o.principal=? AND j.scope=?",
-                (principal, self.scope),
-            ).fetchone()
-        return rows, counts[0], counts[1]
+    def page(self, principal: str, offset: int) -> OperationPage:
+        deadline = time.monotonic() + _OBSERVATION_SECONDS
+        statuses: list[OperationStatus] = []
+        visible = active = outstanding = 0
+        for key, original_id in _origin_rows(self.database, principal):
+            if time.monotonic() >= deadline:
+                raise ValueError("job page observation expired")
+            value = _observe(self.journal, self.scope, key)
+            if value is not None:
+                active += value.state in {"queued", "running"}
+                outstanding += value.state == "interrupted"
+                if offset <= visible < offset + PAGE_SIZE:
+                    statuses.append(
+                        value.model_copy(
+                            update={
+                                "operation_id": original_id,
+                                "backend_reference": None,
+                                "input": None,
+                                "result": None,
+                            }
+                        )
+                    )
+                visible += 1
+        return OperationPage(
+            operations=tuple(statuses),
+            active=active,
+            outstanding=outstanding,
+            next_offset=offset + PAGE_SIZE if visible > offset + PAGE_SIZE else None,
+        )
 
 
 def _open(
     directory: Path, binding: dict[str, JsonValue], bounds: OperationBounds
 ) -> tuple[_Journal, Database]:
     marker, path = directory / "native-jobs.json", directory / "operations.sqlite"
+    origins = directory / "origins.sqlite"
     canonical = _kernel().portable_canonical_json(_json(binding))
     if marker.exists():
         if read_private(marker) != canonical:
             raise ValueError("native job state belongs to another definition or node")
-        read_private(path, 128 * 1024**2)
+        read_private(path, _MAX_DATABASE_BYTES)
         # NativeJournal initializes its legacy-compatible tables. Prove the
         # initialized native facade still has its schema before allowing that.
         with contextlib.closing(
@@ -292,28 +385,54 @@ def _open(
                 "SELECT key,input_digest,reserved_at FROM reservations LIMIT 0",
                 "SELECT key,operation_id,scope,state,submission,sequence "
                 "FROM operations LIMIT 0",
-                "SELECT internal_id,principal,original_id "
-                "FROM native_job_origins LIMIT 0",
             ):
                 connection.execute(query)
             if connection.execute(
                 "SELECT binding_digest FROM native_job_binding WHERE singleton=1"
             ).fetchone() != (_digest(binding),):
                 raise ValueError("native job journal binding differs")
-    elif path.exists() or (directory / "logs").exists():
+        read_private(origins, _MAX_DATABASE_BYTES)
+        with contextlib.closing(
+            sqlite3.connect(
+                "file:" + quote(str(origins), safe="/") + "?mode=ro",
+                uri=True,
+                timeout=2,
+            )
+        ) as connection:
+            connection.execute(
+                "SELECT internal_id,principal,original_id,sequence "
+                "FROM native_job_origins LIMIT 0"
+            )
+            if connection.execute(
+                "SELECT binding_digest FROM native_job_binding WHERE singleton=1"
+            ).fetchone() != (_digest(binding),):
+                raise ValueError("native job journal binding differs")
+    elif path.exists() or origins.exists() or (directory / "logs").exists():
         raise ValueError("unbound native job storage requires explicit recovery")
     journal = _kernel().NativeJournal(
         str(path), bounds.model_dump_json(), int(time.time())
     )
     try:
-        database = Database(path, _ORIGINS)
+        database = Database(origins, _ORIGINS)
         if not marker.exists():
+            # The native worker has not started and no native connection is
+            # live. Bind this file once; all subsequent live access is native.
+            primary = Database(path, _BINDING)
+            with primary.transaction() as connection:
+                connection.execute(
+                    "INSERT INTO native_job_binding VALUES (1,?)", (_digest(binding),)
+                )
             with database.transaction() as connection:
                 connection.execute(
                     "INSERT INTO native_job_binding VALUES (1,?)",
                     (_digest(binding),),
                 )
             atomic_private(marker, canonical)
+        # Exclusive process custody proves no old reservation can still arrive.
+        # A crash between origin allocation and reservation must not leak quota.
+        _reclaim_origins(
+            journal, database, _TEXT.validate_python(binding["scope"], strict=True)
+        )
         return journal, database
     except BaseException:
         journal.close()
@@ -408,6 +527,7 @@ class DurableJobs:
                     "node_id": startup.node_id,
                     "descriptors": descriptors,
                     "format": "skulk.jobs/1",
+                    "origin_layout": "separate/1",
                 }
             )
 
@@ -418,6 +538,7 @@ class DurableJobs:
                     directory,
                     {
                         "format": "skulk.jobs/1",
+                        "origin_layout": "separate/1",
                         "node_id": startup.node_id,
                         "scope": scope,
                         "bounds": bounds.model_dump(mode="json"),
@@ -510,30 +631,10 @@ class DurableJobs:
         state, principal, call = self._admit(invocation, "read")
         if call.op == "list":
             offset = call.offset or 0
-            rows, active, outstanding = await finish_owned(
+            page = await finish_owned(
                 asyncio.create_task(asyncio.to_thread(state.page, principal, offset))
             )
-            statuses: list[OperationStatus] = []
-            for key, original_id in rows[:PAGE_SIZE]:
-                raw = await state.runner.status(key)
-                if raw is not None:
-                    value = OperationStatus.model_validate_json(raw)
-                    statuses.append(
-                        value.model_copy(
-                            update={
-                                "operation_id": original_id,
-                                "backend_reference": None,
-                                "input": None,
-                                "result": None,
-                            }
-                        )
-                    )
-            return OperationPage(
-                operations=tuple(statuses),
-                active=active,
-                outstanding=outstanding,
-                next_offset=offset + PAGE_SIZE if len(rows) > PAGE_SIZE else None,
-            ).model_dump(mode="json")
+            return page.model_dump(mode="json")
         assert call.operation_id is not None
         key = state.key(principal, call.operation_id)
         raw = await state.runner.status(key)
@@ -563,16 +664,36 @@ class DurableJobs:
             return self._status(await state.runner.cancel(key), call.operation_id)
         assert call.op == "start" and call.input is not None
         operation_id = call.operation_id or _digest(call.input)[:32]
-        key = await finish_owned(
-            asyncio.create_task(
-                asyncio.to_thread(state.origin, principal, operation_id)
-            )
-        )
-        if self._current() is not state:
-            raise ValueError("native job service changed")
-        raw = await state.runner.reserve(
-            key, _kernel().portable_canonical_json(_json(call.input)).decode()
-        )
+        key = state.key(principal, operation_id)
+        # Serialize origin/reservation housekeeping, not backend execution. A
+        # concurrent same-ID start must not lose its map to another's cleanup.
+        async with state.reserving:
+            try:
+                await finish_owned(
+                    asyncio.create_task(
+                        asyncio.to_thread(state.origin, principal, operation_id)
+                    )
+                )
+                if self._current() is not state:
+                    raise ValueError("native job service changed")
+                payload = _kernel().portable_canonical_json(_json(call.input)).decode()
+
+                async def reserve() -> str:
+                    return await state.runner.reserve(key, payload)
+
+                raw = await finish_owned(asyncio.create_task(reserve()))
+            finally:
+                await finish_owned(
+                    asyncio.create_task(
+                        asyncio.to_thread(
+                            _reclaim_origins,
+                            state.journal,
+                            state.database,
+                            state.scope,
+                            key,
+                        )
+                    )
+                )
         return self._status(raw, operation_id)
 
     async def _pump(self, state: _State) -> None:

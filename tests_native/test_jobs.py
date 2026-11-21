@@ -2,9 +2,10 @@
 
 import asyncio
 import json
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator, Generator
+from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from pydantic import JsonValue, TypeAdapter
@@ -12,6 +13,7 @@ from test_application import Peer, running
 
 from skulk_capability_sdk.application import ApplicationStartup, CapabilityApp
 from skulk_capability_sdk.contracts import OperationBounds
+from skulk_capability_sdk.database import Database
 from skulk_capability_sdk.jobs import DurableJobs, JobDefinition
 from skulk_capability_sdk.operations import OperationPage, OperationPlan, OperationState
 
@@ -103,6 +105,7 @@ async def request(
 ) -> tuple[dict[str, JsonValue], dict[str, JsonValue]]:
     """Send an independently admitted original caller and exact native target."""
     await peer.invoke(
+        call_id=uuid4().hex,
         payload=json.dumps(value).encode(),
         capability_id=f"fixture.jobs.{role}",
         caller_id=caller,
@@ -521,6 +524,223 @@ async def test_actual_job_process_crash_never_resubmits_an_uncertain_create(
         await peer.health()
 
 
+async def test_origin_metadata_retains_native_journal_growth_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Metadata exhaustion refuses safely without damaging accepted native work."""
+    import sqlite3
+
+    backend, spec = Backend(), definition()
+    backend.complete = True
+    folder = tmp_path / "jobs"
+    app, _ = application(folder, backend, spec)
+    async with running(
+        app,
+        descriptors=spec.descriptors(),
+        operations=OperationBounds().model_dump(mode="json"),
+    ) as peer:
+        path = folder / "origins.sqlite"
+        ceiling = path.stat().st_size + 4096
+        monkeypatch.setattr("skulk_capability_sdk.jobs._MAX_DATABASE_BYTES", ceiling)
+        # Exercise real SQLite page exhaustion with a small test-only quota,
+        # without creating a 128MiB fixture or using a real provider.
+        accepted = 0
+        for index in range(1000):
+            operation_id = f"{index:064x}"
+            frame, _ = await request(
+                peer,
+                "work",
+                {"op": "start", "operation_id": operation_id, "input": {"value": 1}},
+            )
+            if frame["error"] is not None:
+                break
+            accepted += 1
+            await state(peer, operation_id, "succeeded")
+        else:
+            raise AssertionError("metadata database exceeded its quota")
+        assert accepted > 0 and len(backend.submissions) == accepted
+        assert path.stat().st_size <= ceiling
+        with sqlite3.connect(path) as connection:
+            assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        await peer.health()
+    monkeypatch.undo()
+    replacement, _ = application(folder, backend, spec)
+    async with running(
+        replacement,
+        descriptors=spec.descriptors(),
+        operations=OperationBounds().model_dump(mode="json"),
+    ) as peer:
+        await peer.health()
+
+
+async def test_rejected_starts_do_not_exhaust_caller_identity_capacity(
+    tmp_path: Path,
+) -> None:
+    """Queue refusal preserves capacity for later work without losing replay fences."""
+    import sqlite3
+
+    backend, spec = Backend(), definition()
+    folder = tmp_path / "jobs"
+    app, _ = application(folder, backend, spec)
+    async with running(
+        app,
+        descriptors=spec.descriptors(),
+        operations=OperationBounds(max_queued=1, reservations=64).model_dump(
+            mode="json"
+        ),
+    ) as peer:
+        for operation_id, expected in (("active", "running"), ("queued", "queued")):
+            frame, _ = await request(
+                peer,
+                "work",
+                {"op": "start", "operation_id": operation_id, "input": {"value": 1}},
+            )
+            assert frame["error"] is None
+            await state(peer, operation_id, expected)
+        for index in range(70):
+            frame, _ = await request(
+                peer,
+                "work",
+                {
+                    "op": "start",
+                    "operation_id": f"refused-{index}",
+                    "input": {"value": 1},
+                },
+            )
+            assert frame["error"] is not None
+        with sqlite3.connect(folder / "origins.sqlite") as connection:
+            assert connection.execute(
+                "SELECT count(*) FROM native_job_origins"
+            ).fetchone() == (2,)
+        backend.complete = True
+        await state(peer, "queued", "succeeded")
+        frame, _ = await request(
+            peer,
+            "work",
+            {"op": "start", "operation_id": "refused-0", "input": {"value": 1}},
+        )
+        assert frame["error"] is None
+        await state(peer, "refused-0", "succeeded")
+        assert len(backend.submissions) == 3
+
+
+async def test_restart_reclaims_only_unreserved_origin_metadata(tmp_path: Path) -> None:
+    """A crash before reservation cannot permanently consume identity capacity."""
+    import sqlite3
+
+    backend, spec = Backend(), definition()
+    folder = tmp_path / "jobs"
+    for first in (True, False):
+        app, _ = application(folder, backend, spec)
+        async with running(
+            app,
+            descriptors=spec.descriptors(),
+            operations=OperationBounds().model_dump(mode="json"),
+        ) as peer:
+            with sqlite3.connect(folder / "origins.sqlite") as connection:
+                if first:
+                    connection.execute(
+                        "INSERT INTO native_job_origins VALUES (?,?,?,?)",
+                        ("b" * 64, "a" * 64, "unreserved", 1),
+                    )
+                else:
+                    assert connection.execute(
+                        "SELECT count(*) FROM native_job_origins"
+                    ).fetchone() == (0,)
+            await peer.health()
+    assert backend.submissions == []
+
+
+async def test_caller_pages_skip_pruned_records_without_counting_other_callers(
+    tmp_path: Path,
+) -> None:
+    """Pagination, counts and IDs stay private across pruning and index batches."""
+    backend, spec = Backend(), definition()
+    backend.complete = True
+    app, _ = application(tmp_path / "jobs", backend, spec)
+    async with running(
+        app,
+        descriptors=spec.descriptors(),
+        operations=OperationBounds(retain=22).model_dump(mode="json"),
+    ) as peer:
+        for caller, count in (("client:first", 24), ("client:second", 3)):
+            for index in range(count):
+                operation_id = f"job-{index}"
+                frame, _ = await request(
+                    peer,
+                    "work",
+                    {
+                        "op": "start",
+                        "operation_id": operation_id,
+                        "input": {"value": 1},
+                    },
+                    caller=caller,
+                )
+                assert frame["error"] is None
+                await state(peer, operation_id, "succeeded", caller=caller)
+        _, first = await request(peer, "read", {"op": "list"})
+        page = OperationPage.model_validate_json(json.dumps(first))
+        assert len(page.operations) == 16 and page.next_offset == 16
+        assert page.active == page.outstanding == 0
+        _, second = await request(peer, "read", {"op": "list", "offset": 16})
+        tail = OperationPage.model_validate_json(json.dumps(second))
+        assert tail.next_offset is None
+        assert [s.operation_id for s in (*page.operations, *tail.operations)] == [
+            f"job-{i}" for i in range(23, 4, -1)
+        ]
+        _, other = await request(peer, "read", {"op": "list"}, caller="client:second")
+        assert len(OperationPage.model_validate_json(json.dumps(other)).operations) == 3
+        await peer.health()
+
+
+async def test_cancel_during_origin_allocation_cannot_submit_later(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Repeated RPC cancellation drains metadata and never becomes late acceptance."""
+    import sqlite3
+    import threading
+
+    backend, spec = Backend(), definition()
+    folder = tmp_path / "jobs"
+    app, _ = application(folder, backend, spec)
+    entered, release = threading.Event(), threading.Event()
+    async with running(
+        app,
+        descriptors=spec.descriptors(),
+        operations=OperationBounds().model_dump(mode="json"),
+    ) as peer:
+        transaction = Database.transaction
+
+        @contextmanager
+        def delayed(database: Database) -> Generator[sqlite3.Connection]:
+            if database.path.name == "origins.sqlite" and not entered.is_set():
+                entered.set()
+                assert release.wait(3)
+            with transaction(database) as connection:
+                yield connection
+
+        monkeypatch.setattr(Database, "transaction", delayed)
+        try:
+            await peer.invoke(
+                "cancelled-allocation",
+                capability_id="fixture.jobs.work",
+                payload=b'{"op":"start","operation_id":"cancelled","input":{"value":1}}',
+            )
+            assert await asyncio.to_thread(entered.wait, 2)
+            await peer.send("cancel", call_id="cancelled-allocation")
+            await peer.send("cancel", call_id="cancelled-allocation")
+            await peer.health()
+        finally:
+            release.set()
+        frame, _ = await asyncio.wait_for(peer.receive(), 3)
+        assert frame["error"] == "cancelled"
+        with sqlite3.connect(folder / "origins.sqlite") as connection:
+            assert connection.execute(
+                "SELECT count(*) FROM native_job_origins"
+            ).fetchone() == (0,)
+        assert backend.submissions == []
+
+
 async def test_changed_operation_bounds_cannot_reopen_accepted_state(
     tmp_path: Path,
 ) -> None:
@@ -561,9 +781,13 @@ async def test_changed_operation_bounds_cannot_reopen_accepted_state(
     assert len(backend.submissions) == 1
 
 
-@pytest.mark.parametrize("damage", ["missing", "empty", "corrupt", "binding"])
+@pytest.mark.parametrize(
+    ("store", "damage"),
+    [("operations", item) for item in ("missing", "empty", "corrupt", "binding")]
+    + [("origins", item) for item in ("missing", "empty", "corrupt", "binding")],
+)
 async def test_initialized_job_state_is_never_recreated(
-    tmp_path: Path, damage: str
+    tmp_path: Path, store: str, damage: str
 ) -> None:
     """Missing and damaged state cannot reset durable reservations or node custody."""
     import sqlite3
@@ -578,7 +802,7 @@ async def test_initialized_job_state_is_never_recreated(
         operations=OperationBounds().model_dump(mode="json"),
     ):
         pass
-    path = folder / "operations.sqlite"
+    path = folder / f"{store}.sqlite"
     if damage == "missing":
         path.unlink()
     elif damage in {"empty", "corrupt"}:

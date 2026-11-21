@@ -10,7 +10,8 @@ Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
 `CapabilityApp` have separate qualification gates. The explicit
 [native Python application runtime](docs/native-application.md) uses the published
-0.7.0rc3 or 0.7.0rc4 execution candidate; installing this SDK does not switch an installed
+0.7.0rc3, 0.7.0rc4 or 0.7.0rc5 execution candidate. Workspace qualification
+pins the published rc5 cohort; installing this SDK does not switch an installed
 runtime or migrate an application.
 
 The native Python candidate also provides an invocation-scoped unary client:
@@ -19,6 +20,11 @@ It preserves exact destination and request identities over the published
 calls/2 execution ABI. See [native application clients](docs/native-application.md#call-an-exact-capability).
 This does not establish signed installed composition or complete SDK1's
 TypeScript, durable-work and public author journeys.
+
+The [published rc5 caller media API](docs/native-caller-streams.md) supplies the
+low-level caller transport in Python and typed Node. High-level invocation-scoped
+stream clients and matching installed host grants/finalization remain separate
+adoption gates.
 
 Python 3.13 is required. The SDK itself needs no compiler, GPU, model or fleet
 lease. Capability execution also requires a compatible Skulk host; joining a

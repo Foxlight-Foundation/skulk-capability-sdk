@@ -7,9 +7,10 @@ a runtime. This module requires the separately installed, immutable native
 **0.7.0rc3**, **0.7.0rc4**, or **0.7.0rc5**; other versions fail explicitly.
 The rc4 candidate adds host observer APIs while preserving all thirteen wire
 profile identities. The author runtime uses the same execution ABI across these candidates.
-The rc5 source adds native caller-side media ownership for Python and Node;
-it requires separate binary publication and matched host/client acceptance.
-The workspace continues to pin published rc4 artifacts until that gate closes.
+The published rc5 candidate adds low-level caller-side media ownership for
+Python and Node. The workspace pins its verified public artifacts. High-level
+invocation-scoped streaming clients and matched installed host grants/finalization
+still require separate acceptance.
 
 Use the wheels from [native-v0.7.0-rc.5](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.5),
 verify their published SHA256SUMS and install the matching platform wheel.

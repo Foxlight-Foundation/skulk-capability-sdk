@@ -8,9 +8,9 @@ a runtime. This module requires the separately installed, immutable native
 The rc4 candidate adds host observer APIs while preserving all thirteen wire
 profile identities. The author runtime uses the same execution ABI across these candidates.
 The published rc5 candidate adds low-level caller-side media ownership for
-Python and Node. The workspace pins its verified public artifacts. High-level
-invocation-scoped streaming clients and matched installed host grants/finalization
-still require separate acceptance.
+Python and Node. The workspace pins its verified public artifacts. The Python
+invocation-scoped stream client below requires rc5 and a matching owner/Core
+candidate. Signed installed composition still requires separate acceptance.
 
 Use the wheels from [native-v0.7.0-rc.5](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.5),
 verify their published SHA256SUMS and install the matching platform wheel.
@@ -103,7 +103,7 @@ unbounded queue. Cancellation and cleanup belong to each call independently.
 After behavior and cleanup finish, the runtime retains ownership of result
 publication: a late cancel cannot interrupt a partially written result frame.
 The host still decides whether a cancelled result may be delivered. Durable
-operations, delegated streaming clients, declared credentials/preflight,
+operations, declared credentials/preflight,
 settings refresh and TypeScript parity are not implemented by this module.
 
 ## Call an exact capability
@@ -198,6 +198,59 @@ through the released compiled codec and admission kernel. They qualify author-si
 bytes, context, schemas, health, correlation and cancellation ownership. Their
 synthetic host peers do not establish production authentication, signed installed
 application composition or the complete clean public author journey.
+
+## Call an exact streaming capability
+
+Use `Invocation.stream` for an explicitly selected server-streaming,
+client-streaming or bidirectional endpoint. `Invocation.call` remains unary.
+The endpoint comes from exact host discovery; choosing it grants no permission.
+
+```python
+from skulk_capability_sdk.application import CapabilityEndpoint, Invocation
+
+
+async def consume(call: Invocation, selected: CapabilityEndpoint) -> dict:
+    async with call.stream(selected, {"input": "application task"}) as stream:
+        if stream.mode != "server_streaming":
+            await stream.send({"input": "additional input"})
+            await stream.complete_input()
+        async for frame in stream:
+            # Both values are owned copies; media is separate from JSON.
+            payload, media = frame.payload, frame.media
+            if frame.kind == "completed":
+                return payload or {}
+    raise RuntimeError("provider did not complete successfully")
+```
+
+Supply the endpoint's declared chunk schema to `send`; invalid local chunks
+consume no sequence or wire effect. Inline binary input additionally supplies
+`media_metadata={"kind": "inline", "media_type": "audio/pcm"}` and `media=bytes`.
+Input half-close leaves output open. One reader and one writer can run together;
+overlapping operations in the same direction refuse without queuing.
+
+`CallStreamFrame` exposes `kind`, an owned `projection`, owned `payload`, exact
+`raw_projection` bytes and separate `media` bytes. A semantic `failed` or
+`cancelled` terminal is not success. The client exposes any terminal only after
+native end, native resource completion and the exact `delegate_finished` control
+result. `stream.finished` reports that combined transport completion, including
+valid semantic refusal. Continue iteration through its terminal before exiting.
+
+One child, unary or streaming, may be pending per invocation. A known refusal
+before start permits another admitted sequence. Early exit, cancellation or an
+uncertain child outcome retires the parent client; calls/2 has no independent
+child-cancel message. Teardown retains native socket/task ownership, while the
+sole control reader remains available for health and other admitted roots.
+Late final control remains correlated to the retired parent until consumed.
+
+An optional `deadline_unix_ms` narrows the child. The client intersects it with
+the captured parent budget and the host's actual child deadline/remaining time;
+the owner and Core independently enforce current caller and signed target
+ceilings. Null adds no generation deadline. Connection and partial-I/O bounds
+remain independent resource protections. No call is retried or replayed.
+
+These are source and account-free socket checks against rc5, with matching host
+source qualification. They do not qualify arbitrary old owners or establish the
+final SDK 1 signed installed package cohort.
 
 ## Lifetime, streaming and cancellation
 

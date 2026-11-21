@@ -49,6 +49,9 @@ type CallErrorCode = Literal[
     "cancelled",
 ]
 _CALL_ERROR: TypeAdapter[CallErrorCode] = TypeAdapter(CallErrorCode)
+_STREAM_MODE: TypeAdapter[StreamMode] = TypeAdapter(StreamMode)
+type StreamOutputKind = Literal["chunk", "completed", "failed", "cancelled"]
+_OUTPUT_KIND: TypeAdapter[StreamOutputKind] = TypeAdapter(StreamOutputKind)
 
 
 class _Record(Protocol):
@@ -80,6 +83,13 @@ class _Stream(Protocol):
     def close(self) -> Awaitable[None]: ...
 
 
+class _CallerStream(Protocol):
+    def send_input(self, projection: str, media: bytes) -> Awaitable[None]: ...
+    def next_output(self) -> Awaitable[tuple[str, bytes] | None]: ...
+    def finish(self) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+
 class _Native(Protocol):
     @property
     def ManagedV2Contract(self) -> _Factory: ...
@@ -92,12 +102,16 @@ class _Native(Protocol):
     def composition_v3_profile_digest(self) -> str: ...
     def calls_v2_profile_digest(self) -> str: ...
     def encode_call_v2_frame(self, source: str, payload: bytes) -> bytes: ...
+    def encode_transport_v2_packet(self, projection: str, media: bytes) -> bytes: ...
     def open_call_v2_control(
         self, startup: _Record, seconds: float
     ) -> Awaitable[_Control]: ...
     def open_transport_v2_stream(
         self, startup: _Record, call_id: str, mode: str, seconds: float | None
     ) -> Awaitable[_Stream]: ...
+    def open_transport_v2_client_stream(
+        self, startup: _Record, call_id: str, mode: str, seconds: float | None
+    ) -> Awaitable[_CallerStream]: ...
 
 
 def _native() -> _Native:
@@ -338,6 +352,11 @@ class _PendingDelegation:
     reply: asyncio.Future[_DelegatedReply]
     received: bool = False
     abandoned: bool = False
+    mode: StreamMode | None = None
+    started: asyncio.Future[dict[str, JsonValue] | None] | None = None
+    start_received: bool = False
+    requested_deadline: int | None = None
+    stream: CallStream | None = None
 
 
 class _Delegations:
@@ -351,10 +370,13 @@ class _Delegations:
         call_id: str,
         context: dict[str, JsonValue],
         cancel_parent: Callable[[], None],
+        startup: _Record,
+        expires_at: float | None,
     ) -> None:
         self.native, self.control, self.frame = native, control, frame
         self.call_id, self.context = call_id, context
         self.cancel_parent = cancel_parent
+        self.startup, self.expires_at = startup, expires_at
         self.sequence = 0
         self.active = True
         self.pending: _PendingDelegation | None = None
@@ -368,6 +390,34 @@ class _Delegations:
             or request["request_id"] != pending.request_id
         ):
             raise ValueError("application delegated result correlation refused")
+        kind = request["kind"]
+        if kind == "delegate_started":
+            if pending.mode is None or pending.start_received or body:
+                raise ValueError("application delegated start phase refused")
+            if request["mode"] != pending.mode:
+                raise ValueError("application delegated mode differs")
+            deadline = _DEADLINE.validate_python(
+                request["deadline_unix_ms"], strict=True
+            )
+            parent_deadline = _DEADLINE.validate_python(
+                self.context["deadline_unix_ms"], strict=True
+            )
+            for ceiling in (parent_deadline, pending.requested_deadline):
+                if ceiling is not None and (deadline is None or deadline > ceiling):
+                    raise ValueError("application delegated lifetime widened")
+            pending.start_received = True
+            assert pending.started is not None
+            if not pending.started.done():
+                pending.started.set_result(dict(request))
+            return
+        if kind == "delegate_finished":
+            if pending.mode is None or not pending.start_received or body:
+                raise ValueError("application delegated finish phase refused")
+        elif kind != "delegate_result" or (
+            pending.mode is not None
+            and (pending.start_received or request["error"] is None)
+        ):
+            raise ValueError("application delegated result phase refused")
         pending.received = True
         error = request["error"]
         response = _DelegatedReply(
@@ -376,6 +426,8 @@ class _Delegations:
         )
         if not pending.reply.done():
             pending.reply.set_result(response)
+        if pending.started is not None and not pending.started.done():
+            pending.started.set_result(None)
         if pending.abandoned:
             self.pending = None
 
@@ -392,14 +444,19 @@ class _Delegations:
 
     def retire(self) -> None:
         self.active = False
-        if self.pending is not None and not self.pending.received:
+        if self.pending is not None:
             # Cleanup may already own an uncancellable resource exit awaiting a
             # child. Wake that wait without requiring a response from a scope
             # the host may have cancelled. Correlation remains until late input
             # is consumed; this synthetic wake never counts as a host reply.
-            self.pending.abandoned = True
+            if not self.pending.received:
+                self.pending.abandoned = True
             if not self.pending.reply.done():
                 self.pending.reply.set_result(_DelegatedReply(b"", "cancelled"))
+            if self.pending.started is not None and not self.pending.started.done():
+                self.pending.started.set_result(None)
+            if self.pending.stream is not None:
+                self.pending.stream.retire()
 
     async def close(self) -> None:
         self.active = False
@@ -407,17 +464,23 @@ class _Delegations:
             self.abandon()
             if not self.pending.reply.done():
                 self.pending.reply.set_result(_DelegatedReply(b"", "cancelled"))
+            if self.pending.started is not None and not self.pending.started.done():
+                self.pending.started.set_result(None)
+            if self.pending.stream is not None:
+                await self.pending.stream.close()
         if self.sending is not None:
             # A complete frame belongs to us once sending starts. Cancellation
             # cannot publish parent completion across a partially written child.
             await _finish_owned(self.sending)
 
-    async def call(
+    def _begin(
         self,
         destination: CapabilityEndpoint,
         payload: dict[str, JsonValue] | bytes,
         deadline_unix_ms: int | None,
-    ) -> CallReply:
+        *,
+        streaming: bool = False,
+    ) -> tuple[dict[str, JsonValue], _PendingDelegation]:
         if not self.active or self.pending is not None:
             raise ValueError("application delegation is closed or already pending")
         if self.sequence >= 2**64 - 1:
@@ -426,8 +489,14 @@ class _Delegations:
             "Descriptor", destination.canonical_descriptor().decode()
         )
         fields = _OBJECT.validate_json(canonical)
-        if fields["io_mode"] != "unary":
-            raise ValueError("application unary call requires a unary destination")
+        if streaming:
+            if importlib.metadata.version("skulk-capability-kernel") != "0.7.0rc5":
+                raise ValueError("application caller streams require native rc5")
+            mode = _STREAM_MODE.validate_python(fields["io_mode"], strict=True)
+        else:
+            if fields["io_mode"] != "unary":
+                raise ValueError("application unary call requires a unary destination")
+            mode = None
         body = (
             payload
             if isinstance(payload, bytes)
@@ -476,7 +545,11 @@ class _Delegations:
         # Compile the complete frame before consuming a sequence or owning I/O.
         self.native.encode_call_v2_frame(metadata, body)
         pending = _PendingDelegation(
-            request_id, asyncio.get_running_loop().create_future()
+            request_id,
+            asyncio.get_running_loop().create_future(),
+            mode=mode,
+            started=asyncio.get_running_loop().create_future() if streaming else None,
+            requested_deadline=deadline_unix_ms,
         )
         self.pending = pending
         self.sequence += 1
@@ -485,6 +558,16 @@ class _Delegations:
             await self.control.send(metadata, body)
 
         self.sending = asyncio.create_task(send())
+        return fields, pending
+
+    async def call(
+        self,
+        destination: CapabilityEndpoint,
+        payload: dict[str, JsonValue] | bytes,
+        deadline_unix_ms: int | None,
+    ) -> CallReply:
+        fields, pending = self._begin(destination, payload, deadline_unix_ms)
+        assert self.sending is not None
         try:
             await asyncio.shield(self.sending)
             reply = await asyncio.shield(pending.reply)
@@ -508,6 +591,346 @@ class _Delegations:
             else:
                 self.abandon()
             await _finish_owned(self.sending)
+
+    @asynccontextmanager
+    async def stream(
+        self,
+        destination: CapabilityEndpoint,
+        payload: dict[str, JsonValue] | bytes,
+        deadline_unix_ms: int | None,
+    ) -> AsyncGenerator[CallStream]:
+        fields, pending = self._begin(
+            destination, payload, deadline_unix_ms, streaming=True
+        )
+        assert self.sending is not None and pending.started is not None
+        client: CallStream | None = None
+        opening: asyncio.Task[_CallerStream] | None = None
+        failed = False
+        try:
+            limits = [self.expires_at]
+            if deadline_unix_ms is not None:
+                limits.append(
+                    asyncio.get_running_loop().time()
+                    + (deadline_unix_ms - time.time_ns() // 1_000_000) / 1000
+                )
+            initial_expiry = _minimum_expiry(limits)
+            async with asyncio.timeout_at(initial_expiry):
+                await asyncio.shield(self.sending)
+                started = await asyncio.shield(pending.started)
+                if pending.abandoned or not self.active:
+                    raise asyncio.CancelledError
+                if started is None:
+                    reply = await asyncio.shield(pending.reply)
+                    if reply.error == "outcome_unknown":
+                        self.retire()
+                    if reply.error is None:
+                        raise ValueError("application stream start unavailable")
+                    raise CapabilityCallError(reply.error)
+                seconds = _SECONDS.validate_python(
+                    started["remaining_seconds"], strict=True
+                )
+                deadline = _DEADLINE.validate_python(
+                    started["deadline_unix_ms"], strict=True
+                )
+                if seconds is not None:
+                    assert deadline is not None
+                    limits.extend(
+                        (
+                            asyncio.get_running_loop().time() + seconds,
+                            asyncio.get_running_loop().time()
+                            + (deadline - time.time_ns() // 1_000_000) / 1000,
+                        )
+                    )
+                expiry = _minimum_expiry(limits)
+                remaining = (
+                    None
+                    if expiry is None
+                    else expiry - asyncio.get_running_loop().time()
+                )
+                if remaining is not None and remaining <= 0:
+                    raise TimeoutError
+                media_id = _TEXT.validate_python(started["media_call_id"], strict=True)
+
+                async def open_channel() -> _CallerStream:
+                    assert pending.mode is not None
+                    return await self.native.open_transport_v2_client_stream(
+                        self.startup, media_id, pending.mode, remaining
+                    )
+
+                opening = asyncio.create_task(open_channel())
+                channel = await asyncio.shield(opening)
+                client = await CallStream.open(self, pending, channel, fields, media_id)
+            async with asyncio.timeout_at(expiry):
+                yield client
+        except BaseException:
+            failed = True
+            raise
+        finally:
+            # Disarm lifetime timers before owned close. A second cancellation
+            # cannot detach an acquired socket or its pending control identity.
+            client = client or pending.stream
+            complete = (
+                not pending.abandoned
+                and pending.received
+                and (
+                    (client is not None and client.finished)
+                    or (client is None and not pending.start_received)
+                )
+            )
+            if not complete:
+                self.abandon()
+
+            async def cleanup() -> None:
+                if client is not None:
+                    await client.close()
+                elif opening is not None:
+                    if not opening.done():
+                        opening.cancel()
+                    await asyncio.gather(opening, return_exceptions=True)
+                    if not opening.cancelled() and opening.exception() is None:
+                        await opening.result().close()
+                assert self.sending is not None
+                await self.sending
+
+            await _finish_owned(asyncio.create_task(cleanup()))
+            if complete and self.pending is pending:
+                self.pending = None
+            if not complete and not failed:
+                raise asyncio.CancelledError
+
+
+def _minimum_expiry(values: list[float | None]) -> float | None:
+    limits = [value for value in values if value is not None]
+    return min(limits) if limits else None
+
+
+@final
+@dataclass(frozen=True, slots=True, repr=False)
+class CallStreamFrame:
+    """One admitted output with exact canonical metadata and separate raw media.
+
+    Projections are owned copies; neither metadata nor media is an execution
+    grant. Terminal frames are exposed only after media/control finalization.
+    """
+
+    raw_projection: bytes = field(repr=False)
+    media: bytes = field(default=b"", repr=False)
+
+    @property
+    def projection(self) -> dict[str, JsonValue]:
+        """Return an owned metadata copy without changing the admitted bytes."""
+        return _OBJECT.validate_json(self.raw_projection)
+
+    @property
+    def kind(self) -> StreamOutputKind:
+        """Return the compiled-admitted chunk or terminal kind."""
+        return _OUTPUT_KIND.validate_python(self.projection["kind"], strict=True)
+
+    @property
+    def payload(self) -> dict[str, JsonValue] | None:
+        """Return an owned optional JSON result alongside separate media."""
+        return _CONFIGURATION.validate_python(self.projection["payload"], strict=True)
+
+
+@final
+class CallStream:
+    """One invocation-owned child stream with independently half-closed input.
+
+    Obtain this through ``async with invocation.stream(...)``. Read to its end;
+    early close retires the parent because calls/2 has no child-cancel message.
+    One read and one write may run together, without local queues or replay.
+    """
+
+    def __init__(
+        self,
+        owner: _Delegations,
+        pending: _PendingDelegation,
+        channel: _CallerStream,
+        descriptor: dict[str, JsonValue],
+        media_call_id: str,
+    ) -> None:
+        """Take an already acquired host-granted channel for this actual parent."""
+        self._owner, self._pending, self._channel = owner, pending, channel
+        self._descriptor, self._media_call_id = descriptor, media_call_id
+        self._input_sequence = 0
+        self._input_done = False
+        self._finished = self._closed = False
+        self._reading, self._writing = asyncio.Lock(), asyncio.Lock()
+        self._closing: asyncio.Task[None] | None = None
+
+    @classmethod
+    async def open(
+        cls,
+        owner: _Delegations,
+        pending: _PendingDelegation,
+        channel: _CallerStream,
+        descriptor: dict[str, JsonValue],
+        media_call_id: str,
+    ) -> CallStream:
+        """Bind SDK-owned media and initialize input; authors use Invocation.stream.
+
+        Register custody before the first await so cancellation cannot orphan
+        a channel whose initial input transition is still being written.
+        """
+        stream = cls(owner, pending, channel, descriptor, media_call_id)
+        pending.stream = stream
+        await stream._start_input()
+        return stream
+
+    @property
+    def mode(self) -> StreamMode:
+        """Return the exact descriptor mode accepted by the host."""
+        assert self._pending.mode is not None
+        return self._pending.mode
+
+    @property
+    def finished(self) -> bool:
+        """Report local media/end and host control finalization together."""
+        return self._finished
+
+    def _check(self) -> None:
+        if (
+            self._closed
+            or not self._owner.active
+            or self._pending.abandoned
+            or self._owner.pending is not self._pending
+        ):
+            raise ValueError("application child stream is retired")
+
+    def retire(self) -> None:
+        """Fence operations synchronously and own native teardown until awaited."""
+        self._closed = True
+        if self._closing is None:
+
+            async def close_native() -> None:
+                await self._channel.close()
+
+            self._closing = asyncio.create_task(close_native())
+
+    async def close(self) -> None:
+        """Await native teardown; unfinished work also retires its parent."""
+        if not self.finished:
+            self._owner.abandon()
+        self.retire()
+        assert self._closing is not None
+        await _finish_owned(self._closing)
+
+    async def _start_input(self) -> None:
+        if self.mode != "server_streaming":
+            await self._send("started", None, None, b"")
+
+    async def _send(
+        self,
+        kind: Literal["started", "chunk", "completed"],
+        payload: dict[str, JsonValue] | None,
+        media_metadata: dict[str, JsonValue] | None,
+        media: bytes,
+    ) -> None:
+        self._check()
+        if (
+            self.mode == "server_streaming"
+            or self._input_done
+            or self._writing.locked()
+        ):
+            raise ValueError("application stream input unavailable")
+        projection: dict[str, JsonValue] = {
+            "call_id": self._media_call_id,
+            "direction": "caller_to_provider",
+            "sequence": self._input_sequence,
+            "kind": kind,
+            "payload": payload,
+            "media": media_metadata,
+        }
+        source = json.dumps(projection, allow_nan=False)
+        self._owner.native.encode_transport_v2_packet(source, media)
+        schema = self._descriptor["input_chunk_schema"]
+        if (
+            payload is not None
+            and schema is not None
+            and not self._owner.native.PortableSchema(json.dumps(schema)).matches(
+                json.dumps(payload, allow_nan=False)
+            )
+        ):
+            raise ValueError("application stream input schema refused")
+        try:
+            async with self._writing:
+                self._check()
+                await self._channel.send_input(source, media)
+                self._input_sequence += 1
+                if kind == "completed":
+                    self._input_done = True
+        except BaseException:
+            self._owner.abandon()
+            raise
+
+    async def send(
+        self,
+        payload: dict[str, JsonValue] | None = None,
+        *,
+        media_metadata: dict[str, JsonValue] | None = None,
+        media: bytes = b"",
+    ) -> None:
+        """Send one schema-admitted chunk with separate bounded binary media.
+
+        Local structural/schema refusal sends nothing and consumes no sequence.
+        An interrupted actual write retires the parent and cannot be replayed.
+        """
+        await self._send("chunk", payload, media_metadata, media)
+
+    async def complete_input(self) -> None:
+        """Half-close caller input while provider output remains independently open."""
+        await self._send("completed", None, None, b"")
+
+    def __aiter__(self) -> CallStream:
+        """Iterate admitted output, including its jointly finalized terminal."""
+        return self
+
+    async def __anext__(self) -> CallStreamFrame:
+        """Return the next frame, or stop after the verified stream end."""
+        frame = await self.next_output()
+        if frame is None:
+            raise StopAsyncIteration
+        return frame
+
+    async def next_output(self) -> CallStreamFrame | None:
+        """Read one output; terminal success waits for end and delegate_finished."""
+        self._check()
+        if self.finished:
+            return None
+        if self._reading.locked():
+            raise ValueError("application stream read already pending")
+        try:
+            async with self._reading:
+                packet = await self._channel.next_output()
+                if packet is None:
+                    raise ValueError("application stream omitted its terminal")
+                projection, media = packet
+                frame = CallStreamFrame(projection.encode(), media)
+                schema = self._descriptor[
+                    "output_chunk_schema" if frame.kind == "chunk" else "output_schema"
+                ]
+                if (
+                    schema is not None
+                    and (frame.payload is not None or frame.kind == "completed")
+                    and not self._owner.native.PortableSchema(
+                        json.dumps(schema)
+                    ).matches(json.dumps(frame.payload, allow_nan=False))
+                ):
+                    raise ValueError("application stream output schema refused")
+                if frame.kind != "chunk":
+                    if await self._channel.next_output() is not None:
+                        raise ValueError("application stream end unavailable")
+                    await self._channel.finish()
+                    reply = await asyncio.shield(self._pending.reply)
+                    self._check()
+                    if reply.error is not None:
+                        raise CapabilityCallError(reply.error)
+                    self._finished = True
+                self._check()
+                return frame
+        except BaseException:
+            self._owner.abandon()
+            raise
 
 
 @final
@@ -558,6 +981,24 @@ class Invocation:
         if self._calls is None:
             raise ValueError("application invocation has no active call client")
         return await self._calls.call(destination, payload, deadline_unix_ms)
+
+    def stream(
+        self,
+        destination: CapabilityEndpoint,
+        payload: dict[str, JsonValue] | bytes,
+        *,
+        deadline_unix_ms: int | None = None,
+    ) -> AbstractAsyncContextManager[CallStream]:
+        """Open an exact streaming destination under this original active caller.
+
+        Use an async context manager and consume output through its terminal.
+        The signed descriptor fixes server/client/bidirectional mode. The host
+        issues the media grant and rechecks authority; no metadata is a grant.
+        Input half-close leaves output open. Early abandonment retires the parent.
+        """
+        if self._calls is None:
+            raise ValueError("application invocation has no active call client")
+        return self._calls.stream(destination, payload, deadline_unix_ms)
 
 
 @final
@@ -795,21 +1236,6 @@ class CapabilityApp:
                     json.dumps(descriptor["input_schema"])
                 ).matches(body.decode()):
                     raise ValueError("application input schema refused")
-                resources = AsyncExitStack()
-                calls = _Delegations(
-                    native, control, frame, call_id, fields, job.retire
-                )
-                job.calls = calls
-                resources.push_async_callback(calls.close)
-                invocation = Invocation(
-                    call_id,
-                    identifier,
-                    _OBJECT.validate_json(body),
-                    body,
-                    CallContext(context.canonical()),
-                    resources,
-                    calls,
-                )
                 seconds = _SECONDS.validate_python(
                     request["remaining_seconds"], strict=True
                 )
@@ -825,6 +1251,33 @@ class CapabilityApp:
                     )
                     if seconds <= 0:
                         raise TimeoutError
+                expires_at = (
+                    None
+                    if seconds is None
+                    else asyncio.get_running_loop().time() + seconds
+                )
+                resources = AsyncExitStack()
+                calls = _Delegations(
+                    native,
+                    control,
+                    frame,
+                    call_id,
+                    fields,
+                    job.retire,
+                    startup,
+                    expires_at,
+                )
+                job.calls = calls
+                resources.push_async_callback(calls.close)
+                invocation = Invocation(
+                    call_id,
+                    identifier,
+                    _OBJECT.validate_json(body),
+                    body,
+                    CallContext(context.canonical()),
+                    resources,
+                    calls,
+                )
 
                 async def handle() -> None:
                     nonlocal result
@@ -933,7 +1386,11 @@ class CapabilityApp:
                     # an absent ID creates no work and grants no authority.
                     if call_id in jobs:
                         jobs[call_id].cancel()
-                elif kind == "delegate_result":
+                elif kind in (
+                    "delegate_result",
+                    "delegate_started",
+                    "delegate_finished",
+                ):
                     parent = _TEXT.validate_python(
                         request["parent_call_id"], strict=True
                     )

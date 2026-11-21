@@ -41,7 +41,7 @@ compiler at installation time.
 Run the frozen public-source and distribution checks, then native qualification:
 
 ```sh
-uv sync --frozen --all-packages --no-editable
+uv sync --frozen --all-packages --group native-runtime --no-editable
 uv run --no-sync python -m tools.qualify_kernel
 ```
 
@@ -106,3 +106,9 @@ records and 39 corpus reports. Existing contract/corpus bytes stay unchanged.
 The cohort and its host-adoption boundary are described in
 [native inference](native-inference.md). No candidate publication changes the
 runtime's selected profile or grants caller authority.
+
+Native 0.7.0rc5 retains all thirteen profiles and adds the compiled caller-side
+media API for the three streaming modes. Its [public prerelease](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.5)
+contains the exact clean three-platform cohort. Caller transport acquisition
+does not qualify application-level delegation or installed host support; those
+remain separate adoption gates. See [caller streams](native-caller-streams.md).

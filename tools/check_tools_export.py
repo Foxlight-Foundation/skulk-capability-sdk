@@ -48,7 +48,11 @@ MODULES = {
 DATA = {
     f"runtime_recipes/{name}.json"
     for name in ("macos-arm64", "linux-glibc-x86_64", "linux-glibc-aarch64")
-} | {"native_cohorts/0.7.0rc3.json", "native_cohorts/0.7.0rc4.json"}
+} | {
+    "native_cohorts/0.7.0rc3.json",
+    "native_cohorts/0.7.0rc4.json",
+    "native_cohorts/0.7.0rc5.json",
+}
 ADDITIONS = {
     "src/skulk_capability_tools/publication_records.py",
     "src/skulk_capability_tools/native_runtime_recipe.py",
@@ -57,6 +61,7 @@ ADDITIONS = {
     "src/skulk_capability_tools/native_publishing.py",
     "src/skulk_capability_tools/native_cohorts/0.7.0rc3.json",
     "src/skulk_capability_tools/native_cohorts/0.7.0rc4.json",
+    "src/skulk_capability_tools/native_cohorts/0.7.0rc5.json",
 }
 
 TESTS = {

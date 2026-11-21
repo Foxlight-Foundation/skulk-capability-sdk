@@ -30,6 +30,7 @@ _SCHEMA: TypeAdapter[dict[str, JsonValue] | bool | None] = TypeAdapter(
     dict[str, JsonValue] | bool | None
 )
 _COHORTS = {
+    "0.7.0rc5": "fb6ca9e81f80cebd2cb6da735b30f888dc49f8ee6f38d57abc544e9362906f51",
     "0.7.0rc3": "da446b54ddd8996ea21cbd61f1155bc1e840ddfff2e36f435ffc973806c865ae",
     "0.7.0rc4": "3702b717039632845f68557c87d10551480501505230134d973b04644b14e2d2",
 }
@@ -191,7 +192,7 @@ class NativeManifest(Contract):
 class NativeProfiles(Contract):
     """Exact public native cohort selection, distinct from author and host authority."""
 
-    version: Literal["0.7.0rc3", "0.7.0rc4"] = Field(
+    version: Literal["0.7.0rc3", "0.7.0rc4", "0.7.0rc5"] = Field(
         description="Selected binary version."
     )
     source_commit: str = Field(

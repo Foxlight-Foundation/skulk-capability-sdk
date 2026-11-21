@@ -49,7 +49,7 @@ def main() -> None:
         expected = tomllib.load(source)["project"]["version"]
     if (
         importlib.metadata.version("skulk-capability-sdk") != expected
-        or importlib.metadata.version("skulk-capability-kernel") != "0.7.0rc4"
+        or importlib.metadata.version("skulk-capability-kernel") != "0.7.0rc5"
         or _git("status", "--porcelain")
     ):
         raise ValueError("application qualification source or binary differs")

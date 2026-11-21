@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, cast, final
 from urllib.parse import quote
@@ -163,6 +164,20 @@ def _native(selection: CredentialSelection, entry: str) -> bytes:
 
 
 @final
+@dataclass(frozen=True, slots=True, repr=False)
+class CredentialAccess:
+    """Internal admission projection shared by the native application runtime.
+
+    This contains no credential values and grants no filesystem authority. It
+    must come from an already-admitted startup; it is not a startup validator.
+    Authors obtain a reader from ApplicationStartup.credentials instead.
+    """
+
+    configuration: str | None = field(repr=False)
+    declarations: tuple[tuple[str, bool], ...] = field(repr=False)
+
+
+@final
 class CredentialReader:
     """Resolve only this child's declared references without importing the host.
 
@@ -173,13 +188,17 @@ class CredentialReader:
     Missing selected storage never creates a new store or falls back to another.
     """
 
-    def __init__(self, startup: Startup) -> None:
+    def __init__(self, startup: Startup | CredentialAccess) -> None:
         """Retain only trusted startup selection and signed credential declarations."""
-        self._configuration = startup.credential_config
-        self._declared = {
-            item.credential_id: item.required
-            for item in startup.manifest.credential_inputs
-        }
+        if isinstance(startup, CredentialAccess):
+            self._configuration = startup.configuration
+            self._declared = dict(startup.declarations)
+        else:
+            self._configuration = startup.credential_config
+            self._declared = {
+                item.credential_id: item.required
+                for item in startup.manifest.credential_inputs
+            }
 
     def read(self, reference: str) -> SecretBytes | None:
         """Read an active value; None means a valid optional input is unconfigured.

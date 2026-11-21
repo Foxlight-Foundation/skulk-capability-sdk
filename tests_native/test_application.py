@@ -15,7 +15,7 @@ from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Protocol
 
 import _skulk_capability_kernel as native  # pyright: ignore[reportMissingModuleSource]
 import pytest
@@ -199,15 +199,23 @@ class Peer:
         )
 
 
+class ServingApplication(Protocol):
+    """A source app or independently launched installed-SDK process."""
+
+    async def serve(self, configuration_descriptor: int) -> None: ...
+
+
 @asynccontextmanager
 async def running(
-    app: CapabilityApp,
+    app: ServingApplication,
     mode: Mode = "unary",
     *,
     concurrency: int = 1,
     variants: tuple[tuple[str, Mode], ...] = (),
     result_schema: dict[str, JsonValue] | bool | None = None,
     node_id: str | None = None,
+    credential_inputs: list[dict[str, JsonValue]] | None = None,
+    credential_config: str | None = None,
 ) -> AsyncGenerator[Peer]:
     """Use real compiled startup/control/stream channels and drain all sockets."""
     writers: list[asyncio.StreamWriter] = []
@@ -226,6 +234,11 @@ async def running(
         if node_id is not None:
             value["node_id"] = node_id
         manifest = _OBJECT.validate_python(value["manifest"])
+        if credential_inputs is not None:
+            manifest["credential_inputs"] = TypeAdapter(list[JsonValue]).validate_json(
+                document(credential_inputs)
+            )
+        value["credential_config"] = credential_config
         contracts = _OBJECT.validate_python(manifest["contracts"])
         if variants:
             descriptors: list[dict[str, JsonValue]] = []

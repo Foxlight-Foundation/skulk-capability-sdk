@@ -87,7 +87,9 @@ Use the `setup` async-context-manager callback for application initialization an
 cleanup. It receives `ApplicationStartup`, which exposes installed application
 and owner IDs, nullable configuration and an optional host-selected serving
 address. Its projection excludes handshake tokens, protected socket paths and
-credential-reader configuration. Configuration is an owned copy each time it is
+credential-reader configuration. `startup.credentials` exposes only a read-only
+reader for the exact signed credential declarations; its backend selection is
+never ordinary configuration. Configuration is an owned copy each time it is
 read; absence remains `None`, rather than silently becoming an empty object.
 
 `ready` and `surfaces` are synchronous cached callbacks. They must perform no
@@ -103,8 +105,42 @@ unbounded queue. Cancellation and cleanup belong to each call independently.
 After behavior and cleanup finish, the runtime retains ownership of result
 publication: a late cancel cannot interrupt a partially written result frame.
 The host still decides whether a cancelled result may be delivered. Durable
-operations, declared credentials/preflight,
-settings refresh and TypeScript parity are not implemented by this module.
+operations, preflight, hot settings refresh and TypeScript parity are not
+implemented by this module.
+
+## Read declared credentials
+
+Declare `credential_inputs` in the native manifest. During `setup`, retain the
+reader from `startup.credentials`; it is projected only after the compiled
+managed/2 validator has admitted the actual startup. No legacy manifest or
+startup is constructed. Read off the event loop:
+
+```python
+value = await asyncio.to_thread(startup.credentials.read, "api-token")
+```
+
+The result is `SecretBytes`, or `None` for an unconfigured optional input.
+Undeclared references raise `ValueError`. A missing required value, missing or
+damaged selected storage, or unavailable native backend raises
+`CredentialUnavailable` with sanitized messages. Never log the returned value.
+Each read resolves the current alias, so rotation and retirement are visible on
+the next read. The reader does not provision storage, select a fallback backend,
+rotate credentials or create another vault. It grants no OS sandbox boundary.
+See [the credential reader contract](python-authoring.md) for author tooling.
+
+A compatible owner provisions the explicit selection and manages write-only
+replacement/retirement with installed-node, schema and revision fences. Missing
+required inputs suppress native discovery and new execution admission; they do
+not make an otherwise healthy application process unhealthy. Keep management
+initialization usable without provider credentials and handle
+`CredentialUnavailable` there so an operator can repair the connection. The
+cached `ready` callback describes process/control readiness, not account
+availability. Credential changes do not cancel already dispatched work or
+invalidate a value the application retained; read again before new provider work.
+Settings changes continue to use owner-controlled withdraw, reap, persist and
+restart. Do not use ordinary settings to select or overwrite credential storage.
+This is source-level native credential support, not final SDK1 installed-cohort
+qualification or provider-specific preflight support.
 
 ## Call an exact capability
 

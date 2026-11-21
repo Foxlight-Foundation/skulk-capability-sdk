@@ -18,6 +18,8 @@ MODULES = {
     "__init__.py",
     "_credential_reader.py",
     "application.py",
+    "jobs.py",
+    "runtime.py",
     "contracts.py",
     "credentials.py",
     "database.py",

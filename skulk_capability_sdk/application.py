@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import importlib
 import importlib.metadata
 import json
 import os
@@ -28,7 +27,10 @@ from typing import Literal, Protocol, cast, final
 
 from pydantic import JsonValue, TypeAdapter
 
+from .contracts import OperationBounds
 from .credentials import CredentialAccess, CredentialReader
+from .runtime import finish_owned as _finish_owned
+from .runtime import native_module
 
 _OBJECT = TypeAdapter(dict[str, JsonValue])
 _TEXT = TypeAdapter(str)
@@ -119,15 +121,7 @@ class _Native(Protocol):
 
 
 def _native() -> _Native:
-    if importlib.metadata.version("skulk-capability-kernel") not in {
-        "0.7.0rc3",
-        "0.7.0rc4",
-        "0.7.0rc5",
-    }:
-        raise ValueError("native application requires the explicit execution cohort")
-    return cast(
-        _Native, cast(object, importlib.import_module("_skulk_capability_kernel"))
-    )
+    return cast(_Native, native_module())
 
 
 @dataclass(slots=True)
@@ -152,20 +146,6 @@ class _InvocationJob:
             and self.work.cancelling() == 0
         ):
             self.work.cancel()
-
-
-async def _finish_owned[Value](task: asyncio.Task[Value]) -> Value:
-    """Keep ownership through repeated caller cancellation until cleanup finishes."""
-    cancelled = False
-    while not task.done():
-        try:
-            await asyncio.shield(task)
-        except asyncio.CancelledError:
-            cancelled = True
-    result = task.result()
-    if cancelled:
-        raise asyncio.CancelledError
-    return result
 
 
 async def _during[Value](
@@ -272,6 +252,29 @@ class ApplicationStartup:
         return _CONFIGURATION.validate_python(
             _OBJECT.validate_json(self._canonical)["configuration"], strict=True
         )
+
+    @property
+    def operation_bounds(self) -> OperationBounds | None:
+        """Return immutable shared limits projected after native manifest admission."""
+        value = _OBJECT.validate_json(self._canonical)["operations"]
+        return (
+            None
+            if value is None
+            else OperationBounds.model_validate_json(json.dumps(value))
+        )
+
+    def endpoint(self, capability_id: str, version: str) -> CapabilityEndpoint:
+        """Copy one exact startup-bound descriptor, without granting caller rights."""
+        matches = [
+            d
+            for d in _OBJECTS.validate_python(
+                _OBJECT.validate_json(self._canonical)["descriptors"], strict=True
+            )
+            if d["id"] == capability_id and d["version"] == version
+        ]
+        if len(matches) != 1:
+            raise ValueError("capability is not declared by this application")
+        return CapabilityEndpoint.from_descriptor(self.node_id, matches[0])
 
 
 type ApplicationSetup = Callable[
@@ -1163,6 +1166,10 @@ class CapabilityApp:
                 {
                     name: value[name]
                     for name in ("node_id", "host_id", "serve_host", "configuration")
+                }
+                | {
+                    "operations": manifest["operations"],
+                    "descriptors": contracts["descriptors"],
                 },
                 allow_nan=False,
             ).encode(),

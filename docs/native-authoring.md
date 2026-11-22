@@ -6,7 +6,7 @@ the application runtime. It supports unary, server-streaming, client-streaming
 and bidirectional handlers. No provider account, model, GPU or fleet is needed.
 
 This is an SDK1 candidate source journey. SDK **0.5.13rc1** and tools
-**0.2.0rc2** are not stable SDK1 releases. The normal signed owner/Core
+**0.2.0rc3** are not stable SDK1 releases. The normal signed owner/Core
 installation, update and rollback journey has a separate acceptance gate.
 
 ## Prepare an author environment

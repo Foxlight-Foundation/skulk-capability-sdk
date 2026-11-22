@@ -88,7 +88,7 @@ caller-private observations, replay fences and durable state. Clean-package
 qualification is separate from stable publication and normal signed
 Node/OS-session qualification.
 
-Native distribution candidates use author tools `0.2.0rc2`. Explicit
+Native distribution candidates use author tools `0.2.0rc3`. Explicit
 `capability-feed --native` and `capability-catalog --native` preserve runtime-five
 and catalog-four signature domains and full native identities. Issued legacy
 formats and default runtime acquisition recipes remain unchanged. See

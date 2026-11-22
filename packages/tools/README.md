@@ -31,7 +31,7 @@ uses `skulk-cap sign --inference-runtime --node-project ...` with the existing
 runtime-five wheel closure. See the [Node packaging candidate](../../docs/node-packaging.md)
 for exact runtime selection, source-only qualification and remaining admission.
 
-Tools `0.2.0rc2` add explicit native publication paths. Install the qualified
+Tools `0.2.0rc3` add explicit native publication paths. Install the qualified
 public native kernel cohort before reading managed/2 declarations; no compiler
 or private Git checkout is needed. These tools do not grant installation,
 execution, account access or provider usage.

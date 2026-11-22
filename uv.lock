@@ -745,7 +745,7 @@ native-runtime = [
 
 [[package]]
 name = "skulk-capability-tools"
-version = "0.2.0rc2"
+version = "0.2.0rc3"
 source = { editable = "packages/tools" }
 dependencies = [
     { name = "anyio" },

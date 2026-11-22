@@ -444,8 +444,12 @@ async def test_actual_job_process_crash_never_resubmits_an_uncertain_create(
     tmp_path: Path,
 ) -> None:
     """SIGKILL after a synthetic backend effect retains the journal's replay fence."""
+    import importlib.metadata
     import os
     import sys
+
+    native_distribution = importlib.metadata.distribution("skulk-capability-kernel")
+    native_directory = Path(str(native_distribution.locate_file(""))).resolve()
 
     class ProcessApplication:
         def __init__(self) -> None:
@@ -461,6 +465,8 @@ async def test_actual_job_process_crash_never_resubmits_an_uncertain_create(
                     "-I",
                     str(Path(__file__).parent / "fixtures/job_application.py"),
                     str(configuration_descriptor),
+                    str(native_directory),
+                    native_distribution.version,
                     pass_fds=(configuration_descriptor,),
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.DEVNULL,

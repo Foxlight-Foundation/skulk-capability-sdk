@@ -545,6 +545,37 @@ pub fn input_digest_tagged(scope: Utf16String, input: String) -> Result<String> 
     .map_err(codec_error)
 }
 
+/// Early facade ownership, independent of journal creation or crash recovery.
+#[napi]
+pub struct NativeProcessFence {
+    held: Mutex<Option<journal::Ownership>>,
+}
+
+#[napi]
+impl NativeProcessFence {
+    /// Release only after all facade metadata and adapter cleanup has finished.
+    #[napi]
+    pub fn close(&self) -> Result<()> {
+        self.held
+            .lock()
+            .map_err(|_| journal_error(journal::JournalError::Busy))?
+            .take();
+        Ok(())
+    }
+}
+
+/// Acquire the existing supervisor.lock without opening application job state.
+#[napi]
+pub async fn open_process_fence(directory: Utf16String) -> Result<NativeProcessFence> {
+    let directory = portable_text(directory)?;
+    let held = journal::Ownership::open(directory.into())
+        .await
+        .map_err(journal_error)?;
+    Ok(NativeProcessFence {
+        held: Mutex::new(Some(held)),
+    })
+}
+
 /// Experimental journal handle; callers explicitly release reconciliation
 /// ownership and close handles. Each transaction owns a short SQLite connection.
 #[napi]

@@ -508,8 +508,11 @@ class _Delegations:
         )
         fields = _OBJECT.validate_json(canonical)
         if streaming:
-            if importlib.metadata.version("skulk-capability-kernel") != "0.7.0rc5":
-                raise ValueError("application caller streams require native rc5")
+            if importlib.metadata.version("skulk-capability-kernel") not in {
+                "0.7.0rc5",
+                "0.7.0rc6",
+            }:
+                raise ValueError("application caller streams require native rc5 or rc6")
             mode = _STREAM_MODE.validate_python(fields["io_mode"], strict=True)
         else:
             if fields["io_mode"] != "unary":

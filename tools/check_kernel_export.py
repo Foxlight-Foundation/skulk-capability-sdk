@@ -112,6 +112,10 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/tests/custody.rs",
+        "kernel/src/journal.rs",
+        "kernel/bindings/python/tests/test_native_custody.py",
+        "kernel/bindings/node/tests/custody.test.mjs",
         "kernel/tests/operations.rs",
         "kernel/src/caller_streams.rs",
         "kernel/tests/caller_streams.rs",

@@ -908,6 +908,48 @@ fn validate_contract_json<'py>(
     Ok(PyBytes::new(py, &bytes))
 }
 
+/// An early facade fence independent of journal creation or crash recovery.
+#[pyclass(frozen, module = "_skulk_capability_kernel")]
+struct NativeProcessFence {
+    held: Mutex<Option<journal::Ownership>>,
+}
+
+#[pymethods]
+impl NativeProcessFence {
+    /// Blocking form for owned worker-thread acquisition, with the GIL released.
+    #[new]
+    fn new(py: Python<'_>, directory: &str) -> PyResult<Self> {
+        let held = py
+            .detach(|| journal::Ownership::acquire(Path::new(directory)))
+            .map_err(journal_error)?;
+        Ok(Self {
+            held: Mutex::new(Some(held)),
+        })
+    }
+
+    /// Release only after facade metadata and adapter cleanup have finished.
+    fn close(&self) -> PyResult<()> {
+        self.held
+            .lock()
+            .map_err(|_| journal_error(journal::JournalError::Busy))?
+            .take();
+        Ok(())
+    }
+}
+
+/// Acquire the early fence without blocking Python's control event loop.
+#[pyfunction]
+fn open_process_fence(py: Python<'_>, directory: String) -> PyResult<Bound<'_, PyAny>> {
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let held = journal::Ownership::open(directory.into())
+            .await
+            .map_err(journal_error)?;
+        Ok(NativeProcessFence {
+            held: Mutex::new(Some(held)),
+        })
+    })
+}
+
 /// Experimental native journal handle. Explicit close releases reconciliation
 /// ownership; every transaction releases the GIL before bounded storage I/O.
 #[pyclass(module = "_skulk_capability_kernel")]
@@ -1011,6 +1053,8 @@ fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<NativeAuthorContract>()?;
     module.add_function(wrap_pyfunction!(input_digest, module)?)?;
     module.add_class::<NativeJournal>()?;
+    module.add_class::<NativeProcessFence>()?;
+    module.add_function(wrap_pyfunction!(open_process_fence, module)?)?;
     module.add_class::<NativeStream>()?;
     module.add_class::<NativeCallerStream>()?;
     module.add_class::<NativeOperationRunner>()?;

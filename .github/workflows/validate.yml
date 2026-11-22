@@ -57,6 +57,10 @@ jobs:
           SKULK_TYPESCRIPT_ENTRY="$PWD/.runtime/node-installed/node_modules/@foxlight/skulk-capability-sdk/dist/index.js" \
           SKULK_NODE_QUALIFICATION_OUTPUT="$PWD/.runtime/selected-node/application" \
             uv run --no-sync pytest tests_packaged --junitxml=.runtime/selected-node/tests.xml
+      - name: Create, compile and run a clean native TypeScript author
+        run: |
+          SKULK_TYPESCRIPT_PACKAGE="$PWD/.runtime/foxlight-skulk-capability-sdk-0.5.13-rc.1.tgz" \
+            uv run --no-sync pytest tests_authoring/test_node_author.py --junitxml=.runtime/author-node.xml
       - run: git diff --exit-code
       - run: uv run --no-sync python tools/record_typescript_qualification.py
       - run: uv run --no-sync python tools/record_node_qualification.py
@@ -67,6 +71,7 @@ jobs:
             .runtime/foxlight-skulk-capability-sdk-0.5.13-rc.1.tgz
             .runtime/npm-pack.json
             .runtime/typescript.xml
+            .runtime/author-node.xml
             .runtime/typescript-source.json
             .runtime/selected-node/selection.json
             .runtime/selected-node/qualification.json
@@ -95,6 +100,7 @@ jobs:
       - run: uv run --no-sync ruff format --check
       - run: uv run --no-sync pytest --junitxml=.runtime/app-root.xml
       - run: uv run --no-sync pytest tests_native --junitxml=.runtime/app-native.xml
+      - run: uv run --no-sync pytest tests_authoring/test_python_author.py --junitxml=.runtime/author-python.xml
       - run: uv build --all-packages
       - run: uv run --no-sync python tools/check_export.py
       - run: uv run --no-sync python tools/check_tools_export.py
@@ -107,5 +113,6 @@ jobs:
             dist/*
             .runtime/app-root.xml
             .runtime/app-native.xml
+            .runtime/author-python.xml
             .runtime/native-app-source.json
           include-hidden-files: true

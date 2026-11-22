@@ -85,6 +85,7 @@ def main() -> None:
         "profiles": profiles,
         "root_cases": _cases("app-root.xml"),
         "native_cases": _cases("app-native.xml"),
+        "local_author_cases": _cases("author-python.xml"),
         "installed_signed_admission": False,
         "provider_adoption": False,
         "protected_state_migration": False,

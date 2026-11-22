@@ -21,6 +21,14 @@ only private runtime-selection metadata and the original startup FD.
 
 ## Stage an application
 
+Use [the native author CLI](native-authoring.md) for a generated TypeScript
+starter and local run/watch/invoke/debug. The public
+`verify_application_assets(application, root)` and
+`launch_node_source(application, root, config_fd)` helpers verify an explicit
+source snapshot without installing it into the interpreter. Installed launches
+continue to require the selected application namespace under the runtime prefix.
+Neither launcher authenticates a Fabric caller or supplies startup authority.
+
 Compile TypeScript before packaging. Put only runtime modules and production
 dependencies in an explicit directory, for example `stage/`. Packaging does not
 run npm, a compiler, lifecycle scripts or author hooks.

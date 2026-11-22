@@ -133,6 +133,17 @@ def verify_application(application: NodeApplication, runtime: Path) -> Path:
     separate signed installer remains responsible for the complete runtime.
     """
     root = runtime / "lib/python3.13/site-packages" / application.namespace
+    return verify_application_assets(application, root)
+
+
+def verify_application_assets(application: NodeApplication, root: Path) -> Path:
+    """Measure an explicit complete asset tree without installing or importing it.
+
+    Author tools may supply their own immutable generation directory. This
+    measurement confers no installed status, startup authority or runtime grant.
+    """
+    if not root.is_absolute():
+        raise Denied("Node application assets require an absolute directory")
     expected = {item.path: item for item in application.files}
     seen: set[str] = set()
     folders = 0
@@ -198,9 +209,24 @@ def launch_node_application(
     interpreter, never account settings or credential values. The caller owns
     startup authority; this function neither reads it nor manufactures context.
     """
-    runtime = Path(sys.prefix).absolute()
-    selected = select_node(runtime)
-    root = verify_application(application, runtime)
+    root = verify_application(application, Path(sys.prefix).absolute())
+    _launch(application, root, configuration_fd)
+
+
+def launch_node_source(
+    application: NodeApplication, root: Path, configuration_fd: int
+) -> None:
+    """Exec measured author assets using only this interpreter's selected Node.
+
+    The caller supplies its local source generation and startup descriptor.
+    Nothing is installed into or modified in the interpreter environment. This
+    source launcher is independent of normal signed owner/Core admission.
+    """
+    _launch(application, verify_application_assets(application, root), configuration_fd)
+
+
+def _launch(application: NodeApplication, root: Path, configuration_fd: int) -> None:
+    selected = select_node(Path(sys.prefix).absolute())
     python = Path(sys.executable).absolute()
     helper = _Helper(
         executable=str(python),

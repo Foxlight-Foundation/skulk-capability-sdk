@@ -1,4 +1,10 @@
 /** A clean typed caller needs only the candidate facade and published types. */
+import native from '../dist/loader.cjs';
+async function ownEarlyFence(directory: string): Promise<void> {
+  const fence = await native.openProcessFence(directory);
+  fence.close();
+}
+void ownEarlyFence;
 import {PortableContract, PortableSchema, canonicalPortableJson, portableProfileDigest} from '../dist/portable.js';
 
 const schema = new PortableSchema('{"type":"integer"}');

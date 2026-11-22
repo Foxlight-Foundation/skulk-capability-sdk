@@ -92,6 +92,64 @@ def verify_install(wheel: Path, package: Path, output: Path) -> None:
     )
     if not facade.is_file():
         raise ValueError("Installed Node facade is absent")
+    # These probes use the actual compiler-free installations, not build-tree
+    # addons. The early fence is a local API, not a new serialized wire profile.
+    _run(
+        [
+            sys.executable,
+            "-c",
+            """import asyncio,fcntl,os,sys
+from pathlib import Path
+import _skulk_capability_kernel as kernel
+async def main():
+    directory=Path(sys.argv[1])
+    held=await kernel.open_process_fence(str(directory))
+    descriptor=os.open(directory/'supervisor.lock',os.O_RDWR)
+    try:
+        try: fcntl.flock(descriptor,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError: pass
+        else: raise AssertionError('native/Python fence mismatch')
+    finally:
+        os.close(descriptor)
+        held.close()
+        held.close()
+    assert [p.name for p in directory.iterdir()]==['supervisor.lock']
+asyncio.run(main())
+""",
+            str(work / "early-fence"),
+        ],
+        python_env,
+    )
+    _run(
+        [
+            str(binaries / "node"),
+            "-e",
+            """const native=require(process.argv[1]);
+const {execFileSync}=require('node:child_process');
+const assert=require('node:assert/strict');
+const probe=`import errno,fcntl,os,sys
+descriptor=os.open(sys.argv[1]+'/supervisor.lock',os.O_RDWR)
+try:
+    try: fcntl.flock(descriptor,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    except BlockingIOError: print('busy')
+    else: print('free')
+finally: os.close(descriptor)`;
+async function main(){
+    const held=await native.openProcessFence(process.argv[2]);
+    const read=()=>execFileSync(process.argv[3],['-c',probe,process.argv[2]],
+        {encoding:'utf8'}).trim();
+    try{ assert.equal(read(),'busy'); }
+    finally{ held.close(); held.close(); }
+    assert.equal(read(),'free');
+}
+main().catch(error=>{console.error(error);process.exitCode=1});
+""",
+            str(facade.parent / "loader.cjs"),
+            str(work / "early-fence"),
+            sys.executable,
+        ],
+        env,
+    )
     for kind in [
         "portable",
         "managed",

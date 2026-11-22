@@ -13,6 +13,7 @@ from skulk_capability_sdk.storage import atomic_private, secure_directory
 
 from .describe import validate_discovery_compatibility
 from .inspection import read_public
+from .native_publishing import NativeManifest
 from .packaging import archive, load_spec, validate_manifest, verify_self_contained
 
 
@@ -58,10 +59,55 @@ def build(project: Path, output: Path) -> dict[str, str]:
     return {"bundle_sha256": digest, "scope": "unsigned-source-build"}
 
 
+def build_native(project: Path, output: Path) -> dict[str, str]:
+    """Build Python author source against the actual compiled managed/2 reader."""
+    project = project.resolve(strict=True)
+    specification = project / "capability.toml"
+    spec, root = load_spec(specification)
+    manifest = NativeManifest(
+        canonical_json=read_public(project / "manifest.json", 262144).decode()
+    )
+    with project_imports(specification):
+        validate_manifest(spec, manifest)
+        raw = archive(spec, root)
+        secure_directory(output)
+        if any(output.iterdir()):
+            raise Denied("Build output must be empty; existing bytes are immutable")
+        verify_self_contained(spec, raw, output / ".verify.pyz")
+    digest = hashlib.sha256(raw).hexdigest()
+    atomic_private(output / "bundle.pyz", raw, executable=True)
+    atomic_private(
+        output / "manifest.json", manifest.with_artifact(digest).canonical_json.encode()
+    )
+    return {"bundle_sha256": digest, "scope": "unsigned-native-source-build"}
+
+
 def main(arguments: list[str]) -> None:
     """Build a selected source project without a private publisher key."""
     parser = argparse.ArgumentParser(prog="skulk-cap build")
     parser.add_argument("--project", type=Path, default=Path.cwd())
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--native",
+        action="store_true",
+        help="Select compiled managed/2 author source explicitly",
+    )
+    parser.add_argument(
+        "--language", choices=("python", "typescript"), default="python"
+    )
     options = parser.parse_args(arguments)
-    print(json.dumps(build(options.project, options.output), sort_keys=True))
+    if options.language != "python" and not options.native:
+        parser.error("TypeScript requires --native; no legacy conversion is supported")
+    if options.language == "typescript":
+        from .node_application import build_node_project
+
+        print(build_node_project(options.project, options.output).model_dump_json())
+    else:
+        print(
+            json.dumps(
+                (build_native if options.native else build)(
+                    options.project, options.output
+                ),
+                sort_keys=True,
+            )
+        )

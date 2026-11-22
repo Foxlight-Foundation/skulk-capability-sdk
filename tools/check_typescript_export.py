@@ -24,6 +24,8 @@ MODULES = {
     "job-storage",
     "job-worker",
     "jobs",
+    "launcher",
+    "selected-application",
     "json",
     "native",
     "resources",

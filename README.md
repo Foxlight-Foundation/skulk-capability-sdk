@@ -68,6 +68,11 @@ The CLI and the runtime are separate packages. Runtime recipes retain owner 0.10
 
 ## Shared native kernel
 
+The [selected Node packaging candidate](docs/node-packaging.md) adds explicit
+native Python/TypeScript builds and a measured Node bootstrap using the existing
+signed runtime formats. Complete native author CLI and signed installed acceptance
+remain separate SDK1 gates.
+
 The [MIT kernel source](kernel/README.md) includes native Rust, Python and Node
 interfaces and the `skulk.portable/1` candidate. Its [profile reference](docs/native-kernel.md)
 and independent conformance corpus describe the available boundary. Kernel

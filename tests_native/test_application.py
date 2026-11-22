@@ -214,6 +214,7 @@ async def running(
     mode: Mode = "unary",
     *,
     concurrency: int = 1,
+    startup_seconds: int | None = None,
     variants: tuple[tuple[str, Mode], ...] = (),
     result_schema: dict[str, JsonValue] | bool | None = None,
     input_schema: dict[str, JsonValue] | bool | None = None,
@@ -285,6 +286,8 @@ async def running(
         manifest["contracts"] = contracts
         bounds = _OBJECT.validate_python(manifest["bounds"])
         bounds["concurrency"] = concurrency
+        if startup_seconds is not None:
+            bounds["startup_seconds"] = startup_seconds
         manifest["bounds"] = bounds
         value["manifest"] = manifest
         value["manifest_digest"] = native.ManagedV2Contract.from_json(
@@ -309,7 +312,9 @@ async def running(
             startup.seek(0)
             task = asyncio.create_task(app.serve(os.dup(startup.fileno())))
         try:
-            reader, writer = await asyncio.wait_for(connected.get(), 3)
+            reader, writer = await asyncio.wait_for(
+                connected.get(), 3 if startup_seconds is None else startup_seconds
+            )
             record.admit_hello((await header(reader)).decode())
             yield Peer(reader, writer, task, value, streams)
             if not task.done():

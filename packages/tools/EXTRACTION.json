@@ -1,5 +1,10 @@
 {
   "additions": {
+    "src/skulk_capability_tools/cli.py": {
+      "origin": "authored",
+      "sha256": "0953a535f760b2782ebf16aa83e67605eb017fefb011b823ee8aafa411580547",
+      "source": "Public SDK author tools and selected Node packaging, without owner/provider/Core implementation imports."
+    },
     "src/skulk_capability_tools/native_catalog.py": {
       "origin": "authored",
       "sha256": "065f37d29700afab633150efa24b0f6d78d63703950e8a1a4b976f698a60c30a",
@@ -35,6 +40,21 @@
       "sha256": "3a6e7a6b72f6f50794565f48d938b93e613a12b44ea459e8949f44515c59187f",
       "source": "Authored from public native ABI, catalog-four and runtime-five contracts on public SDK base4361305db103fea95e86daf905cc8de3d90dc50f; no private owner/provider implementation imports."
     },
+    "src/skulk_capability_tools/node_application.py": {
+      "origin": "authored",
+      "sha256": "86112a11794614925a07bf1552be2e7b48ebb8c5f5806dadc84bcb63e03ae51b",
+      "source": "Public SDK author tools and selected Node packaging, without owner/provider/Core implementation imports."
+    },
+    "src/skulk_capability_tools/node_runtime.py": {
+      "origin": "authored",
+      "sha256": "a31128dcdcb8797e2e73031917122edb71e7a97f3f581d2ae6cbf94ff58f067e",
+      "source": "Public SDK author tools and selected Node packaging, without owner/provider/Core implementation imports."
+    },
+    "src/skulk_capability_tools/project.py": {
+      "origin": "authored",
+      "sha256": "ab205de19e82fbc844dbe38697654a1fc2a75ac2b451ca5a69ca9989619c3e0e",
+      "source": "Public SDK author tools and selected Node packaging, without owner/provider/Core implementation imports."
+    },
     "src/skulk_capability_tools/publication_records.py": {
       "origin": "authored",
       "sha256": "6e735aa2aa8d5472321ad4e8e185c35c7fa7a747521a683d47f134cd98504408",
@@ -55,8 +75,8 @@
       "source_sha256": "f8ad2983f9a628775b5ecad65ee7aee6f1ca722abe4ac10e11257007f1dbd728"
     },
     "build_release.py": {
-      "adjustment": "Public namespaces; bounded ordinary public manifest reads; protected key reads unchanged Public native candidate build/metadata admission and explicit wheelhouse policy; legacy protocol windows remain unchanged.",
-      "extracted_sha256": "1235bc5d5f8c74ffd6aa06f1ae5e0cfc2169d154ce756cace7df0a03c66626d6",
+      "adjustment": "Public namespaces; bounded ordinary public manifest reads; protected key reads unchanged Public native candidate build/metadata admission and explicit wheelhouse policy; legacy protocol windows remain unchanged. Public Node staging reuses native release-three/runtime-five without format changes.",
+      "extracted_sha256": "c6ef682117715365a38799052662ffb0894cae6a931c839f0d714ad4a04d4d4c",
       "source_sha256": "34fdef85eb4a1317a4de9a4a369fcc200d4aa9ee04d434b9f98201f66bb29129"
     },
     "catalog.py": {

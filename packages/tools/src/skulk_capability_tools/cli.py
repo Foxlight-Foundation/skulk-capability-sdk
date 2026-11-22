@@ -188,7 +188,11 @@ def main() -> None:
             case "build":
                 project.main(options.arguments)
             case "sign":
-                if "--help" in options.arguments or "-h" in options.arguments:
+                if (
+                    "--help" in options.arguments
+                    or "-h" in options.arguments
+                    or "--node-project" in options.arguments
+                ):
                     build_release.main(options.arguments)
                 else:
                     selected = argparse.ArgumentParser(add_help=False)

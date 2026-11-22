@@ -94,7 +94,10 @@ interpreter must be a regular file owned by root or the application user and
 must not be group/world writable. The selected runtime must contain the matching
 public Python SDK0.5.13rc1 reader; native
 backends additionally need its `native-credentials` dependencies and OS service.
-The generated, signed Node runtime/launcher journey is still being completed.
+The [selected Node packaging candidate](node-packaging.md) supplies a public
+factory launcher, deterministic application/runtime wheels and the existing
+native signing path. Normal signed owner/Core admission and the complete native
+development CLI journey are still being completed.
 For source development, supply this measured runtime explicitly. A missing
 helper refuses reads, including optional reads; it never chooses ambient Python
 or a different backend.

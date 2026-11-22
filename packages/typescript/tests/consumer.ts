@@ -1,4 +1,10 @@
-import {CapabilityApp, CapabilityEndpoint, OutputFrame, JobDefinition, DurableJobs, SubmissionRefused, type JobAdapter, type Resource, type JsonObject} from '@foxlight/skulk-capability-sdk';
+import {CapabilityApp, CapabilityEndpoint, OutputFrame, JobDefinition, DurableJobs, SubmissionRefused, type ApplicationFactory, type JobAdapter, type Resource, type JsonObject} from '@foxlight/skulk-capability-sdk';
+
+// A staged module's default export receives only selected runtime metadata.
+const createApplication: ApplicationFactory = runtime => new CapabilityApp({
+  credentialHelper: runtime.credentialHelper,
+});
+export default createApplication;
 
 // Compile as an independent author against the public package's declarations.
 const app = new CapabilityApp({

@@ -94,6 +94,21 @@
       "source_sha256": "922d5e0584bc90e7410493631eb2a2075a6400c2df7a4c64ed672a843294a4ca",
       "exported_sha256": "922d5e0584bc90e7410493631eb2a2075a6400c2df7a4c64ed672a843294a4ca",
       "adjustment": "Public cross-language credential containment; no private owner or provider implementation"
+    },
+    "skulk_capability_sdk/node_runtime.py": {
+      "source_sha256": "be333b1176957045d7ed7d00a43dfe8e1c412a064a86c674aeeab67af864fbec",
+      "exported_sha256": "be333b1176957045d7ed7d00a43dfe8e1c412a064a86c674aeeab67af864fbec",
+      "adjustment": "Authored public selected Node runtime and application asset custody; no owner, provider or Core implementation"
+    },
+    "skulk_capability_sdk/node_application.py": {
+      "source_sha256": "70a51fbcc6609f6a68b278d5d83c5d17df5c7689724477a545c67329850c8a1e",
+      "exported_sha256": "70a51fbcc6609f6a68b278d5d83c5d17df5c7689724477a545c67329850c8a1e",
+      "adjustment": "Authored public selected Node runtime and application asset custody; no owner, provider or Core implementation"
+    },
+    "skulk_capability_sdk/node_cohort.json": {
+      "source_sha256": "cd795056c6c1752e3687b4d03960deb46db8b93e75fd7586280eafd299ea57b2",
+      "exported_sha256": "cd795056c6c1752e3687b4d03960deb46db8b93e75fd7586280eafd299ea57b2",
+      "adjustment": "Authored public selected Node runtime and application asset custody; no owner, provider or Core implementation"
     }
   }
 }

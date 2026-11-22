@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.23.2'
+          node-version: '22.23.5'
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.8.22'
@@ -50,8 +50,16 @@ jobs:
         run: |
           SKULK_TYPESCRIPT_ENTRY="$PWD/.runtime/node-installed/node_modules/@foxlight/skulk-capability-sdk/dist/index.js" \
             uv run --no-sync pytest tests_typescript --junitxml=.runtime/typescript.xml
+      - name: Prepare the explicitly selected Node runtime without a compiler
+        run: uv run --no-sync python tools/prepare_node_qualification.py --output .runtime/selected-node
+      - name: Qualify installed Node asset wheels and the Python bootstrap
+        run: |
+          SKULK_TYPESCRIPT_ENTRY="$PWD/.runtime/node-installed/node_modules/@foxlight/skulk-capability-sdk/dist/index.js" \
+          SKULK_NODE_QUALIFICATION_OUTPUT="$PWD/.runtime/selected-node/application" \
+            uv run --no-sync pytest tests_packaged --junitxml=.runtime/selected-node/tests.xml
       - run: git diff --exit-code
       - run: uv run --no-sync python tools/record_typescript_qualification.py
+      - run: uv run --no-sync python tools/record_node_qualification.py
       - uses: actions/upload-artifact@v4
         with:
           name: typescript-sdk-${{ matrix.runner }}
@@ -60,6 +68,11 @@ jobs:
             .runtime/npm-pack.json
             .runtime/typescript.xml
             .runtime/typescript-source.json
+            .runtime/selected-node/selection.json
+            .runtime/selected-node/qualification.json
+            .runtime/selected-node/tests.xml
+            .runtime/selected-node/wheels/*.whl
+            .runtime/selected-node/application/*
           include-hidden-files: true
   python:
     strategy:

@@ -6,3 +6,5 @@ export type {Resource} from './resources.js';
 export type {JsonValue, JsonObject} from './json.js';
 export {CapabilityCallError, CallReply, CallStream, CallStreamFrame} from './calls.js';
 export type {CallErrorCode, CallOptions} from './calls.js';
+export {CredentialReader, CredentialUnavailable, SecretBytes} from './credentials.js';
+export type {PythonCredentialHelper} from './credentials.js';

@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import shutil
+import signal
 from pathlib import Path
 from typing import Literal
 
@@ -27,7 +28,8 @@ class NodeApplication:
             )
         ).resolve()
         self.script.write_text(
-            "import {CapabilityApp,OutputFrame,CapabilityEndpoint,CapabilityCallError}"
+            "import {CapabilityApp,OutputFrame,CapabilityEndpoint,CapabilityCallError,"
+            "CredentialUnavailable}"
             f" from {json.dumps(package.as_uri())};\n"
             + source
             + "\nawait app.serve(Number(process.argv.at(-1)));\n"
@@ -45,6 +47,7 @@ class NodeApplication:
                 str(self.script),
                 str(configuration_descriptor),
                 pass_fds=(configuration_descriptor,),
+                start_new_session=True,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.PIPE,
                 env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
@@ -59,9 +62,23 @@ class NodeApplication:
         finally:
             await acquisition
             os.close(configuration_descriptor)
-            if self.process is not None and self.process.returncode is None:
-                self.process.kill()
-                await self.process.wait()
+            if self.process is not None:
+                if self.process.returncode is None:
+                    try:
+                        os.killpg(self.process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    await self.process.wait()
+                else:
+                    try:
+                        os.killpg(self.process.pid, 0)
+                    except ProcessLookupError:
+                        pass
+                    else:
+                        os.killpg(self.process.pid, signal.SIGKILL)
+                        raise AssertionError(
+                            "Node application leaked owned descendants"
+                        )
 
 
 async def test_node_unary_preserves_exact_bytes_original_caller_and_health(

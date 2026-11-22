@@ -5,6 +5,8 @@ const app = new CapabilityApp({
   async setup(startup, signal): Promise<Resource> {
     const configuration = startup.configuration;
     if (configuration !== null && signal.aborted) throw Error('setup cancelled');
+    const secret = await startup.credentials.read('api-token', {signal});
+    if (secret !== null) void secret.getSecretValue();
     return {async close() {}};
   },
   ready: () => true,

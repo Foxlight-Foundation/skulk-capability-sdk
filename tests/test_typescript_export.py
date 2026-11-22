@@ -22,6 +22,17 @@ def public_source(tmp_path: Path) -> Path:
         "packages/typescript/SOURCE-MANIFEST.json",
         "tools/check_typescript_export.py",
         "LICENSE.md",
+        "pyproject.toml",
+    }
+    names |= {
+        f"skulk_capability_sdk/{name}"
+        for name in (
+            "_credential_bridge.py",
+            "_credential_reader.py",
+            "credentials.py",
+            "storage.py",
+            "contracts.py",
+        )
     }
     for name in names:
         path = tmp_path / name

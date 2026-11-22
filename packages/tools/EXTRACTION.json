@@ -2,7 +2,7 @@
   "additions": {
     "src/skulk_capability_tools/_native_build_worker.py": {
       "origin": "authored",
-      "sha256": "0fb2bd9126f6d9b64c2c36226623b19eb0192217c197ad7f0627ca1c2aa92fa1",
+      "sha256": "9909c6f8b6a18c81fe46f9eaf619af752b229d43c66dcc81d882b1662e5cf61a",
       "source": "Authored public native source development over issued managed/2, calls/2 and transport/2; no private owner/provider/Core imports or implementation."
     },
     "src/skulk_capability_tools/_node_source_worker.py": {
@@ -12,7 +12,7 @@
     },
     "src/skulk_capability_tools/cli.py": {
       "origin": "authored",
-      "sha256": "8959aeced0d4422fe7f835d3a059d1e2b4f2909fe6dc788eb18e619ab5e8da9e",
+      "sha256": "0e80a7b576d32e88a757beeb4f07fcbecb55bfb44a90ab6947026f161668b222",
       "source": "Authored public native source development over issued managed/2, calls/2 and transport/2; no private owner/provider/Core imports or implementation."
     },
     "src/skulk_capability_tools/native_author.py": {

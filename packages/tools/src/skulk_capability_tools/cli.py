@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Literal
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from pydantic import TypeAdapter
+from pydantic import JsonValue, TypeAdapter
 
 from skulk_capability_sdk.contracts import Denied, Result
 from skulk_capability_sdk.storage import secure_directory
@@ -129,8 +129,6 @@ def development(command: str, arguments: list[str]) -> None:
             return
         chunks: list[Chunk] = []
         if command != "debug":
-            from pydantic import JsonValue
-
             chunks = [
                 Chunk(payload=TypeAdapter(dict[str, JsonValue]).validate_json(raw))
                 for raw in options.input_chunk
@@ -161,6 +159,7 @@ def development(command: str, arguments: list[str]) -> None:
         async def exchange() -> None:
             media_file = None
             total = 0
+            unsuccessful_terminal = False
             try:
                 if command != "debug" and options.output_media is not None:
                     descriptor = os.open(
@@ -170,6 +169,14 @@ def development(command: str, arguments: list[str]) -> None:
                     )
                     media_file = os.fdopen(descriptor, "wb")
                 async for reply in native_call(state, request):
+                    if reply["kind"] == "frame":
+                        frame = TypeAdapter(dict[str, JsonValue]).validate_python(
+                            reply["frame"]
+                        )
+                        unsuccessful_terminal |= frame["kind"] in {
+                            "failed",
+                            "cancelled",
+                        }
                     if media_file is not None and reply["kind"] == "frame":
                         import base64
 
@@ -188,7 +195,8 @@ def development(command: str, arguments: list[str]) -> None:
                         } | {"media_bytes": len(raw)}
                     print(json.dumps(reply), flush=True)
                     if reply["kind"] == "error" or (
-                        reply["kind"] == "result" and reply.get("error") is not None
+                        reply["kind"] == "result"
+                        and (reply.get("error") is not None or unsuccessful_terminal)
                     ):
                         raise Denied(
                             "Local native request failed; no request was retried"
@@ -219,8 +227,6 @@ def development(command: str, arguments: list[str]) -> None:
         except KeyboardInterrupt:
             pass
     else:
-        from pydantic import JsonValue
-
         payload = (
             TypeAdapter(dict[str, JsonValue]).validate_json(options.input, strict=True)
             if command != "debug"

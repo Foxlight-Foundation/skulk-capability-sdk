@@ -72,7 +72,7 @@ def fingerprint(project: Path, language: Language) -> str:
                 *(one.package_root for one in spec.source_packages),
             )
         )
-        selected.update(project / item for item in spec.data_files)
+        selected.update(project / item for item in spec.data_files.values())
     for root in roots:
         if root.is_symlink() or not root.is_dir():
             raise Denied("Source root must be a regular directory")

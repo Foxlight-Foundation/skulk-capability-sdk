@@ -8,6 +8,7 @@ import tempfile
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from pydantic import JsonValue, TypeAdapter
 
@@ -107,11 +108,15 @@ async def session(
 
 
 async def invoke(
-    project: Path, state: Path, suffix: str = "echo", *extra: str
+    project: Path,
+    state: Path,
+    suffix: str = "echo",
+    *extra: str,
+    operation: Literal["invoke", "test"] = "invoke",
 ) -> tuple[int, list[dict[str, JsonValue]], str]:
     """Exercise the actual client CLI against its private native source session."""
     return await command(
-        "invoke",
+        operation,
         "--native",
         "--project",
         str(project),

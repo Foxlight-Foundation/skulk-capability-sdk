@@ -202,6 +202,8 @@ class NativeSourceChild:
         self.process: asyncio.subprocess.Process | None = None
         self.writer: asyncio.StreamWriter | None = None
         self.reader_task: asyncio.Task[None] | None = None
+        self.health_task: asyncio.Task[None] | None = None
+        self.health_seconds = 2.0
         self.servers: list[asyncio.Server] = []
         self.connections: list[asyncio.StreamWriter] = []
         self.pending: dict[str, _Call] = {}
@@ -281,6 +283,13 @@ class NativeSourceChild:
             self.servers.append(await asyncio.start_unix_server(callback, str(path)))
             path.chmod(0o600)
         manifest = OBJECT.validate_json(built.manifest.canonical_json)
+        bounds = OBJECT.validate_python(manifest["bounds"])
+        self.health_seconds = TypeAdapter(float).validate_python(
+            bounds["health_seconds"]
+        )
+        arguments = TypeAdapter(list[str]).validate_python(manifest["arguments"])
+        if built.application is not None and arguments:
+            raise Denied("Node factories use startup configuration, not CLI arguments")
         startup: dict[str, JsonValue] = {
             "protocol": 6,
             "contract_profile": "skulk.managed/2",
@@ -317,6 +326,7 @@ class NativeSourceChild:
                     "-I",
                     "-B",
                     str(self.directory / "build/bundle.pyz"),
+                    *arguments,
                 ]
             else:
                 source.write(
@@ -371,6 +381,17 @@ class NativeSourceChild:
             await asyncio.gather(handshake, exited, return_exceptions=True)
         self.reader_task = asyncio.create_task(self._read(reader))
         await self.health()
+        self.health_task = asyncio.create_task(self._monitor())
+
+    async def _monitor(self) -> None:
+        # Native control has its own idle budget; media activity cannot renew it.
+        # Leave room for the declared reply deadline before the next idle fence.
+        try:
+            while True:
+                await asyncio.sleep(self.health_seconds / 2)
+                await self.health()
+        except (Denied, ValueError, OSError, TimeoutError, asyncio.IncompleteReadError):
+            self._fail()
 
     async def _read(self, reader: asyncio.StreamReader) -> None:
         try:
@@ -445,7 +466,7 @@ class NativeSourceChild:
         self.health_requests[nonce] = future
         try:
             await self.send("health", nonce=nonce, ready=False, surfaces=[])
-            async with asyncio.timeout(2):
+            async with asyncio.timeout(self.health_seconds):
                 value = await asyncio.shield(future)
             if value["ready"] is not True:
                 raise Denied("Native source application is not ready")
@@ -673,6 +694,9 @@ class NativeSourceChild:
     async def close(self) -> None:
         """Drain normal shutdown and reap the group on bounded failure."""
         self.closing = True
+        if self.health_task is not None:
+            self.health_task.cancel()
+            await asyncio.gather(self.health_task, return_exceptions=True)
         if self.process is not None:
             try:
                 if (
@@ -686,6 +710,8 @@ class NativeSourceChild:
             except (Denied, ValueError, OSError, TimeoutError):
                 pass
             await _terminate(self.process)
+            # A later idempotent close must never signal a recycled process ID.
+            self.process = None
         if self.reader_task is not None:
             self.reader_task.cancel()
             await asyncio.gather(self.reader_task, return_exceptions=True)
@@ -800,16 +826,16 @@ async def serve(
                             or stamp != current.built.fingerprint
                             or settings_digest != current.settings_digest
                         ):
-                            await finish_owned(asyncio.create_task(current.close()))
-                            current = NativeSourceChild(
-                                project,
-                                state / ("g-" + secrets.token_hex(8)),
-                                current.generation + 1,
-                                stopped,
-                                configuration,
-                                credential_selection,
-                            )
                             try:
+                                await finish_owned(asyncio.create_task(current.close()))
+                                current = NativeSourceChild(
+                                    project,
+                                    state / ("g-" + secrets.token_hex(8)),
+                                    current.generation + 1,
+                                    stopped,
+                                    configuration,
+                                    credential_selection,
+                                )
                                 await current.start()
                             except BaseException:
                                 # A partial replacement cannot serve another call.

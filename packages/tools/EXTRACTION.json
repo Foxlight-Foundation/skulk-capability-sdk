@@ -42,7 +42,7 @@
     },
     "src/skulk_capability_tools/native_development.py": {
       "origin": "authored",
-      "sha256": "06854ec43dd503aab2d1c39fc89603b9f93baf6cd9c35151968eac67e13a2e8b",
+      "sha256": "99634022922584755140afedfb5b4eaeecebceebca12d8b66caaa169bf57fe1f",
       "source": "Authored public native source development over issued managed/2, calls/2 and transport/2; no private owner/provider/Core imports or implementation."
     },
     "src/skulk_capability_tools/native_feed.py": {

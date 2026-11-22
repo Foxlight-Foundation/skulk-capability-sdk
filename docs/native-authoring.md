@@ -95,6 +95,8 @@ JavaScript and production dependencies. A project must select exactly one.
 TypeScript `npm run build` compiles and stages dependencies without npm lifecycle
 scripts. Development compilers and local acquisition paths stay out of runtime
 assets. The author session itself never runs npm or a compiler.
+Python launchers receive declared manifest arguments. Node factories take their
+settings through startup configuration and refuse arbitrary CLI arguments.
 
 ## Run and invoke
 
@@ -122,6 +124,8 @@ performs the same explicit request as `invoke`. It does not start another
 session or invent a retry. Nonzero exit status reports a refusal or failed call.
 `debug` challenges live readiness and reports the generation, language, PID and
 manifest digest, without settings, credential paths or startup tokens.
+Generation-owned health probes also keep the native control channel live during
+idle time and long streams; media traffic alone does not renew that channel.
 
 To exercise binary media with the duplex starter:
 

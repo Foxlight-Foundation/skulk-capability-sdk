@@ -348,3 +348,53 @@ async def test_unsuccessful_terminal_drains_and_exits_nonzero(
         assert (state / "terminal-cleaned").read_text() == "done"
         code, replies, error = await invoke(project, state, "stream")
         assert code == 0 and frames(replies)[-2]["kind"] == "completed", error
+
+
+async def test_native_health_keeps_idle_and_active_stream_channels_live(
+    tmp_path: Path,
+) -> None:
+    """Real native idle fences stay renewed without any explicit debug request."""
+    project = tmp_path / "heartbeat"
+    await initialize(project)
+    path = project / "manifest.json"
+    manifest = OBJECT.validate_json(path.read_bytes())
+    bounds = OBJECT.validate_python(manifest["bounds"])
+    bounds.update(startup_seconds=5.0, health_seconds=0.5)
+    manifest["bounds"] = bounds
+    path.write_text(json.dumps(manifest))
+    source = project / "native_example/app.py"
+    source.write_text(
+        source.read_text().replace(
+            "        yield OutputFrame('completed',",
+            "        await asyncio.sleep(6)\n        yield OutputFrame('completed',",
+            1,
+        )
+    )
+    async with session(project) as (state, _):
+        first = await debug(project, state)
+        await asyncio.sleep(6)
+        await debug(project, state)
+        code, replies, error = await invoke(project, state, "stream")
+        assert code == 0 and frames(replies)[-2]["kind"] == "completed", error
+        assert (await debug(project, state))["pid"] == first["pid"]
+
+
+async def test_native_source_passes_declared_python_arguments(tmp_path: Path) -> None:
+    """Source execution receives the same declared arguments as a signed launch."""
+    project = tmp_path / "arguments"
+    await initialize(project)
+    path = project / "manifest.json"
+    manifest = OBJECT.validate_json(path.read_bytes())
+    manifest["arguments"] = ["--label", "declared"]
+    path.write_text(json.dumps(manifest))
+    source = project / "native_example/app.py"
+    source.write_text(
+        source.read_text().replace(
+            "    parser.add_argument('--config-fd', type=int, required=True)",
+            "    parser.add_argument('--config-fd', type=int, required=True)\n"
+            '    parser.add_argument("--label", choices=["declared"], required=True)',
+        )
+    )
+    async with session(project) as (state, _):
+        code, replies, error = await invoke(project, state)
+        assert code == 0 and replies[-1]["payload"] == {"text": "Hello"}, error

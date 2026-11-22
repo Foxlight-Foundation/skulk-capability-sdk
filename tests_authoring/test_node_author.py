@@ -10,7 +10,15 @@ from pathlib import Path
 import pytest
 
 from skulk_capability_sdk.node_runtime import select_node
-from tests_authoring.support import debug, frames, gone, initialize, invoke, session
+from tests_authoring.support import (
+    OBJECT,
+    debug,
+    frames,
+    gone,
+    initialize,
+    invoke,
+    session,
+)
 
 
 @pytest.fixture(scope="module")
@@ -116,3 +124,36 @@ async def test_native_typescript_watch_replaces_only_owned_assets(
             assert len(list(state.glob("g-*"))) == 1
     finally:
         source.write_text(original)
+
+
+async def test_native_node_health_survives_idle_and_long_stream(
+    node_project: Path,
+) -> None:
+    """Native Node control remains live independently of streaming media."""
+    path, source = node_project / "manifest.json", node_project / "stage/app.js"
+    original_manifest, original_source = path.read_text(), source.read_text()
+    try:
+        manifest = OBJECT.validate_json(original_manifest)
+        bounds = OBJECT.validate_python(manifest["bounds"])
+        bounds.update(startup_seconds=5.0, health_seconds=0.5)
+        manifest["bounds"] = bounds
+        path.write_text(json.dumps(manifest))
+        marker = "yield new OutputFrame('completed',"
+        assert marker in original_source
+        source.write_text(
+            original_source.replace(
+                marker,
+                "await new Promise(resolve => setTimeout(resolve, 6000));\n" + marker,
+                1,
+            )
+        )
+        async with session(node_project) as (state, _):
+            first = await debug(node_project, state)
+            await asyncio.sleep(6)
+            await debug(node_project, state)
+            code, replies, error = await invoke(node_project, state, "stream")
+            assert code == 0 and frames(replies)[-2]["kind"] == "completed", error
+            assert (await debug(node_project, state))["pid"] == first["pid"]
+    finally:
+        source.write_text(original_source)
+        path.write_text(original_manifest)

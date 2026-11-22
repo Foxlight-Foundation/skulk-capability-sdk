@@ -112,3 +112,38 @@ media API for the three streaming modes. Its [public prerelease](https://github.
 contains the exact clean three-platform cohort. Caller transport acquisition
 does not qualify application-level delegation or installed host support; those
 remain separate adoption gates. See [caller streams](native-caller-streams.md).
+
+## Early application ownership
+
+Native **0.7.0rc6** adds `NativeProcessFence` and async acquisition through
+Python `open_process_fence(directory)` / Node `openProcessFence(directory)`.
+Python also has a synchronous constructor for owned worker-thread use.
+The primitive opens only the established `supervisor.lock` in the supplied
+private directory. It does not open SQLite, recover a journal, inspect caller
+indexes or rewrite application metadata. A directory can be created with owner-only
+permissions; unsafe directories, symlinks, special files and oversized lock files
+refuse without another lock domain or a fallback.
+
+For the existing Python `DurableJobs` layout, supply the application's
+`directory/custody` so it shares the actual Python `HostLock`. That outer
+facade fence differs from the journal worker's `directory/supervisor.lock`.
+Hold the outer fence before reading or creating binding markers, caller indexes
+or journal state, through journal/runner acquisition, reconciliation, shutdown
+and all adapter cleanup. `close()` is idempotent. Closing or process death
+releases the OS lock without deleting its file; never unlink the lock file to
+claim ownership.
+
+Acquisition has the existing two-second contention bound and runs its filesystem
+and lock waits off the async control executor. A lock becoming free does not
+grant caller or execution authority. Use the SDK's owned acquisition/cleanup
+machinery: cancelling a caller does not justify abandoning a pending acquisition
+or dropping a successfully returned resource before cleanup. The Python and
+Node binding tests include real legacy-Python/Node contention, responsive control,
+late acquisition cleanup and process death, with original metadata retained.
+
+This is an additive native API under a new candidate version. It changes no
+serialized profile, canonical bytes, journal table or original-caller identity.
+Issued rc5 artifacts remain immutable. The workspace's existing published rc5
+pins are retained until explicit consumer adoption. Candidate publication,
+complete TypeScript job parity and normal signed owner/Core adoption are
+separate gates; this primitive is not a stable SDK1 release claim.

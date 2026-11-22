@@ -9,10 +9,15 @@ SDK0.5.13rc1 retains the qualified protocol-4 authoring interfaces.
 Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
 `CapabilityApp` have separate qualification gates. The explicit
-[native Python application runtime](docs/native-application.md) uses the published
-0.7.0rc3, 0.7.0rc4 or 0.7.0rc5 execution candidate. Workspace qualification
+[native Python application runtime](docs/native-application.md) accepts the
+0.7.0rc3, 0.7.0rc4, 0.7.0rc5 and additive 0.7.0rc6 execution candidates. Workspace qualification
 pins the published rc5 cohort; installing this SDK does not switch an installed
 runtime or migrate an application.
+
+The rc6 native candidate adds an early process-ownership fence shared by Python
+and Node. It preserves the existing lock filename and thirteen wire profiles;
+it does not complete TypeScript durable jobs or signed runtime adoption. See
+[early application ownership](docs/native-candidates.md#early-application-ownership).
 
 The native Python candidate also provides invocation-scoped clients:
 `CapabilityEndpoint`, `Invocation.call`, `Invocation.stream`, `CallReply`,

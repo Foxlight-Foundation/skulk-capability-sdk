@@ -4,13 +4,16 @@ SDK **0.5.13rc1** provides `skulk_capability_sdk.application` as an explicit
 prerelease author runtime. The existing protocol-4 modules retain their frozen
 schemas and bytes. Importing the SDK does not import a native extension or select
 a runtime. This module requires the separately installed, immutable native
-**0.7.0rc3**, **0.7.0rc4**, or **0.7.0rc5**; other versions fail explicitly.
+**0.7.0rc3**, **0.7.0rc4**, **0.7.0rc5**, or **0.7.0rc6**; other versions fail explicitly.
 The rc4 candidate adds host observer APIs while preserving all thirteen wire
 profile identities. The author runtime uses the same execution ABI across these candidates.
 The published rc5 candidate adds low-level caller-side media ownership for
 Python and Node. The workspace pins its verified public artifacts. The Python
-invocation-scoped stream client below requires rc5 and a matching owner/Core
+invocation-scoped stream client below requires rc5 or rc6 and a matching owner/Core
 candidate. Signed installed composition still requires separate acceptance.
+The rc6 candidate adds early facade ownership independent of opening/recovering
+the job journal. It keeps the same profiles and existing application behavior;
+its raw process fence does not by itself provide a complete TypeScript job service.
 
 Use the wheels from [native-v0.7.0-rc.5](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.5),
 verify their published SHA256SUMS and install the matching platform wheel.

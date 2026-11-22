@@ -1,6 +1,8 @@
 """Real native job process, synthetic backend acceptance and crash uncertainty."""
 
 import asyncio
+import importlib
+import importlib.metadata
 import os
 import sys
 from collections.abc import AsyncGenerator
@@ -9,15 +11,24 @@ from pathlib import Path
 
 from pydantic import JsonValue, TypeAdapter
 
-from skulk_capability_sdk.application import ApplicationStartup, CapabilityApp
-from skulk_capability_sdk.jobs import DurableJobs, JobDefinition
-from skulk_capability_sdk.operations import OperationPlan, OperationState
-
 _TEXT = TypeAdapter(str)
 
 
 async def main() -> None:
     """Exercise only isolated synthetic disk effects using the installed SDK."""
+    # -I deliberately ignores ambient PYTHONPATH. Select the parent's selected
+    # test cohort explicitly so a new binary is not replaced by the issued one.
+    native_directory = Path(sys.argv[2]).resolve()
+    sys.path.insert(0, str(native_directory))
+    assert importlib.metadata.version("skulk-capability-kernel") == sys.argv[3]
+    native = importlib.import_module("_skulk_capability_kernel")
+    assert native.__file__ is not None
+    assert Path(native.__file__).resolve().is_relative_to(native_directory)
+
+    from skulk_capability_sdk.application import ApplicationStartup, CapabilityApp
+    from skulk_capability_sdk.jobs import DurableJobs, JobDefinition
+    from skulk_capability_sdk.operations import OperationPlan, OperationState
+
     directory: Path | None = None
 
     class Backend:

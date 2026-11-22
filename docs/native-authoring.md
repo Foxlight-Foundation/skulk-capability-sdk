@@ -143,10 +143,14 @@ exit status before using it. Input is limited to 64 chunks with 1 MiB media per
 chunk, the local IPC envelope to 4 MiB, and output files to 64 MiB. The declared
 native manifest and schemas impose their own bounds as well.
 
-`--seconds` requests a shorter deadline; it cannot extend the manifest's call or
-stream budget. A disconnect or timeout cancels work and drains cleanup before
-reuse. The CLI never replays a call after a lost connection. Uncertain native
-transport or cleanup failure stops the session.
+`--seconds` requests a shorter deadline; it cannot extend a finite manifest
+ceiling. Read handlers use the declared call or stream watchdog. Inference
+handlers use `bounds.inference_seconds` separately; `null` adds no overall
+inference ceiling, and the local client adds none of its own. Connection,
+health and partial-frame watchdogs still apply. A disconnect or timeout cancels
+work and drains cleanup before reuse, including output backpressure. The CLI
+never replays a call after a lost connection. Uncertain native transport or
+cleanup failure stops the session.
 
 ## Watch and settings
 

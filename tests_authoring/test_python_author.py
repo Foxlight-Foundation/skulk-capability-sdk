@@ -5,11 +5,13 @@ import json
 import os
 import py_compile
 import sys
+import tempfile
 from pathlib import Path
 from typing import Literal
 
 import pytest
 from skulk_capability_tools import cli
+from skulk_capability_tools.native_development import Request, call, serve
 
 from tests_authoring.support import (
     OBJECT,
@@ -398,3 +400,168 @@ async def test_native_source_passes_declared_python_arguments(tmp_path: Path) ->
     async with session(project) as (state, _):
         code, replies, error = await invoke(project, state)
         assert code == 0 and replies[-1]["payload"] == {"text": "Hello"}, error
+
+
+@pytest.mark.parametrize(
+    ("ceiling", "override", "success"),
+    [
+        (None, None, True),
+        (4.0, None, True),
+        (4.0, "7200", True),
+        (None, "0.2", False),
+        (4.0, "0.2", False),
+    ],
+)
+async def test_inference_uses_its_declared_nullable_execution_ceiling(
+    tmp_path: Path, ceiling: float | None, override: str | None, success: bool
+) -> None:
+    """Inference outlives read watchdogs; only real owner/caller ceilings bound it."""
+    project = tmp_path / "inference"
+    await initialize(project)
+    path = project / "manifest.json"
+    manifest = OBJECT.validate_json(path.read_bytes())
+    bounds = OBJECT.validate_python(manifest["bounds"])
+    bounds.update(call_seconds=0.2, inference_seconds=ceiling)
+    manifest["bounds"] = bounds
+    manifest["effect"] = "inference"
+    contracts = OBJECT.validate_python(manifest["contracts"])
+    descriptors = contracts["descriptors"]
+    assert isinstance(descriptors, list)
+    descriptor = OBJECT.validate_python(descriptors[0])
+    descriptor["behavior"] = "inference"
+    descriptors[0] = descriptor
+    path.write_text(json.dumps(manifest | {"contracts": contracts}))
+    source = project / "native_example/app.py"
+    source.write_text(
+        source.read_text().replace(
+            '    return {"text": call.payload["text"]}',
+            "    from pathlib import Path\n"
+            "    import json\n"
+            "    Path('deadline.json').write_text(json.dumps(\n"
+            "        call.context.export()['deadline_unix_ms']))\n"
+            "    if call.payload['text'] == 'wait':\n"
+            "        await asyncio.sleep(0.75)\n"
+            '    return {"text": call.payload["text"]}',
+        )
+    )
+    async with session(project) as (state, _):
+        extra = () if override is None else ("--seconds", override)
+        code, replies, error = await invoke(
+            project, state, "echo", "--input", '{"text":"wait"}', *extra
+        )
+        assert (code == 0) is success, error
+        if success:
+            assert replies[-1]["payload"] == {"text": "wait"}
+            deadline = json.loads((state / "deadline.json").read_text())
+            assert (deadline is None) is (ceiling is None and override is None)
+        else:
+            assert replies[-1]["error"] == "timeout"
+            code, replies, error = await invoke(
+                project, state, "echo", "--input", '{"text":"quick"}'
+            )
+            assert code == 0 and replies[-1]["payload"] == {"text": "quick"}, error
+
+
+async def test_disconnected_backpressured_stream_drains_before_next_call(
+    tmp_path: Path,
+) -> None:
+    """Closing a suspended output iterator retains admission through real cleanup."""
+    project = tmp_path / "backpressure"
+    await initialize(project)
+    source = project / "native_example/app.py"
+    source.write_text(
+        source.read_text()
+        .replace(
+            "    if call.capability_id.endswith('.stream'):",
+            "    if call.payload['text'] == 'slow':\n"
+            "        from pathlib import Path\n"
+            "        try:\n"
+            "            yield OutputFrame('chunk', {'text':'slow'})\n"
+            "            await asyncio.Event().wait()\n"
+            "        finally:\n"
+            "            Path('cleaning').touch()\n"
+            "            while not Path('release-cleanup').exists():\n"
+            "                await asyncio.sleep(0.01)\n"
+            "            Path('cleaned').touch()\n"
+            "        return\n"
+            "    if call.capability_id.endswith('.stream'):",
+        )
+        .replace(
+            '    return {"text": call.payload["text"]}',
+            "    from pathlib import Path\n"
+            "    if call.payload['text'] == 'quick' and not Path('cleaned').exists():\n"
+            "        Path('overlapped').touch()\n"
+            '    return {"text": call.payload["text"]}',
+        )
+    )
+    blocked = asyncio.Event()
+
+    async def backpressure(writer: asyncio.StreamWriter, value: object) -> None:
+        record = OBJECT.validate_python(value)
+        if record["kind"] == "frame":
+            frame = OBJECT.validate_python(record["frame"])
+            if frame["kind"] == "chunk":
+                blocked.set()
+                await asyncio.Event().wait()
+        raw = OBJECT.dump_json(record)
+        writer.write(len(raw).to_bytes(4, "big") + raw)
+        await writer.drain()
+
+    with tempfile.TemporaryDirectory(prefix="native-backpressure-", dir="/tmp") as name:
+        state = Path(name)
+        server = asyncio.create_task(serve(project, state, write_record=backpressure))
+        queued: asyncio.Task[list[dict[str, object]]] | None = None
+        writer: asyncio.StreamWriter | None = None
+        try:
+            await wait_file(state / "session.sock")
+            _, writer = await asyncio.open_unix_connection(str(state / "session.sock"))
+            request = (
+                Request(
+                    kind="invoke",
+                    capability="native.example.stream@1.0.0",
+                    payload='{"text":"slow"}',
+                )
+                .model_dump_json()
+                .encode()
+            )
+            writer.write(len(request).to_bytes(4, "big") + request)
+            await writer.drain()
+            async with asyncio.timeout(10):
+                await blocked.wait()
+
+            async def next_call() -> list[dict[str, object]]:
+                return [
+                    dict(reply)
+                    async for reply in call(
+                        state,
+                        Request(
+                            kind="invoke",
+                            capability="native.example.echo@1.0.0",
+                            payload='{"text":"quick"}',
+                        ),
+                    )
+                ]
+
+            queued = asyncio.create_task(next_call())
+            await debug(project, state)
+            writer.close()
+            await writer.wait_closed()
+            await wait_file(state / "cleaning")
+            assert not queued.done()
+            (state / "release-cleanup").touch()
+            async with asyncio.timeout(10):
+                replies = await queued
+            assert replies[-1]["payload"] == {"text": "quick"}
+            assert replies[-1]["error"] is None
+            assert not (state / "overlapped").exists()
+            await debug(project, state)
+        finally:
+            (state / "release-cleanup").touch()
+            if writer is not None:
+                writer.close()
+            if queued is not None:
+                queued.cancel()
+                await asyncio.gather(queued, return_exceptions=True)
+            server.cancel()
+            await asyncio.gather(server, return_exceptions=True)
+        assert not (state / "session.sock").exists() and not list(state.glob("g-*"))

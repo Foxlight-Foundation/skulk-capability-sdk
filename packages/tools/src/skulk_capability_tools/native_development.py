@@ -15,8 +15,8 @@ import signal
 import sys
 import tempfile
 import time
-from collections.abc import AsyncGenerator, AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
+from contextlib import aclosing, asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -70,7 +70,7 @@ class Request(Contract):
     capability: str | None = Field(default=None, max_length=193)
     payload: str = Field(default='{"text":"Hello"}', max_length=1048576)
     chunks: tuple[Chunk, ...] = Field(default=(), max_length=64)
-    seconds: float | None = Field(default=None, gt=0, le=3600)
+    seconds: float | None = Field(default=None, gt=0, allow_inf_nan=False)
 
 
 async def _header(reader: asyncio.StreamReader, maximum: int) -> tuple[bytes, bytes]:
@@ -496,7 +496,7 @@ class NativeSourceChild:
             raise Denied("Choose exactly one native --capability ID@VERSION")
         return matches[0]
 
-    async def invoke(self, request: Request) -> AsyncIterator[dict[str, JsonValue]]:
+    async def invoke(self, request: Request) -> AsyncGenerator[dict[str, JsonValue]]:
         """Dispatch a local call and drain cancellation before reuse."""
         descriptor = self.descriptor(request.capability)
         mode = _MODE.validate_python(descriptor["io_mode"])
@@ -529,10 +529,21 @@ class NativeSourceChild:
         bounds = OBJECT.validate_python(
             OBJECT.validate_json(self.built.manifest.canonical_json)["bounds"]
         )
-        maximum = TypeAdapter(float).validate_python(
-            bounds["call_seconds" if mode == "unary" else "stream_seconds"]
+        limit = bounds[
+            "inference_seconds"
+            if descriptor["behavior"] == "inference"
+            else "call_seconds"
+            if mode == "unary"
+            else "stream_seconds"
+        ]
+        maximum = None if limit is None else TypeAdapter(float).validate_python(limit)
+        seconds = (
+            request.seconds
+            if maximum is None
+            else maximum
+            if request.seconds is None
+            else min(request.seconds, maximum)
         )
-        seconds = min(request.seconds or maximum, maximum)
         # Frame admission also precedes dispatch: an invalid media declaration
         # cannot start backend work and then fail only in the input sender.
         packets = self._input_packets(call_id, mode, request)
@@ -553,7 +564,9 @@ class NativeSourceChild:
             "allowed_processing_domains": [descriptor["processing_domain"]],
             "ancestry": [],
             "request_sha256": hashlib.sha256(body).hexdigest(),
-            "deadline_unix_ms": time.time_ns() // 1000000 + int(seconds * 1000) + 1000,
+            "deadline_unix_ms": None
+            if seconds is None
+            else time.time_ns() // 1000000 + int(seconds * 1000) + 1000,
         }
         loop = asyncio.get_running_loop()
         packet = self._packet(
@@ -569,10 +582,13 @@ class NativeSourceChild:
         completed = False
         try:
             await self._send_packet(packet)
-            async with asyncio.timeout(seconds + 1):
+            async with asyncio.timeout(None if seconds is None else seconds + 1):
                 if mode != "unary":
-                    async for frame in self._stream(call_id, mode, packets, pending):
-                        yield frame
+                    async with aclosing(
+                        self._stream(call_id, mode, packets, pending)
+                    ) as stream:
+                        async for frame in stream:
+                            yield frame
                 frame, payload = await asyncio.shield(pending.result)
             completed = True
             yield {
@@ -583,29 +599,42 @@ class NativeSourceChild:
                 "payload": OBJECT.validate_json(payload) if payload else None,
             }
         finally:
-            if not completed:
 
-                async def drain() -> None:
-                    try:
-                        await self.send("cancel", call_id=call_id)
-                        async with asyncio.timeout(5):
-                            await asyncio.shield(pending.result)
-                    except (ValueError, OSError, TimeoutError, asyncio.CancelledError):
-                        self._fail()
-                        if self.process is not None:
-                            await _terminate(self.process)
+            async def settle() -> None:
+                try:
+                    if not completed:
+                        try:
+                            await self.send("cancel", call_id=call_id)
+                            async with asyncio.timeout(5):
+                                await asyncio.shield(pending.result)
+                        except (
+                            Denied,
+                            ValueError,
+                            OSError,
+                            TimeoutError,
+                            asyncio.CancelledError,
+                        ):
+                            self._fail()
+                            if self.process is not None:
+                                await _terminate(self.process)
+                                self.process = None
+                finally:
+                    self.pending.pop(call_id, None)
+                    if pending.stream.done() and not pending.stream.cancelled():
+                        _, stream_writer = pending.stream.result()
+                        stream_writer.close()
+                        try:
+                            async with asyncio.timeout(2):
+                                await stream_writer.wait_closed()
+                        except (OSError, TimeoutError):
+                            stream_writer.transport.abort()
+                        if stream_writer in self.connections:
+                            self.connections.remove(stream_writer)
+                    for future in (pending.result, pending.stream):
+                        if not future.done():
+                            future.cancel()
 
-                await finish_owned(asyncio.create_task(drain()))
-            self.pending.pop(call_id, None)
-            if pending.stream.done() and not pending.stream.cancelled():
-                _, stream_writer = pending.stream.result()
-                stream_writer.close()
-                await stream_writer.wait_closed()
-                if stream_writer in self.connections:
-                    self.connections.remove(stream_writer)
-            for future in (pending.result, pending.stream):
-                if not future.done():
-                    future.cancel()
+            await finish_owned(asyncio.create_task(settle()))
 
     def _input_packets(self, call_id: str, mode: Mode, request: Request) -> list[bytes]:
         if mode not in {"client_streaming", "bidirectional"}:
@@ -643,7 +672,7 @@ class NativeSourceChild:
 
     async def _stream(
         self, call_id: str, mode: Mode, packets: list[bytes], pending: _Call
-    ) -> AsyncIterator[dict[str, JsonValue]]:
+    ) -> AsyncGenerator[dict[str, JsonValue]]:
         reader, writer = await asyncio.shield(pending.stream)
         observer: Observer = self.native.TransportV2Observer(call_id, mode)
 
@@ -683,13 +712,21 @@ class NativeSourceChild:
                 }
             await sender
         finally:
-            if not sender.done():
-                sender.cancel()
-            await asyncio.gather(sender, return_exceptions=True)
-            writer.close()
-            await writer.wait_closed()
-            if writer in self.connections:
-                self.connections.remove(writer)
+
+            async def settle() -> None:
+                if not sender.done():
+                    sender.cancel()
+                await asyncio.gather(sender, return_exceptions=True)
+                writer.close()
+                try:
+                    async with asyncio.timeout(2):
+                        await writer.wait_closed()
+                except (OSError, TimeoutError):
+                    writer.transport.abort()
+                if writer in self.connections:
+                    self.connections.remove(writer)
+
+            await finish_owned(asyncio.create_task(settle()))
 
     async def close(self) -> None:
         """Drain normal shutdown and reap the group on bounded failure."""
@@ -751,8 +788,15 @@ async def serve(
     watch: bool = False,
     configuration: Path | None = None,
     credential_selection: Path | None = None,
+    write_record: Callable[
+        [asyncio.StreamWriter, object], Awaitable[None]
+    ] = _local_write,
 ) -> None:
-    """Serve private source IPC and restart edited generations only between calls."""
+    """Serve private source IPC and restart edited generations only between calls.
+
+    ``write_record`` is an injectable transport effect for isolated qualification;
+    the CLI uses the bounded private writer. Requests cannot select that effect.
+    """
     if sys.platform not in {"darwin", "linux"}:
         raise Denied(
             "Native author sessions require a qualified macOS or Linux runtime"
@@ -797,7 +841,7 @@ async def serve(
                 health = await current.health()
                 if current.built is None:
                     raise Denied("Source metadata is unavailable")
-                await _local_write(
+                await write_record(
                     writer,
                     {
                         "kind": "debug",
@@ -842,8 +886,9 @@ async def serve(
                                 stopped.set()
                                 raise
 
-                    async for reply in current.invoke(request):
-                        await _local_write(writer, reply)
+                    async with aclosing(current.invoke(request)) as replies:
+                        async for reply in replies:
+                            await write_record(writer, reply)
 
             # Observe disconnect while queued or rebuilding as well as in the
             # handler: a departed client must never start deferred source work.
@@ -875,7 +920,7 @@ async def serve(
             asyncio.IncompleteReadError,
         ) as error:
             try:
-                await _local_write(
+                await write_record(
                     writer,
                     {
                         "kind": "error",
@@ -924,7 +969,9 @@ async def call(state: Path, request: Request) -> AsyncIterator[dict[str, JsonVal
     try:
         await _local_write(writer, request.model_dump(mode="json"))
         # Replacement startup has a separate budget from admitted handler work.
-        async with asyncio.timeout((request.seconds or 300) + 70):
+        async with asyncio.timeout(
+            None if request.seconds is None else request.seconds + 70
+        ):
             while True:
                 reply = OBJECT.validate_json(await _local_read(reader))
                 yield reply

@@ -10,6 +10,10 @@ cohort; it contains no owner, provider integration or router.
 
 ## Acquire and build
 
+The [native author CLI](native-authoring.md) creates a complete model-free
+TypeScript starter, including explicit compilation/staging and local four-mode
+run, watch, invoke and debug commands. The lower-level package workflow follows.
+
 From a reviewed checkout of this public repository:
 
 ```sh

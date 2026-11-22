@@ -12,7 +12,7 @@ tools does not grant runtime authority or access to a provider account.
 `EXTRACTION.json` records the reviewed generic source. The private owner,
 supervisor, installer and provider implementations are excluded.
 
-Use the [Python author guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/main/docs/python-authoring.md) for package installation and a complete source-to-host walkthrough. Local development currently exercises unary IPC; the private owner remains independently installed.
+Use the [Python author guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/main/docs/python-authoring.md) for legacy package installation and a source-to-host walkthrough. The explicit [native author guide](../../docs/native-authoring.md) covers Python/TypeScript creation, all four I/O modes, media, cancellation and watch. The private owner remains independently installed.
 
 The pinned runtime recipes acquire existing public wheel artifacts by exact SHA-256 and size. They include no owner implementation and confer no trust. Independently operated HTTPS feeds need no Foxlight account; hosted catalog submission is a separate service.
 

@@ -24,6 +24,13 @@ def main() -> None:
         for kind in ("failure", "error", "skipped")
     ):
         raise ValueError("Selected Node process qualification is incomplete")
+    authors = ET.parse(ROOT / ".runtime/author-node.xml").findall(".//testcase")
+    if len(authors) < 2 or any(
+        test.find(kind) is not None
+        for test in authors
+        for kind in ("failure", "error", "skipped")
+    ):
+        raise ValueError("Native Node source author qualification is incomplete")
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT).strip():
         raise ValueError("Node qualification source is not clean")
     selection = _OBJECT.validate_json((root / "selection.json").read_bytes())
@@ -49,6 +56,7 @@ def main() -> None:
         ).strip(),
         "artifacts": identities,
         "cases": sorted(test.attrib["name"] for test in tests),
+        "local_author_cases": sorted(test.attrib["name"] for test in authors),
         "installed_signed_admission": False,
         "provider_adoption": False,
         "complete_author_journey": False,

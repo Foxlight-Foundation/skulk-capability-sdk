@@ -1,9 +1,24 @@
 {
   "additions": {
+    "src/skulk_capability_tools/_native_build_worker.py": {
+      "origin": "authored",
+      "sha256": "9909c6f8b6a18c81fe46f9eaf619af752b229d43c66dcc81d882b1662e5cf61a",
+      "source": "Authored public native source development over issued managed/2, calls/2 and transport/2; no private owner/provider/Core imports or implementation."
+    },
+    "src/skulk_capability_tools/_node_source_worker.py": {
+      "origin": "authored",
+      "sha256": "f187a0fd312eb62f2a48c46df37a1e46c8380a495416638fe00b6a0e16498f6c",
+      "source": "Authored public native source development over issued managed/2, calls/2 and transport/2; no private owner/provider/Core imports or implementation."
+    },
     "src/skulk_capability_tools/cli.py": {
       "origin": "authored",
-      "sha256": "0953a535f760b2782ebf16aa83e67605eb017fefb011b823ee8aafa411580547",
-      "source": "Public SDK author tools and selected Node packaging, without owner/provider/Core implementation imports."
+      "sha256": "0e80a7b576d32e88a757beeb4f07fcbecb55bfb44a90ab6947026f161668b222",
+      "source": "Authored public native source development over issued managed/2, calls/2 and transport/2; no private owner/provider/Core imports or implementation."
+    },
+    "src/skulk_capability_tools/native_author.py": {
+      "origin": "authored",
+      "sha256": "7e6923e1699ea02bfcf20d699449150ee4a149cdefd6d918c52a5b1bc0f33bb7",
+      "source": "Authored public native source development over issued managed/2, calls/2 and transport/2; no private owner/provider/Core imports or implementation."
     },
     "src/skulk_capability_tools/native_catalog.py": {
       "origin": "authored",
@@ -25,6 +40,11 @@
       "sha256": "fb6ca9e81f80cebd2cb6da735b30f888dc49f8ee6f38d57abc544e9362906f51",
       "source": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/native-candidates.json"
     },
+    "src/skulk_capability_tools/native_development.py": {
+      "origin": "authored",
+      "sha256": "7e86187f2f8e358e5d708e92608e5e35c5cdf52a834ef330c9b4544051c3f668",
+      "source": "Authored public native source development over issued managed/2, calls/2 and transport/2; no private owner/provider/Core imports or implementation."
+    },
     "src/skulk_capability_tools/native_feed.py": {
       "origin": "authored",
       "sha256": "a12b9da1a3e60d14e144c902e420513d5243a06b552f393965a533ad0d590a1f",
@@ -39,6 +59,11 @@
       "origin": "authored",
       "sha256": "3a6e7a6b72f6f50794565f48d938b93e613a12b44ea459e8949f44515c59187f",
       "source": "Authored from public native ABI, catalog-four and runtime-five contracts on public SDK base4361305db103fea95e86daf905cc8de3d90dc50f; no private owner/provider implementation imports."
+    },
+    "src/skulk_capability_tools/native_starter.py": {
+      "origin": "authored",
+      "sha256": "a2456312b101e82880c5f630e0d1bf760869e714b1a9b182de7981f1c4fd7b3d",
+      "source": "Authored public native source development over issued managed/2, calls/2 and transport/2; no private owner/provider/Core imports or implementation."
     },
     "src/skulk_capability_tools/node_application.py": {
       "origin": "authored",

@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "packages/tools"
 PACKAGE = "skulk_capability_tools"
 MODULES = {
+    "_native_build_worker.py",
+    "_node_source_worker.py",
     "__init__.py",
     "_schema_worker.py",
     "_manifest_worker.py",
@@ -29,6 +31,9 @@ MODULES = {
     "host.py",
     "inspection.py",
     "native_publishing.py",
+    "native_author.py",
+    "native_development.py",
+    "native_starter.py",
     "publication_records.py",
     "native_runtime_recipe.py",
     "native_feed.py",
@@ -56,6 +61,11 @@ DATA = {
     "native_cohorts/0.7.0rc5.json",
 }
 ADDITIONS = {
+    "src/skulk_capability_tools/_native_build_worker.py",
+    "src/skulk_capability_tools/_node_source_worker.py",
+    "src/skulk_capability_tools/native_author.py",
+    "src/skulk_capability_tools/native_development.py",
+    "src/skulk_capability_tools/native_starter.py",
     "src/skulk_capability_tools/cli.py",
     "src/skulk_capability_tools/project.py",
     "src/skulk_capability_tools/node_application.py",

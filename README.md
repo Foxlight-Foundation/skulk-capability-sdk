@@ -64,14 +64,14 @@ The initial export contains no repository history from the owner implementation.
 
 [The Python author guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/main/docs/python-authoring.md) covers anonymous wheel installation, a model-free source starter, local run/watch/invoke/debug, unsigned builds, exact runtime acquisition, signing/inspection and revision-fenced host lifecycle commands. The `skulk-capability-tools` package provides `skulk-cap` and compatible legacy publisher entry points.
 
-The CLI and the runtime are separate packages. Runtime recipes retain owner 0.10.5/SDK 0.5.5 while the legacy author interfaces were qualified with SDK 0.5.7. Package installation grants no Fabric authority. The local development harness currently exercises unary calls; the [explicit native candidate builder](docs/native-publishing.md), TypeScript and real application adoption have separate qualification.
+The CLI and the runtime are separate packages. Runtime recipes retain owner 0.10.5/SDK 0.5.5 while the legacy author interfaces were qualified with SDK 0.5.7. Package installation grants no Fabric authority. The legacy development harness exercises unary calls. The explicit [native author journey](docs/native-authoring.md) creates Python/TypeScript projects and exercises all four I/O modes with binary media, live health, cancellation and watch restarts. Normal signed installation and real application adoption remain separately qualified.
 
 ## Shared native kernel
 
 The [selected Node packaging candidate](docs/node-packaging.md) adds explicit
 native Python/TypeScript builds and a measured Node bootstrap using the existing
-signed runtime formats. Complete native author CLI and signed installed acceptance
-remain separate SDK1 gates.
+signed runtime formats. The [native author CLI](docs/native-authoring.md) provides
+explicit local development; signed installed acceptance remains a separate SDK1 gate.
 
 The [MIT kernel source](kernel/README.md) includes native Rust, Python and Node
 interfaces and the `skulk.portable/1` candidate. Its [profile reference](docs/native-kernel.md)

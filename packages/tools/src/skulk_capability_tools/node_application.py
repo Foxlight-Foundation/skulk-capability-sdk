@@ -106,8 +106,9 @@ def build_node_project(project: Path, output: Path) -> NodeBuild:
     return report
 
 
-def _assets(directory: Path) -> dict[str, bytes]:
+def _assets(directory: Path) -> tuple[dict[str, bytes], frozenset[str]]:
     content: dict[str, bytes] = {}
+    executable: set[str] = set()
     total = folders = 0
     for parent, subdirectories, names in os.walk(directory, followlinks=False):
         folders += 1
@@ -141,8 +142,11 @@ def _assets(directory: Path) -> dict[str, bytes]:
             total += len(raw)
             if total > MAX_APPLICATION_BYTES:
                 raise Denied("Node application source bytes exceed their bound")
-            content[path.relative_to(directory).as_posix()] = raw
-    return content
+            relative = path.relative_to(directory).as_posix()
+            content[relative] = raw
+            if path.lstat().st_mode & 0o111:
+                executable.add(relative)
+    return content, frozenset(executable)
 
 
 def node_application_artifacts(
@@ -161,7 +165,7 @@ def node_application_artifacts(
     """
     if not license_text or len(license_text) > 1024 * 1024:
         raise Denied("Node application requires bounded license text")
-    content = _assets(directory)
+    content, executable = _assets(directory)
     package = TypeAdapter(dict[str, JsonValue]).validate_json(
         content.get("node_modules/@foxlight/skulk-capability-sdk/package.json", b"{}")
     )
@@ -178,7 +182,12 @@ def node_application_artifacts(
         bundle_version=manifest.bundle_version,
         entry=entry,
         files=tuple(
-            NodeAsset(path=name, size=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+            NodeAsset(
+                path=name,
+                size=len(raw),
+                sha256=hashlib.sha256(raw).hexdigest(),
+                executable=name in executable,
+            )
             for name, raw in sorted(content.items())
         ),
     )
@@ -202,7 +211,11 @@ def node_application_artifacts(
         b"Root-Is-Purelib: true\nTag: py3-none-any\n"
     )
     members[metadata + "/licenses/LICENSE"] = license_text
-    wheel = asset_wheel_bytes(members, metadata, executable=set())
+    wheel = asset_wheel_bytes(
+        members,
+        metadata,
+        executable={application.namespace + "/" + name for name in executable},
+    )
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
         for name, raw in (

@@ -18,7 +18,7 @@ def main() -> None:
     """Refuse incomplete process tests and record exact installed package bytes."""
     root = ROOT / ".runtime/selected-node"
     tests = ET.parse(root / "tests.xml").findall(".//testcase")
-    if len(tests) < 6 or any(
+    if len(tests) < 7 or any(
         test.find(kind) is not None
         for test in tests
         for kind in ("failure", "error", "skipped")

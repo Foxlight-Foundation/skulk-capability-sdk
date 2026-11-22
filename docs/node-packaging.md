@@ -71,6 +71,10 @@ Packaging rejects links, missing or extra declared assets, known private
 configuration files and oversized inventories. Use a clean production staging
 tree; this guard is not a general secret scanner.
 
+Regular helpers retain their executable status in the signed inventory and
+installed wheel. Startup checks that status as well as every file's bytes;
+permission changes cannot silently turn a staged helper into a different asset.
+
 ## Select Node and sign
 
 The reviewed cohort in `skulk_capability_sdk/node_cohort.json` pins the official

@@ -122,7 +122,7 @@ def test_selected_python_link_measures_actual_target_without_resolving_venv(
 
 
 @pytest.mark.parametrize(
-    "damage", ["missing", "changed", "extra", "link", "directory-link"]
+    "damage", ["missing", "changed", "extra", "link", "directory-link", "execute-bit"]
 )
 def test_selected_application_verifies_all_declared_assets_before_import(
     tmp_path: Path, damage: str
@@ -145,6 +145,8 @@ def test_selected_application_verifies_all_declared_assets_before_import(
     elif damage == "link":
         target.unlink()
         target.symlink_to(root / "app.mjs")
+    elif damage == "execute-bit":
+        target.chmod(0o755)
     else:
         target.unlink()
         target.parent.rmdir()

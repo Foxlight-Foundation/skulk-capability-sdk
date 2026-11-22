@@ -56,6 +56,9 @@ class NodeAsset(Contract):
     path: str = Field(max_length=1024, description="Namespace-relative member.")
     sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     size: int = Field(ge=0, le=MAX_ASSET_BYTES)
+    executable: bool = Field(
+        default=False, description="Whether the regular asset may execute directly."
+    )
 
     @field_validator("path")
     @classmethod
@@ -162,6 +165,7 @@ def verify_application(application: NodeApplication, runtime: Path) -> Path:
                 raise Denied("Node application file inventory exceeds its bound")
             if (
                 path.lstat().st_size != selected.size
+                or bool(path.lstat().st_mode & 0o111) != selected.executable
                 or measured_file(path, maximum=MAX_ASSET_BYTES) != selected.sha256
             ):
                 raise Denied("Node application file differs from its declaration")

@@ -42,7 +42,7 @@
     },
     "src/skulk_capability_tools/node_application.py": {
       "origin": "authored",
-      "sha256": "5a0f60104b038a4cf0f7d430ce24e60ffe3dc6f2116b369526dec21a862173aa",
+      "sha256": "86112a11794614925a07bf1552be2e7b48ebb8c5f5806dadc84bcb63e03ae51b",
       "source": "Public SDK author tools and selected Node packaging, without owner/provider/Core implementation imports."
     },
     "src/skulk_capability_tools/node_runtime.py": {

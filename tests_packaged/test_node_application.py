@@ -31,11 +31,20 @@ _VARIANTS: tuple[tuple[str, Mode], ...] = (
     ("1.0.3", "bidirectional"),
 )
 _SOURCE = """import {CapabilityApp,OutputFrame} from '@foxlight/skulk-capability-sdk';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {fileURLToPath} from 'node:url';
+const execute=promisify(execFile);
 export default runtime => {
   let reader;
   const app = new CapabilityApp({credentialHelper:runtime.credentialHelper,
     async setup(startup) {reader=startup.credentials;}});
   app.unary('example', async call => {
+    if (call.payload.helper) {
+      const file=fileURLToPath(new URL('./helper', import.meta.url));
+      const {stdout}=await execute(file, [], {signal:call.signal});
+      return {output:stdout};
+    }
     if (call.payload.cancel && !call.signal.aborted) await new Promise(resolve =>
       call.signal.addEventListener('abort', resolve, {once:true}));
     if (call.payload.credential) {
@@ -78,6 +87,9 @@ def bundle(tmp_path_factory: pytest.TempPathFactory) -> Path:
     shutil.copytree(modules, source / "stage/node_modules", symlinks=True)
     assert (source / "stage" / NODE_LAUNCHER).is_file()
     (source / "stage/app.mjs").write_text(_SOURCE)
+    helper = source / "stage/helper"
+    helper.write_text("#!/bin/sh\nprintf 'hello from helper'\n")
+    helper.chmod(0o755)
     selected_output = os.environ.get("SKULK_NODE_QUALIFICATION_OUTPUT")
     output = Path(selected_output) if selected_output else source.parent / "build"
     report = build_node_project(source, output)
@@ -252,3 +264,14 @@ async def test_packaged_node_selected_python_credential_reader(
         frame, body = await peer.receive()
         assert frame["error"] is None
         assert _OBJECT.validate_json(body) == {"output": "hello", "matched": True}
+
+
+async def test_packaged_node_executes_its_staged_helper(bundle: Path) -> None:
+    """A staged executable remains executable after real wheel installation."""
+    app = PackagedApplication(bundle)
+    async with running(app, variants=_VARIANTS, startup_seconds=30) as peer:
+        await peer.invoke(payload=b'{"input":"hello","helper":true}')
+        frame, body = await peer.receive()
+        assert frame["error"] is None
+        assert _OBJECT.validate_json(body) == {"output": "hello from helper"}
+        await peer.health()

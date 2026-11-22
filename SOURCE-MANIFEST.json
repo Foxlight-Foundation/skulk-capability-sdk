@@ -101,8 +101,8 @@
       "adjustment": "Authored public selected Node runtime and application asset custody; no owner, provider or Core implementation"
     },
     "skulk_capability_sdk/node_application.py": {
-      "source_sha256": "2f0f788633ec265186944a89e77f70e6544cb3cdf336335289ceabc7fef8eb1a",
-      "exported_sha256": "2f0f788633ec265186944a89e77f70e6544cb3cdf336335289ceabc7fef8eb1a",
+      "source_sha256": "70a51fbcc6609f6a68b278d5d83c5d17df5c7689724477a545c67329850c8a1e",
+      "exported_sha256": "70a51fbcc6609f6a68b278d5d83c5d17df5c7689724477a545c67329850c8a1e",
       "adjustment": "Authored public selected Node runtime and application asset custody; no owner, provider or Core implementation"
     },
     "skulk_capability_sdk/node_cohort.json": {

@@ -21,6 +21,16 @@ from tests_typescript.test_node_application import NodeApplication
 def helper(executable: Path | None = None) -> dict[str, str]:
     """Select an explicit interpreter/program and its actual measured bytes."""
     path = executable or Path(sys.executable)
+    info = path.stat()
+    assert path.is_file() and info.st_uid in {0, os.getuid()}, (
+        "Fixture requires a regular interpreter owned by root or this user",
+        info.st_uid,
+        os.getuid(),
+    )
+    assert not info.st_mode & 0o022, (
+        "Fixture interpreter must not be group/world writable",
+        oct(info.st_mode),
+    )
     return {
         "executable": str(path),
         "executableSha256": hashlib.sha256(path.read_bytes()).hexdigest(),

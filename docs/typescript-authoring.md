@@ -89,12 +89,18 @@ startup and is omitted from public startup inspection and ordinary settings.
 The application receives an explicit `PythonCredentialHelper` through
 `CapabilityApp({credentialHelper: selectedHelper, ...})`. It names an absolute
 selected interpreter and its SHA256, not a program looked up on PATH. That
-runtime must contain the matching public Python SDK0.5.13rc1 reader; native
+interpreter must be a regular file owned by root or the application user and
+must not be group/world writable. The selected runtime must contain the matching
+public Python SDK0.5.13rc1 reader; native
 backends additionally need its `native-credentials` dependencies and OS service.
 The generated, signed Node runtime/launcher journey is still being completed.
 For source development, supply this measured runtime explicitly. A missing
 helper refuses reads, including optional reads; it never chooses ambient Python
 or a different backend.
+
+The three-platform source tests explicitly create their Python environment from
+a uv-managed interpreter and check these custody preconditions. A preinstalled
+system interpreter is not implicitly qualified as the selected helper.
 
 ```ts
 // Retain startup.credentials during setup, then read inside an owned handler.

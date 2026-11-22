@@ -4,7 +4,8 @@ The public TypeScript source package is `@foxlight/skulk-capability-sdk`
 **0.5.13-rc.1**. It is an SDK1 source candidate, not a stable SDK1 publication.
 It supplies managed application setup, cached readiness/surfaces, exact-version
 unary and all three streaming handlers, invocation-owned resources, and unary
-and streaming child calls. It uses the already published native **0.7.0rc5**
+and streaming child calls, declared credentials and durable inference jobs.
+It uses the already published native **0.7.0rc6**
 cohort; it contains no owner, provider integration or router.
 
 ## Acquire and build
@@ -180,6 +181,98 @@ result; repeated cancellation cannot interrupt it. A handler that returns with
 unjoined child work retires its delegation. Stream success requires native
 terminal/end plus control completion; input half-close does not end output.
 
+## Durable inference jobs
+
+Use `JobDefinition` and `DurableJobs` for inference accepted independently of an
+individual invocation's lifetime. The native worker owns queuing, scheduling,
+replay reservations, status and uncertainty. Your adapter owns provider requests.
+These are inference jobs; they do not authorize provisioning or governed writes.
+
+```ts
+import {CapabilityApp, JobDefinition, DurableJobs, type JobAdapter}
+  from '@foxlight/skulk-capability-sdk';
+
+export function createJobs(adapter: JobAdapter, directory: string) {
+  const definition = JobDefinition.create({
+    id: 'example.render', version: '1.0.0',
+    title: 'Render', description: 'Submit and observe a provider render',
+    inputSchema: {type:'object',properties:{prompt:{type:'string'}},
+      required:['prompt'],additionalProperties:false},
+    resultSchema: {type:'object',properties:{artifact:{type:'string'}},
+      required:['artifact'],additionalProperties:false},
+    processingDomain: 'external',
+  });
+  const jobs = new DurableJobs(definition, adapter, {
+    pollSeconds: 1, adapterSeconds: 30,
+    async plan(input, signal) {
+      if (signal.aborted) throw Error('cancelled');
+      // Use an application estimate; planning must not create provider work.
+      return {plan_digest:'a'.repeat(64),summary:'Render estimate',
+        expires_at:Math.floor(Date.now()/1000)+60,input};
+    },
+  });
+  const app = new CapabilityApp({
+    setup: (startup, signal) => jobs.serve(startup, {directory, signal}),
+    ready: () => jobs.ready,
+  });
+  jobs.register(app);
+  return {app, descriptors:definition.descriptors()};
+}
+```
+
+Include **both** returned descriptors (`example.render.read` and `.work`),
+their exact revisions, and explicit `operations` bounds in the signed managed/2
+manifest. The read endpoint admits `status`, `list` and `log`; work admits
+`start`, `cancel` and `plan`. Host authorization still applies to every request.
+The read processing domain is local; the work domain is your declaration.
+
+Implement `JobAdapter.submit(operationId, input, signal)`,
+`observe(reference, signal)` and `cancel(reference, signal)`. Submission returns
+the provider reference. Observation returns `{state, progress?, stage?, result?,
+error?}`. A successful result must satisfy the compiled result schema. Throw
+`SubmissionRefused` only when **nothing was sent** to the provider. Other
+submission errors are uncertain, with generic diagnostics. Planning returns a
+native-validated `JobPlan`; `plan_digest` is the application's estimate identity.
+Timing values must be finite and between one nanosecond and 86,400 seconds.
+
+A start accepts `{op:'start', operation_id:'render-1', input:{prompt:'…'}}`.
+Omitting the ID derives one from the native canonical input. Reusing a caller's
+ID with identical input observes the accepted work; different input refuses.
+Cancellation of the start **RPC** does not revoke an already durable acceptance.
+Read status using the same ID; do not create another ID to retry uncertain work.
+`{op:'cancel',operation_id:'render-1'}` requests backend cancellation. Its eventual
+state, rather than RPC completion alone, establishes the backend outcome.
+
+The original caller identity partitions IDs, status, logs and pages. List uses
+`{op:'list',offset:0}` with pages of sixteen and caller-only active/outstanding
+counts. Pages omit input/results, backend references and shared queue positions;
+status omits references and queue positions. Log and list offsets are safe
+nonnegative integers up to `9007199254740991`. Neither exported context metadata
+nor possession of an ID grants another caller access.
+
+Keep the whole state directory, including `native-jobs.json`, `operations.sqlite`,
+`origins.sqlite`, `logs` and `custody`, together. Node and Python bind identical
+descriptors, node identity and operation bounds. Changing that binding or losing
+a file requires explicit recovery; initialization cannot erase replay history.
+Pruning visible terminal rows does not erase native replay reservations.
+
+The application takes the same early custody fence as Python before state
+inspection. An SDK-selected helper, launched through the current selected Node
+executable, owns synchronous filesystem/SQLite work and the native worker. It
+inherits the managed process group and no provider credentials. The primary
+journal is accessed through native APIs once the worker starts; the separate
+caller index has its own bounded SQLite file. This keeps storage waits off the
+control loop. See Node's pinned [SQLite contract](https://nodejs.org/download/release/v22.23.2/docs/api/sqlite.html)
+and [child-process contract](https://nodejs.org/download/release/v22.23.2/docs/api/child_process.html).
+
+Pass each adapter's AbortSignal to real provider operations and finish cleanup
+before returning. Timeout/shutdown aborts the signal, then waits for **actual**
+adapter cleanup before replacement work or releasing custody. Helper failure
+marks readiness false, aborts callbacks, and retains custody through cleanup and
+actual process exit. Noncooperative JS still requires the owner's final process
+reap. Accepted references can be reconciled after restart; ambiguous submissions
+remain interrupted/outstanding and are never automatically resubmitted.
+
 ## Qualification and remaining author journey
 
 The three-platform CI job packs this package, audits the positive member/hash
@@ -196,8 +289,14 @@ Native backend dispatch is tested with synthetic backend implementations; this
 does not claim an OS account/session qualification. These synthetic host
 observations establish author-side behavior only.
 
-Full TypeScript parity still requires native durable inference jobs. The public
-CLI/templates, successful native OS-session credential qualification and normal signed
+Durable-job cases additionally check Python/Node descriptor and state interchange,
+caller isolation, replay conflicts, cancellation during real SQLite contention,
+real adapter-cleanup custody, helper-process death, uncertain recovery, damaged
+state and binding refusal, and reclamation of rejected caller metadata. These
+use synthetic adapters and actual native control/journal/process boundaries;
+they do not establish provider-specific adoption or signed runtime installation.
+
+The public CLI/templates, successful native OS-session credential qualification and normal signed
 language-specific runtime acquisition/install/update/rollback/remove journey
 also remain release gates. The current Python runtime closure must not be
 presented as a Node runtime, and ambient `node` availability is not an installed

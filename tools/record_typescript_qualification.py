@@ -58,6 +58,7 @@ def main() -> None:
         "installed_signed_admission": False,
         "provider_adoption": False,
         "durable_parity": False,
+        "durable_source": True,
         "credential_parity": False,
         "credential_source": True,
         "complete_author_journey": False,

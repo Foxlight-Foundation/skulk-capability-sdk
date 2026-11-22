@@ -11,12 +11,14 @@ window. The shared native kernel, TypeScript facade and higher-level
 `CapabilityApp` have separate qualification gates. The explicit
 [native Python application runtime](docs/native-application.md) accepts the
 0.7.0rc3, 0.7.0rc4, 0.7.0rc5 and additive 0.7.0rc6 execution candidates. Workspace qualification
-pins the published rc5 cohort; installing this SDK does not switch an installed
+pins the published rc5 Python cohort; TypeScript explicitly uses the published
+rc6 cohort. Installing this SDK does not switch an installed
 runtime or migrate an application.
 
 The rc6 native candidate adds an early process-ownership fence shared by Python
 and Node. It preserves the existing lock filename and thirteen wire profiles;
-it does not complete TypeScript durable jobs or signed runtime adoption. See
+the TypeScript facade now uses it for durable jobs. Signed runtime adoption
+requires separate installed qualification. See
 [early application ownership](docs/native-candidates.md#early-application-ownership).
 
 The native Python candidate also provides invocation-scoped clients:
@@ -76,8 +78,10 @@ The [TypeScript author candidate](docs/typescript-authoring.md) now provides a
 public npm package source for native application setup, unary/four-mode handlers,
 owned resources and invocation-scoped unary/stream clients. Declared credential
 reads use the matching public Python reader in explicitly selected, owned
-helper processes. Its clean-package qualification is separate from stable
-publication, durable parity and normal signed Node/OS-session qualification.
+helper processes. `JobDefinition`/`DurableJobs` share Python's declarations,
+caller-private observations, replay fences and durable state. Clean-package
+qualification is separate from stable publication and normal signed
+Node/OS-session qualification.
 
 Native distribution candidates use author tools `0.2.0rc2`. Explicit
 `capability-feed --native` and `capability-catalog --native` preserve runtime-five

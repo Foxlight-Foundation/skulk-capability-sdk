@@ -8,3 +8,7 @@ export {CapabilityCallError, CallReply, CallStream, CallStreamFrame} from './cal
 export type {CallErrorCode, CallOptions} from './calls.js';
 export {CredentialReader, CredentialUnavailable, SecretBytes} from './credentials.js';
 export type {PythonCredentialHelper} from './credentials.js';
+export {JobDefinition} from './job-contracts.js';
+export type {JobDefinitionOptions} from './job-contracts.js';
+export {DurableJobs, SubmissionRefused} from './jobs.js';
+export type {DurableJobsOptions, JobAdapter, JobObservation, JobPlan} from './jobs.js';

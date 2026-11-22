@@ -948,6 +948,7 @@ async def serve(
             flush=True,
         )
         await stopped.wait()
+        raise Denied("Native source session lost its application; no call was retried")
     finally:
         if server is not None:
             server.close()

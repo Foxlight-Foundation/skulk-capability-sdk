@@ -60,7 +60,11 @@ async def initialize(
 
 @asynccontextmanager
 async def session(
-    project: Path, *, watch: bool = False, configuration: Path | None = None
+    project: Path,
+    *,
+    watch: bool = False,
+    configuration: Path | None = None,
+    expected_exit: int = 0,
 ) -> AsyncGenerator[tuple[Path, asyncio.subprocess.Process]]:
     """Start actual source CLI and require owned shutdown before dropping its state."""
     with tempfile.TemporaryDirectory(prefix="native-cli-", dir="/tmp") as directory:
@@ -102,7 +106,7 @@ async def session(
                 process.kill()
                 await process.wait()
                 raise AssertionError("Native author session failed to reap") from None
-            assert process.returncode == 0, error.decode()
+            assert process.returncode == expected_exit, error.decode()
             assert not (state / "session.sock").exists()
             assert not list(state.glob("g-*"))
 

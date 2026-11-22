@@ -151,6 +151,8 @@ health and partial-frame watchdogs still apply. A disconnect or timeout cancels
 work and drains cleanup before reuse, including output backpressure. The CLI
 never replays a call after a lost connection. Uncertain native transport or
 cleanup failure stops the session.
+Unexpected application loss or failed health makes `run`/`watch` exit nonzero;
+Ctrl-C remains an intentional, clean stop.
 
 ## Watch and settings
 

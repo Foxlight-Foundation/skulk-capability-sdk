@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import py_compile
+import signal
 import sys
 import tempfile
 from pathlib import Path
@@ -565,3 +566,33 @@ async def test_disconnected_backpressured_stream_drains_before_next_call(
             server.cancel()
             await asyncio.gather(server, return_exceptions=True)
         assert not (state / "session.sock").exists() and not list(state.glob("g-*"))
+
+
+@pytest.mark.parametrize("watch", [False, True])
+@pytest.mark.parametrize("failure", ["child-exit", "health"])
+async def test_native_server_reports_unexpected_generation_loss(
+    tmp_path: Path, watch: bool, failure: str
+) -> None:
+    """A lost child or failed health probe cannot look like a successful server exit."""
+    project = tmp_path / "server-failure"
+    await initialize(project)
+    if failure == "health":
+        path = project / "native_example/app.py"
+        path.write_text(
+            path.read_text().replace(
+                "app = CapabilityApp()",
+                "from pathlib import Path\n"
+                "app = CapabilityApp(ready=lambda: not Path('unhealthy').exists())",
+            )
+        )
+    async with session(project, watch=watch, expected_exit=2) as (state, process):
+        identity = await debug(project, state)
+        if failure == "child-exit":
+            pid = identity["pid"]
+            assert isinstance(pid, int) and not isinstance(pid, bool)
+            os.kill(pid, signal.SIGTERM)
+        else:
+            (state / "unhealthy").touch()
+        async with asyncio.timeout(15):
+            assert await process.wait() == 2
+        gone(identity["pid"])

@@ -201,3 +201,46 @@ refuses delegated production calls: installed application-to-application work
 requires a normally authorized owner/Core host. This source journey proves
 native author behavior, not signed installation, a provider connection or SDK1
 release readiness.
+
+
+## Configure and authorize an installed application
+
+Use a compatible Core/owner candidate and the exact signed runtime you reviewed.
+Installing the package, enabling its settings and granting a client permission
+are separate steps. SDK download access does not grant any of them.
+
+1. Install and activate the signed runtime through the host's normal management
+   flow. Wait for owner management to become available; process startup and
+   capability readiness have separate observations.
+2. Read the application's ordinary settings. The generated native starters
+   declare a configuration schema and initially appear **disabled**. Explicitly
+   enable the node through Skulk configuration management, using the observed
+   configuration revision and schema. An empty settings object still needs this
+   enable step. Keep credential values in the declared credential interface.
+3. Use **Settings → Inference access** to create a client key and grant its exact
+   signed destinations. A ready application supplies no caller permission.
+   Keep the one-time key in the calling application's secret storage and send
+   it in the `Authorization: Bearer …` header.
+4. Call an enrolled unary destination at
+   `POST /v1/native-inference/{plugin_id}/{capability_id}/{version}/call`.
+   The three streaming modes use
+   `WS /v1/native-inference/{plugin_id}/{capability_id}/{version}/stream` with the
+   documented bearer authentication. Invocation clients never supply their own
+   Fabric context or caller authority.
+5. An update or rollback selects a different signed runtime digest and requires
+   an explicit regrant. Restarting the manager or owner with the same selected
+   runtime retains the existing client key and grants. Wait for restoration
+   and ready discovery before sending a new call; do not replay a request whose
+   outcome is unknown.
+
+See the [candidate host API contract](https://github.com/Foxlight-Foundation/Skulk/blob/66cd3dc36219665d89dab21585437e942d290236/website/docs/api-guide.md)
+for authentication, settings, exact grants, stream framing and cleanup behavior.
+The host reference is pinned to the candidate source used for this author
+qualification, rather than an independently changing release branch.
+
+The model-free Python and TypeScript starters have passed same-host signed
+installation, fenced settings enable, all four call modes with binary media,
+two-version update, restart with existing key/grants, explicit rollback and
+uninstall cleanup on macOS ARM64. This evidence does not establish distributed
+operation, provider account behavior, OS-service setup or complete SDK1 release
+readiness. Those require their own matched host and package qualification.

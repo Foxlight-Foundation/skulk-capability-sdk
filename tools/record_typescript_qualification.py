@@ -59,6 +59,7 @@ def main() -> None:
         "provider_adoption": False,
         "durable_parity": False,
         "credential_parity": False,
+        "credential_source": True,
         "complete_author_journey": False,
     }
     (ROOT / ".runtime/typescript-source.json").write_text(

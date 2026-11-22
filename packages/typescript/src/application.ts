@@ -7,11 +7,16 @@ import {array, copyJson, encodeJson, number, object, parseJson, text, utf8, type
 import {CallContext, CapabilityEndpoint, InputFrame, OutputFrame, type Mode, type StreamMode} from './contracts.js';
 import {Cancelled, Expired, Resources, check, type Resource} from './resources.js';
 import {CallReply, CallStream, CapabilityCallError, Deadline, Delegations, type CallOptions} from './calls.js';
+import {CredentialReader, type PythonCredentialHelper} from './credentials.js';
 
 /** Private-startup projection containing only admitted application metadata. */
 export class ApplicationStartup {
   readonly #value: JsonObject;
-  constructor(value: JsonObject) { this.#value = copyJson(value); Object.freeze(this); }
+  readonly #credentials: CredentialReader;
+  constructor(value: JsonObject, credentials: CredentialReader = new CredentialReader(null, [])) {
+    this.#value = copyJson(value); this.#credentials = credentials; Object.freeze(this);
+  }
+  get credentials(): CredentialReader { return this.#credentials; }
   get nodeId(): string { return text(this.#value.node_id); }
   get hostId(): string { return text(this.#value.host_id); }
   get configuration(): JsonObject | null {
@@ -73,6 +78,7 @@ export type StreamHandler = (call: Invocation, inputs: AsyncIterable<InputFrame>
 export type ApplicationSetup = (startup: ApplicationStartup, signal: AbortSignal) => Promise<Resource | void>;
 /** Cached health observations must be synchronous and perform no I/O. */
 export interface ApplicationOptions {
+  readonly credentialHelper?: PythonCredentialHelper;
   readonly setup?: ApplicationSetup;
   readonly ready?: () => boolean;
   readonly surfaces?: () => readonly JsonObject[];
@@ -169,9 +175,11 @@ export class CapabilityApp {
         throw new TypeError('Handler mode differs from the signed manifest');
       }
     }
+    const credentials = new CredentialReader(value.credential_config === null ? null : text(value.credential_config),
+      array(manifest.credential_inputs).map(object), this.#options.credentialHelper);
     const publicStartup = new ApplicationStartup({node_id: value.node_id ?? null, host_id: value.host_id ?? null,
       configuration: value.configuration ?? null, serve_host: value.serve_host ?? null,
-      operations: manifest.operations ?? null, descriptors});
+      operations: manifest.operations ?? null, descriptors}, credentials);
     const controller = new AbortController();
     const abort = (): void => controller.abort(new Cancelled());
     options.signal?.addEventListener('abort', abort, {once: true});
@@ -184,7 +192,7 @@ export class CapabilityApp {
       await this.#control(startup, value, manifest, descriptors, unary, streams, controller.signal);
     } finally {
       options.signal?.removeEventListener('abort', abort);
-      await resource?.close();
+      try { await resource?.close(); } finally { await credentials.close(); }
     }
   }
   async #control(startup: string, value: JsonObject, manifest: JsonObject, descriptors: readonly JsonObject[],

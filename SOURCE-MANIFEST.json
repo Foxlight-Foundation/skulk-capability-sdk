@@ -9,17 +9,18 @@
       "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     },
     "skulk_capability_sdk/_credential_reader.py": {
-      "source_sha256": "a42314b92e54e68829af15acbb859f0c4956c089cbc6e3e43e17734adeadef70",
-      "exported_sha256": "a42314b92e54e68829af15acbb859f0c4956c089cbc6e3e43e17734adeadef70"
+      "source_sha256": "7b9b46245c4d9eba8283725e5d71c4b86f911dc1a53e844e73e34b71ca5aa8f3",
+      "exported_sha256": "7b9b46245c4d9eba8283725e5d71c4b86f911dc1a53e844e73e34b71ca5aa8f3",
+      "adjustment": "Public cross-language credential containment; no private owner or provider implementation"
     },
     "skulk_capability_sdk/contracts.py": {
       "source_sha256": "545ef221a7529cd7ba691739326ffd5d19c3c6be8cdef72aa07361c224baf06a",
       "exported_sha256": "545ef221a7529cd7ba691739326ffd5d19c3c6be8cdef72aa07361c224baf06a"
     },
     "skulk_capability_sdk/credentials.py": {
-      "source_sha256": "ce9e1c3fe966c2ca2050de5f0ed6c130f2e6756146a07e8c92867c8aed416af0",
-      "exported_sha256": "ce9e1c3fe966c2ca2050de5f0ed6c130f2e6756146a07e8c92867c8aed416af0",
-      "adjustment": "Public native-admitted credential access; no private host/provider source or imports"
+      "source_sha256": "2dd80035a724e23e8618eee0bb108b839600f5169c1fb3671e135723694d8490",
+      "exported_sha256": "2dd80035a724e23e8618eee0bb108b839600f5169c1fb3671e135723694d8490",
+      "adjustment": "Public cross-language credential containment; no private owner or provider implementation"
     },
     "skulk_capability_sdk/database.py": {
       "source_sha256": "d294bc7be863e0d47990d79334081c29e1bc745cb679ad0d23bfd1f7be599777",
@@ -88,6 +89,11 @@
       "source_sha256": "8128f83936b8a8a2f631167877ce43b97cf7277a3abd83e602d380c7fb00fcd8",
       "exported_sha256": "8128f83936b8a8a2f631167877ce43b97cf7277a3abd83e602d380c7fb00fcd8",
       "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
+    },
+    "skulk_capability_sdk/_credential_bridge.py": {
+      "source_sha256": "922d5e0584bc90e7410493631eb2a2075a6400c2df7a4c64ed672a843294a4ca",
+      "exported_sha256": "922d5e0584bc90e7410493631eb2a2075a6400c2df7a4c64ed672a843294a4ca",
+      "adjustment": "Public cross-language credential containment; no private owner or provider implementation"
     }
   }
 }

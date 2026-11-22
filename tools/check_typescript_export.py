@@ -3,6 +3,7 @@
 import hashlib
 import json
 import tarfile
+import tomllib
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -14,6 +15,8 @@ MODULES = {
     "calls",
     "cohort",
     "contracts",
+    "credentials",
+    "credential-cohort",
     "index",
     "json",
     "native",
@@ -72,6 +75,36 @@ def validate_source() -> None:
                 raise ValueError("Public package imports private implementation")
     if (PACKAGE / "LICENSE.md").read_bytes() != (ROOT / "LICENSE.md").read_bytes():
         raise ValueError("TypeScript license differs")
+    # Compatibility data ties the two public packages together. Runtime trust
+    # and the full helper dependency closure are verified by the installer.
+    names = (
+        "_credential_bridge.py",
+        "_credential_reader.py",
+        "credentials.py",
+        "storage.py",
+        "contracts.py",
+    )
+    digests = {
+        name: hashlib.sha256(
+            (ROOT / "skulk_capability_sdk" / name).read_bytes()
+        ).hexdigest()
+        for name in names
+    }
+    digest = hashlib.sha256(
+        json.dumps(digests, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    if (
+        f"readerSha256: '{digest}'"
+        not in (PACKAGE / "src/credential-cohort.ts").read_text()
+    ):
+        raise ValueError("TypeScript credential reader cohort differs")
+    with (ROOT / "pyproject.toml").open("rb") as source:
+        version = str(tomllib.load(source)["project"]["version"])
+    if (
+        f"sdkVersion: '{version}'"
+        not in (PACKAGE / "src/credential-cohort.ts").read_text()
+    ):
+        raise ValueError("TypeScript credential helper SDK version differs")
 
 
 def validate_archive(path: Path) -> dict[str, str]:

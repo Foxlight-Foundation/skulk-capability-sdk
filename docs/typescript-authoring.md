@@ -79,6 +79,60 @@ descriptor revision, original raw request digest and schemas before behavior.
 `context.export()` is metadata, not caller authority. A compatible owner/Core
 still authenticates the original caller and authorizes each actual dispatch.
 
+## Read declared credentials
+
+`startup.credentials` supplies a read-only `CredentialReader`. Its references
+come from the actual signed `credential_inputs`; callers cannot select a vault,
+backend, namespace or helper through a request. Selection stays in protected
+startup and is omitted from public startup inspection and ordinary settings.
+
+The application receives an explicit `PythonCredentialHelper` through
+`CapabilityApp({credentialHelper: selectedHelper, ...})`. It names an absolute
+selected interpreter and its SHA256, not a program looked up on PATH. That
+interpreter must be a regular file owned by root or the application user and
+must not be group/world writable. The selected runtime must contain the matching
+public Python SDK0.5.13rc1 reader; native
+backends additionally need its `native-credentials` dependencies and OS service.
+The generated, signed Node runtime/launcher journey is still being completed.
+For source development, supply this measured runtime explicitly. A missing
+helper refuses reads, including optional reads; it never chooses ambient Python
+or a different backend.
+
+The three-platform source tests explicitly create their Python environment from
+a uv-managed interpreter and check these custody preconditions. A preinstalled
+system interpreter is not implicitly qualified as the selected helper.
+
+```ts
+// Retain startup.credentials during setup, then read inside an owned handler.
+const secret = await credentials.read('api-token', {signal: call.signal});
+if (secret === null) {
+  // A valid selected store has no active value for an optional declaration.
+} else {
+  const bytes = secret.getSecretValue(); // an independent copy for your client
+  // Never log or return the value. Secret inspection/JSON stays redacted.
+}
+```
+
+Each read observes the current alias, including rotation and retirement. An
+undeclared reference raises `TypeError` before helper/storage access. A required
+absence, missing selection, damaged storage, wrong helper identity or unavailable
+selected backend raises sanitized `CredentialUnavailable`. The helper uses the
+same public Python reader and selected file/Keychain/Secret Service semantics.
+The bridge receives a small credential-access projection after native startup
+admission; it does not reinterpret the managed startup through a legacy model.
+There is no credential mutation API, backend discovery, anonymous fallback or
+creation of missing storage.
+
+Interpreter acquisition is measured and bounded; helper startup has a five-second
+budget and the complete read has a twelve-second budget. Selection metadata goes
+over private pipes only after a matching reader-cohort hello. The cohort digest
+checks compatibility; runtime attestation and the complete dependency closure
+remain installer responsibilities. Up to eight reads may be in flight. Abort
+or application shutdown kills and reaps each owned reader before its Promise
+finishes. Dropped read Promises remain owned by the application. The contained
+reader starts no nested helper, so cancellation cannot orphan a grandchild.
+These are local credential-I/O budgets, independent of inference lifetime.
+
 ## Call another capability
 
 Obtain the exact descriptor and node from a trusted application discovery or
@@ -134,10 +188,16 @@ an independent public declaration consumer and runs real Node processes against
 independent compiled Python control/media peers. It checks all four provider
 and caller modes, raw bytes, media, schemas, cancellation, late correlation,
 resource cleanup and inference beyond thirty seconds with ordinary health.
-These synthetic host observations establish author-side behavior only.
+Credential cases additionally cover actual installed-wheel file reads,
+rotation/retirement, required/optional absence, redaction, no fallback,
+measured-helper mismatch, private hello ordering, malformed/bounded replies,
+repeated cancellation, inherited process-group custody and dropped-read cleanup.
+Native backend dispatch is tested with synthetic backend implementations; this
+does not claim an OS account/session qualification. These synthetic host
+observations establish author-side behavior only.
 
-Full TypeScript parity still requires declared credential readers and native
-durable inference jobs. The public CLI/templates and normal signed
+Full TypeScript parity still requires native durable inference jobs. The public
+CLI/templates, successful native OS-session credential qualification and normal signed
 language-specific runtime acquisition/install/update/rollback/remove journey
 also remain release gates. The current Python runtime closure must not be
 presented as a Node runtime, and ambient `node` availability is not an installed

@@ -33,6 +33,22 @@ def _backend(request: NativeRead) -> KeyringBackend:
     raise ValueError("backend unavailable")
 
 
+def read_native(request: NativeRead) -> bytes:
+    """Read one native value inside a process its parent bounds and reaps.
+
+    This function starts no descendants. The existing Python reader contains it
+    in its native helper; the cross-language bridge contains the whole read.
+    Neither caller discovers another backend when the selected one is absent.
+    """
+    value = _backend(request).get_password(request.service, request.entry)
+    if value is None or not 0 < len(value) <= 5500:
+        raise ValueError("value bound")
+    decoded = base64.b64decode(value, validate=True)
+    if not 0 < len(decoded) <= 4096:
+        raise ValueError("value bound")
+    return decoded
+
+
 def main() -> None:
     """Read at most one native version, with no diagnostic payloads on failure."""
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
@@ -41,13 +57,8 @@ def main() -> None:
         if len(raw) > 8192:
             raise ValueError("request bound")
         request = NativeRead.model_validate_json(raw)
-        value = _backend(request).get_password(request.service, request.entry)
-        if value is None or not 0 < len(value) <= 5500:
-            raise ValueError("value bound")
-        decoded = base64.b64decode(value, validate=True)
-        if not 0 < len(decoded) <= 4096:
-            raise ValueError("value bound")
-        sys.stdout.write(json.dumps({"value": value}))
+        decoded = read_native(request)
+        sys.stdout.write(json.dumps({"value": base64.b64encode(decoded).decode()}))
     except Exception:
         # Native libraries can include account and key information in exceptions.
         # The parent publishes one fixed unavailable error, never this payload.

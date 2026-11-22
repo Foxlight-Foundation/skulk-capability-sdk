@@ -22,7 +22,18 @@ jobs:
         with:
           version: '0.8.22'
           python-version: '3.13'
-      - run: uv sync --frozen --all-packages --no-editable --group native-runtime --reinstall-package skulk-capability-sdk --reinstall-package skulk-capability-tools
+      - name: Observe preinstalled interpreter custody
+        run: |
+          uv run --no-project --python 3.13 python - <<'PY'
+          import json, os, stat, sys
+          info = os.stat(sys.executable)
+          print(json.dumps({"regular": stat.S_ISREG(info.st_mode),
+              "mode": oct(info.st_mode), "owner_matches": info.st_uid in {0, os.getuid()},
+              "group_world_writable": bool(info.st_mode & 0o022)}))
+          PY
+      # Credential fixtures select a private runtime explicitly. A runner's
+      # preinstalled interpreter is not part of that selected helper closure.
+      - run: uv sync --frozen --managed-python --all-packages --no-editable --group native-runtime --reinstall-package skulk-capability-sdk --reinstall-package skulk-capability-tools
       - run: npm ci --ignore-scripts --prefix packages/typescript
       - run: npm run build --prefix packages/typescript
       - run: npm run check --prefix packages/typescript

@@ -69,9 +69,10 @@ managed-runtime adoption.
 
 The [TypeScript author candidate](docs/typescript-authoring.md) now provides a
 public npm package source for native application setup, unary/four-mode handlers,
-owned resources and invocation-scoped unary/stream clients. Its clean-package
-qualification is separate from stable publication, declared credentials/durable
-parity and the normal signed Node author installation journey.
+owned resources and invocation-scoped unary/stream clients. Declared credential
+reads use the matching public Python reader in explicitly selected, owned
+helper processes. Its clean-package qualification is separate from stable
+publication, durable parity and normal signed Node/OS-session qualification.
 
 Native distribution candidates use author tools `0.2.0rc2`. Explicit
 `capability-feed --native` and `capability-catalog --native` preserve runtime-five

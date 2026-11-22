@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, cast, final
@@ -20,7 +21,7 @@ from urllib.parse import quote
 from pydantic import Field, SecretBytes, TypeAdapter
 
 from .contracts import Contract, Digest, Startup
-from .storage import read_private, secure_directory
+from .storage import read_private
 
 BackendName = Literal["file", "macos_keychain", "linux_secret_service"]
 MAX_CREDENTIAL_BYTES = 4096
@@ -57,9 +58,15 @@ class _Entry(Contract):
 
 
 def _existing_directory(path: Path) -> None:
-    if not path.exists():
+    # A reader must not call the provisioning helper: the directory can vanish
+    # between an existence check and mkdir, which would recreate retired state.
+    info = path.lstat()
+    if (
+        not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != os.getuid()
+        or info.st_mode & 0o077
+    ):
         raise CredentialUnavailable("Selected credential storage is unavailable")
-    secure_directory(path)
 
 
 def _private_database(path: Path) -> None:
@@ -207,61 +214,94 @@ class CredentialReader:
         metadata, missing selected storage and unavailable native backends raise
         CredentialUnavailable. The method never changes aliases or versions.
         """
-        if reference not in self._declared:
-            raise ValueError("Credential reference is not declared by this capability")
-        try:
-            if self._configuration is None:
-                raise CredentialUnavailable(
-                    "Owner did not provision credential storage"
-                )
-            selection = CredentialSelection.model_validate_json(
-                read_private(Path(self._configuration))
+        return _read_selected(self._configuration, self._declared, reference, _native)
+
+
+def _read_selected(
+    configuration: str | None,
+    declared: dict[str, bool],
+    reference: str,
+    native_reader: Callable[[CredentialSelection, str], bytes],
+) -> SecretBytes | None:
+    """Resolve the same selected alias/backend under either containment boundary."""
+    if reference not in declared:
+        raise ValueError("Credential reference is not declared by this capability")
+    try:
+        if configuration is None:
+            raise CredentialUnavailable("Owner did not provision credential storage")
+        selection = CredentialSelection.model_validate_json(
+            read_private(Path(configuration))
+        )
+        root = Path(selection.root)
+        if not root.is_absolute():
+            raise CredentialUnavailable("Selected credential storage is unavailable")
+        _existing_directory(root)
+        path = root / "credentials.db"
+        _private_database(path)
+        with contextlib.closing(
+            sqlite3.connect(
+                "file:" + quote(str(path), safe="/") + "?mode=ro",
+                uri=True,
+                timeout=2,
             )
-            root = Path(selection.root)
-            if not root.is_absolute():
-                raise CredentialUnavailable(
-                    "Selected credential storage is unavailable"
-                )
-            _existing_directory(root)
-            path = root / "credentials.db"
-            _private_database(path)
-            with contextlib.closing(
-                sqlite3.connect(
-                    "file:" + quote(str(path), safe="/") + "?mode=ro",
-                    uri=True,
-                    timeout=2,
-                )
-            ) as connection:
-                row = cast(
-                    tuple[object, ...] | None,
-                    connection.execute(
-                        "SELECT a.digest,v.entry FROM aliases a LEFT JOIN versions v "
-                        "ON v.reference=a.reference AND v.digest=a.digest "
-                        "WHERE a.reference=?",
-                        (reference,),
-                    ).fetchone(),
-                )
-            if row is None:
-                if self._declared[reference]:
-                    raise CredentialUnavailable("Required credential is not configured")
-                return None
-            version = _Entry.model_validate({"digest": row[0], "entry": row[1]})
-            if selection.backend == "file":
-                _existing_directory(root / "versions")
-                raw = read_private(
-                    root / "versions" / version.entry, MAX_CREDENTIAL_BYTES
-                )
-            else:
-                raw = _native(selection, version.entry)
-            if not raw or not hmac.compare_digest(
-                hashlib.sha256(raw).hexdigest(), version.digest
-            ):
-                raise CredentialUnavailable("Credential bytes failed verification")
-            return SecretBytes(raw)
-        except (OSError, ValueError, sqlite3.Error):
-            raise CredentialUnavailable(
-                "Selected credential could not be resolved"
-            ) from None
+        ) as connection:
+            row = cast(
+                tuple[object, ...] | None,
+                connection.execute(
+                    "SELECT a.digest,v.entry FROM aliases a LEFT JOIN versions v "
+                    "ON v.reference=a.reference AND v.digest=a.digest "
+                    "WHERE a.reference=?",
+                    (reference,),
+                ).fetchone(),
+            )
+        if row is None:
+            if declared[reference]:
+                raise CredentialUnavailable("Required credential is not configured")
+            return None
+        version = _Entry.model_validate({"digest": row[0], "entry": row[1]})
+        if selection.backend == "file":
+            _existing_directory(root / "versions")
+            raw = read_private(root / "versions" / version.entry, MAX_CREDENTIAL_BYTES)
+        else:
+            raw = native_reader(selection, version.entry)
+        if not raw or not hmac.compare_digest(
+            hashlib.sha256(raw).hexdigest(), version.digest
+        ):
+            raise CredentialUnavailable("Credential bytes failed verification")
+        return SecretBytes(raw)
+    except (OSError, ValueError, sqlite3.Error):
+        raise CredentialUnavailable(
+            "Selected credential could not be resolved"
+        ) from None
+
+
+def read_contained_credential(
+    access: CredentialAccess, reference: str
+) -> SecretBytes | None:
+    """Read a declared value in the SDK-owned, parent-bounded bridge process.
+
+    This synchronous entry point starts no helper descendants. Its parent must
+    enforce a deadline and await this process's actual exit. Normal Python
+    applications keep using CredentialReader.read, whose native subprocess
+    containment remains unchanged. No backend or storage fallback is permitted.
+    """
+
+    def resolve(selection: CredentialSelection, entry: str) -> bytes:
+        from ._credential_reader import NativeRead, read_native
+
+        if selection.backend == "file":
+            raise CredentialUnavailable("Native credential backend is unavailable")
+        return read_native(
+            NativeRead(
+                backend=selection.backend,
+                service="ai.foxlight.skulk." + selection.namespace,
+                entry=entry,
+            )
+        )
+
+    return _read_selected(
+        access.configuration, dict(access.declarations), reference, resolve
+    )
 
 
 def run_credential_helper() -> bool:

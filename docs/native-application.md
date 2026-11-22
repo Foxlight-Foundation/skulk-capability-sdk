@@ -125,6 +125,12 @@ The result is `SecretBytes`, or `None` for an unconfigured optional input.
 Undeclared references raise `ValueError`. A missing required value, missing or
 damaged selected storage, or unavailable native backend raises
 `CredentialUnavailable` with sanitized messages. Never log the returned value.
+
+The TypeScript runtime uses the same public selected-reader implementation in a
+parent-bounded process; see [TypeScript credential access](typescript-authoring.md#read-declared-credentials).
+Python applications keep using `startup.credentials.read` as above. The bridge's
+contained-read entry point is for the SDK-owned helper whose parent enforces its
+deadline and reaps it, rather than application handlers on the event loop.
 Each read resolves the current alias, so rotation and retirement are visible on
 the next read. The reader does not provision storage, select a fallback backend,
 rotate credentials or create another vault. It grants no OS sandbox boundary.

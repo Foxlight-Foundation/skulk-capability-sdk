@@ -9,6 +9,13 @@ Supported author runtimes are Node 22.18 or later in the Node 22 line, on
 macOS ARM64 and glibc 2.34+ Linux x86_64/ARM64. The exact supported addon is
 selected and verified before it loads. Unsupported platforms refuse explicitly.
 
+The source packaging candidate additionally pins managed execution to Node
+22.23.5. A module's default `ApplicationFactory` receives selected runtime
+metadata and returns `CapabilityApp`; its Python zipapp bootstrap preserves the
+owning process PID while executing the measured Node wheel. See
+[`docs/node-packaging.md`](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/initiative/sdk1-completion/docs/node-packaging.md)
+for staging, signing, limits and the remaining signed-installation gate.
+
 Declared credential reads require an explicitly selected matching public Python
 SDK helper. Values are redacted, reads observe rotation/retirement, and owned
 helpers are reaped on cancellation. No ambient interpreter or backend fallback

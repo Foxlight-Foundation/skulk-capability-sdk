@@ -6,11 +6,13 @@ one, installed as ``capability-build``. A capability describes itself in a
 
 import argparse
 import hashlib
+import importlib.metadata
 import io
 import json
 import sys
 import time
 import zipfile
+from importlib.resources import files
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -40,6 +42,7 @@ from skulk_capability_tools.native_publishing import (
     SignedNativeRuntimeRelease,
     native_runtime_message,
 )
+from skulk_capability_tools.node_application import NodeBuild, node_project_artifacts
 from skulk_capability_tools.packaging import (
     archive,
     load_spec,
@@ -118,8 +121,13 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
     parser.add_argument(
         "--spec",
         type=Path,
-        required=nodes is None,
+        required=False,
         help="Path to a capability.toml describing what to build",
+    )
+    parser.add_argument(
+        "--node-project",
+        type=Path,
+        help="Explicit native Node project instead of a Python capability spec",
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
@@ -154,12 +162,6 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
     args = parser.parse_args(argv)
     if sys.platform not in ("darwin", "linux"):
         parser.error("unsupported release host")
-    try:
-        spec, source = load_spec(
-            resolve_spec(getattr(args, "kind", None), args.spec, nodes)
-        )
-    except Denied as refusal:
-        parser.error(str(refusal))
     manifest_raw = read_public(args.manifest, MAX_MANIFEST_BYTES)
     manifest: Manifest | NativeManifest
     if args.inference_runtime:
@@ -168,8 +170,35 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
         manifest = NativeManifest(canonical_json=manifest_raw.decode("utf-8"))
     else:
         manifest = Manifest.model_validate_json(manifest_raw)
-    validate_manifest(spec, manifest)
-    if spec.dependencies and args.wheelhouse is None:
+    node_report: NodeBuild | None = None
+    node_bundle: bytes | None = None
+    if args.node_project is not None:
+        if not args.inference_runtime or not isinstance(manifest, NativeManifest):
+            parser.error("Node projects require --inference-runtime")
+        if (
+            args.spec is not None
+            or getattr(args, "kind", None) is not None
+            or args.cleanup_template
+        ):
+            parser.error(
+                "Node projects cannot be mixed with Python spec/template inputs"
+            )
+        node_report, node_bundle, _ = node_project_artifacts(
+            args.node_project, manifest
+        )
+        spec = None
+        source = args.node_project
+        dependencies = manifest.runtime_dependencies
+    else:
+        try:
+            spec, source = load_spec(
+                resolve_spec(getattr(args, "kind", None), args.spec, nodes)
+            )
+        except Denied as refusal:
+            parser.error(str(refusal))
+        validate_manifest(spec, manifest)
+        dependencies = spec.dependencies
+    if dependencies and args.wheelhouse is None:
         parser.error("declared capability dependencies require a v2 wheelhouse")
     # The owner answers describe with every descriptor, in one reply the host
     # reads with a fixed bound; refuse here rather than ship a capability its
@@ -192,7 +221,7 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
         parser.error(str(error))
     template = (
         validate_template(spec, read_private(args.cleanup_template))
-        if args.cleanup_template
+        if args.cleanup_template and spec is not None
         else None
     )
     # Measured before any output exists, so a missing Skulk fails the build
@@ -205,11 +234,20 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
         )
     except Denied as refusal:
         parser.error(str(refusal))
-    raw = archive(spec, source, template)
+    raw = (
+        node_bundle
+        if node_bundle is not None
+        else archive(spec, source, template)
+        if spec is not None
+        else b""
+    )
+    if not raw:
+        parser.error("release source artifact is unavailable")
     secure_directory(args.output)
     if any(args.output.iterdir()):
         parser.error("release output must be empty; published bytes are immutable")
-    verify_self_contained(spec, raw, args.output / ".verify.pyz")
+    if spec is not None:
+        verify_self_contained(spec, raw, args.output / ".verify.pyz")
     wheels: list[RuntimeWheel] = []
     if args.wheelhouse is not None:
         paths = sorted(args.wheelhouse.glob("*.whl"))
@@ -243,13 +281,31 @@ def main(argv: list[str] | None = None, nodes: Path | None = None) -> None:
                 )
             )
     inventory = dict(sorted(wheel.distribution for wheel in wheels))
-    for requirement in declared_requirements(spec.dependencies):
+    for requirement in declared_requirements(dependencies):
         name = str(canonicalize_name(requirement.name))
         if (
             name not in inventory
             or Version(inventory[name]) not in requirement.specifier
         ):
             parser.error("wheelhouse does not satisfy the capability requirements")
+    if node_report is not None:
+        expected = node_report.assets
+        if expected not in wheels:
+            parser.error("wheelhouse does not carry the exact built Node application")
+        if args.wheelhouse is None or inventory.get(
+            "skulk-capability-sdk"
+        ) != importlib.metadata.version("skulk-capability-sdk"):
+            parser.error("Node runtime must carry the matching public Python SDK")
+        sdk_wheel = next(
+            wheel for wheel in wheels if wheel.distribution[0] == "skulk-capability-sdk"
+        )
+        with zipfile.ZipFile(args.wheelhouse / sdk_wheel.filename) as selected_sdk:
+            for name in ("node_application.py", "node_runtime.py", "node_cohort.json"):
+                if (
+                    selected_sdk.read("skulk_capability_sdk/" + name)
+                    != files("skulk_capability_sdk").joinpath(name).read_bytes()
+                ):
+                    parser.error("Node bootstrap SDK differs from its build cohort")
     lock = (
         hashlib.sha256(
             json.dumps(inventory, sort_keys=True, separators=(",", ":")).encode()

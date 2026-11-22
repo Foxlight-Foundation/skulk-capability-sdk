@@ -2,7 +2,7 @@
   "format": 1,
   "files": {
     "LICENSE.md": "e1083846db4922b82e350093e2b2bc825d4289f0712ddfab88275a0a5f64ea34",
-    "README.md": "50b789c9e7e6113083642017e9c3c1704dd3f52764e2fe5a47880403658dfb65",
+    "README.md": "a73aaa0de9c5d3c5ea4c01a1a7f9a960d5c34c93212e7a03901003037579cdb4",
     "npm-shrinkwrap.json": "43b1ee3c94e3afb78e91110eceb5fc8f60dd63b8a419d0d025beb9fe1f05c650",
     "package.json": "221975ff8e11ff8a959ab0d397071c05be17833f1d4db34da3dcb5a078633475",
     "src/application.ts": "fcd0896f926dbdc9e99120124622a4f447c49fc3d7484c6429b649cb49e58d01",
@@ -11,7 +11,7 @@
     "src/contracts.ts": "9541c05cbdc0f3f535cada2cb06a4f9085dd1076c7f80c903aa14cb7810ee202",
     "src/credential-cohort.ts": "e4fc8b27baa0f696f53b5880a56ce9a4dc69c860afb7d42d1ef096adcb33f421",
     "src/credentials.ts": "3bcbebe46b6f0cc8682988e3f98e1f9ddba2bd2d975f97fd53deaf7b80158cbe",
-    "src/index.ts": "284465894b62e63ba34c5d1f09a6fa607ae9a1e1e06a4c9102bf6789949278de",
+    "src/index.ts": "76b440da2adb99fed6eab1645bf66d7bfbeb37604fc0076b9bca2e5ce821fa01",
     "src/job-channel.ts": "5f439078d46451e9b36720c1778584916071f3d03e65444f6f5cff6fc0e0edbf",
     "src/job-client.ts": "d5d7c6a926c1a2d395f6a0e8a3270e9d0541c38dd3d387b9a6273ffe676bbc2a",
     "src/job-contracts.ts": "76761ee8c956426e4f06538ba78e398af4661693bf4bd02ae5344a9fbda65c97",
@@ -20,9 +20,11 @@
     "src/job-worker.ts": "95c7b8c456fb222da0bf5c01ee7cb0502781bfb1052e308e2178559ef00bd0db",
     "src/jobs.ts": "cf02f29a04c0430023364535b9ad9474532dd6f246b86633db039449cba82cac",
     "src/json.ts": "9cad96ade022039ee7844c7b7074175af11bd2f484c43f2ad21248a61ff32165",
+    "src/launcher.ts": "208691665c8a7160ef308064ab2ea70ae4df3c67651dbdb1b8b92b93ffdf52ca",
     "src/native-api.d.cts": "10866987ed5ea509d53c2a9f77164a274e66804c0a3fb93f3ac5ad1db9ef1327",
     "src/native.ts": "d61b3adeaebc947a28ee62bcc4b46796015708f6561da1853544f8fa5390c389",
     "src/resources.ts": "1768e0b0948ec1e3ca78f56f16bf3f98cd3e5153befff3213bd7b50e04fb385c",
+    "src/selected-application.ts": "37ba6ac7777565bb0599a654d9cbb0706b17864f4592fccc26b87dd88cf30d6f",
     "tools/copy-types.mjs": "ff7d0e516660fb8821869f376fe382a9396390afba23718cf71af2f273eb9e03",
     "tsconfig.json": "8fd83bf6d9cbe154fff39b923ec124420d75af0522b23a04d6ac74dd8ed10514"
   }

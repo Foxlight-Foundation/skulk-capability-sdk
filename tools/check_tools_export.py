@@ -33,6 +33,8 @@ MODULES = {
     "native_runtime_recipe.py",
     "native_feed.py",
     "native_catalog.py",
+    "node_application.py",
+    "node_runtime.py",
     "packaging.py",
     "project.py",
     "publication_admission.py",
@@ -54,6 +56,10 @@ DATA = {
     "native_cohorts/0.7.0rc5.json",
 }
 ADDITIONS = {
+    "src/skulk_capability_tools/cli.py",
+    "src/skulk_capability_tools/project.py",
+    "src/skulk_capability_tools/node_application.py",
+    "src/skulk_capability_tools/node_runtime.py",
     "src/skulk_capability_tools/publication_records.py",
     "src/skulk_capability_tools/native_runtime_recipe.py",
     "src/skulk_capability_tools/native_feed.py",

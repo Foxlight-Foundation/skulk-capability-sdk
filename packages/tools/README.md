@@ -25,6 +25,12 @@ remain independently qualified.
 
 ## Native distribution candidates
 
+Native source packaging also supports `skulk-cap build --native` for Python
+and `--native --language typescript` for staged Node applications. The latter
+uses `skulk-cap sign --inference-runtime --node-project ...` with the existing
+runtime-five wheel closure. See the [Node packaging candidate](../../docs/node-packaging.md)
+for exact runtime selection, source-only qualification and remaining admission.
+
 Tools `0.2.0rc2` add explicit native publication paths. Install the qualified
 public native kernel cohort before reading managed/2 declarations; no compiler
 or private Git checkout is needed. These tools do not grant installation,

@@ -18,6 +18,12 @@ MODULES = {
     "credentials",
     "credential-cohort",
     "index",
+    "job-channel",
+    "job-client",
+    "job-contracts",
+    "job-storage",
+    "job-worker",
+    "jobs",
     "json",
     "native",
     "resources",
@@ -30,8 +36,9 @@ SOURCE_FILES = {
     "LICENSE.md",
     "tools/copy-types.mjs",
     "src/native-api.d.cts",
+    "src/job-schema-models.json",
 } | {f"src/{name}.ts" for name in MODULES}
-DIST_FILES = {"dist/native-api.d.cts"} | {
+DIST_FILES = {"dist/native-api.d.cts", "dist/job-schema-models.json"} | {
     f"dist/{name}{extension}" for name in MODULES for extension in (".js", ".d.ts")
 }
 EXPORT_FILES = DIST_FILES | {
@@ -58,9 +65,10 @@ def validate_source() -> None:
     )
     if record.format != 1 or set(record.files) != SOURCE_FILES:
         raise ValueError("TypeScript source inventory differs")
-    if {path.name for path in (PACKAGE / "src").iterdir()} != {"native-api.d.cts"} | {
-        f"{name}.ts" for name in MODULES
-    }:
+    if {path.name for path in (PACKAGE / "src").iterdir()} != {
+        "native-api.d.cts",
+        "job-schema-models.json",
+    } | {f"{name}.ts" for name in MODULES}:
         raise ValueError("TypeScript runtime inventory differs")
     for name, digest in record.files.items():
         if hashlib.sha256((PACKAGE / name).read_bytes()).hexdigest() != digest:

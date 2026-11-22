@@ -9,13 +9,13 @@ from uuid import uuid4
 
 import pytest
 from pydantic import JsonValue, TypeAdapter
-from test_application import Peer, running
 
 from skulk_capability_sdk.application import ApplicationStartup, CapabilityApp
 from skulk_capability_sdk.contracts import OperationBounds
 from skulk_capability_sdk.database import Database
 from skulk_capability_sdk.jobs import DurableJobs, JobDefinition
 from skulk_capability_sdk.operations import OperationPage, OperationPlan, OperationState
+from tests_native.test_application import Peer, running
 
 
 class Backend:

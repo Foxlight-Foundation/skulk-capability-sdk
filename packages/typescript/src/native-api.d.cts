@@ -1,4 +1,4 @@
-/** Issued native 0.7.0rc5 API. The public facade converts language
+/** Private native qualification API. The approved facade converts language
  * values; this addon owns journal state, stream framing and transport rules. */
 import type {Buffer} from 'node:buffer';
 
@@ -22,6 +22,11 @@ declare class NativeAuthorContract {
   canonical(): Buffer;
   streamPacket(): Buffer;
   constructorInput(): string;
+}
+/** Early local exclusion; acquire before journal recovery or facade metadata I/O. */
+declare class NativeProcessFence {
+  private constructor();
+  close(): void;
 }
 declare class NativeJournal {
   constructor(path: string, boundsJson: string, now: number);
@@ -146,5 +151,7 @@ declare const native: {
   decodeStreamPacket(packet: Buffer): NativePacket;
   openStream(socket: string, hello: string, callId: string, mode: string, seconds: number): Promise<NativeStream>;
   NativeJournal: typeof NativeJournal;
+  NativeProcessFence: typeof NativeProcessFence;
+  openProcessFence(directory: string): Promise<NativeProcessFence>;
 };
 export = native;

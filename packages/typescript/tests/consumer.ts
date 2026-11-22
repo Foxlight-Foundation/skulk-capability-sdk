@@ -1,4 +1,4 @@
-import {CapabilityApp, CapabilityEndpoint, OutputFrame, type Resource, type JsonObject} from '@foxlight/skulk-capability-sdk';
+import {CapabilityApp, CapabilityEndpoint, OutputFrame, JobDefinition, DurableJobs, SubmissionRefused, type JobAdapter, type Resource, type JsonObject} from '@foxlight/skulk-capability-sdk';
 
 // Compile as an independent author against the public package's declarations.
 const app = new CapabilityApp({
@@ -40,3 +40,23 @@ app.unary('author.invalid', async () => 42);
 new OutputFrame('unknown');
 // @ts-expect-error a descriptor is required; metadata alone grants no call rights
 new CapabilityEndpoint('receiver');
+
+/** Compile the complete public durable-job setup without private runtime imports. */
+export function jobApplication(adapter: JobAdapter, directory: string): CapabilityApp {
+  const definition = JobDefinition.create({id:'author.jobs',version:'1.0.0',
+    title:'Author jobs',description:'Native inference jobs',
+    inputSchema:{type:'object'},resultSchema:{type:'object'},processingDomain:'external'});
+  const jobs = new DurableJobs(definition, adapter, {
+    async plan(input, signal) {
+      if (signal.aborted) throw new SubmissionRefused();
+      return {plan_digest:'a'.repeat(64),summary:'Estimate',expires_at:2147483648,input};
+    },
+  });
+  const application = new CapabilityApp({setup:(startup,signal)=>jobs.serve(startup,{directory,signal}),ready:()=>jobs.ready});
+  jobs.register(application);
+  return application;
+}
+// @ts-expect-error an undeclared processing domain cannot become remote inference
+JobDefinition.create({id:'x',version:'1.0.0',title:'x',description:'x',inputSchema:{},resultSchema:{},processingDomain:'anywhere'});
+// @ts-expect-error durable execution needs an explicit planner
+new DurableJobs(JobDefinition.create({id:'x',version:'1.0.0',title:'x',description:'x',inputSchema:{},resultSchema:{}}), {});

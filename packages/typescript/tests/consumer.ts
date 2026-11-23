@@ -1,4 +1,4 @@
-import {CapabilityApp, CapabilityEndpoint, OutputFrame, JobDefinition, DurableJobs, SubmissionRefused, discoverCapabilities, type CapabilityDirectory, type CapabilityOffer, type ApplicationFactory, type JobAdapter, type Resource, type JsonObject} from '@foxlight/skulk-capability-sdk';
+import {CapabilityClient, CapabilityDescription, CapabilityProposal, CapabilityApp, CapabilityEndpoint, OutputFrame, JobDefinition, DurableJobs, SubmissionRefused, discoverCapabilities, type CapabilityDirectory, type CapabilityOffer, type ApplicationFactory, type JobAdapter, type Resource, type JsonObject} from '@foxlight/skulk-capability-sdk';
 
 /** Compile read-only discovery against only the installed public declarations. */
 export async function discover(baseUrl: string, bearer: string): Promise<CapabilityOffer | undefined> {
@@ -81,3 +81,25 @@ export function jobApplication(adapter: JobAdapter, directory: string): Capabili
 JobDefinition.create({id:'x',version:'1.0.0',title:'x',description:'x',inputSchema:{},resultSchema:{},processingDomain:'anywhere'});
 // @ts-expect-error durable execution needs an explicit planner
 new DurableJobs(JobDefinition.create({id:'x',version:'1.0.0',title:'x',description:'x',inputSchema:{},resultSchema:{}}), {});
+
+/** Compile generic interfaces with no service key or approval authority. */
+export function genericApplication(endpoint: CapabilityEndpoint): CapabilityApp {
+  const application = new CapabilityApp();
+  const configured = CapabilityDescription.fromEndpoint(endpoint);
+  const inert = CapabilityProposal.prepare(configured.endpoint, {input:'review'});
+  const data: Uint8Array = inert.canonical();
+  void data;
+  // @ts-expect-error a proposal has no approval operation
+  void inert.approve;
+  application.unary('author.generic', async call => {
+    const client = new CapabilityClient(call);
+    const description = await client.describe(endpoint);
+    const proposal = await client.propose(description.endpoint, {input:'review'});
+    const digest: string = proposal.digest;
+    void digest;
+    // @ts-expect-error caller replacement is not a call option
+    void client.read(endpoint, {}, {callerId:'replacement'});
+    return (await client.read(endpoint, {input:'read'})).payload;
+  });
+  return application;
+}

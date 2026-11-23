@@ -5,7 +5,9 @@ operations, transactional storage, streaming media and declared credential reads
 The SDK is licensed under [MIT](LICENSE.md). Source and package downloads require
 no Foxlight account. A publishing account is separate from runtime authority.
 
-SDK0.5.15rc1 retains the qualified protocol-4 authoring interfaces.
+SDK0.5.16rc1 retains the qualified protocol-4 authoring interfaces.
+The [common capability interfaces](docs/native-capabilities.md) add matching
+Python/TypeScript descriptor lookup, original-caller reads and inert proposals.
 Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
 `CapabilityApp` have separate qualification gates. The explicit
@@ -52,6 +54,7 @@ The modules are:
 | `jobs` | Native durable inference jobs with original-caller isolation and shared scheduling |
 | `serving` | Bind a capability's own server to the host-approved surface |
 | `application` | Explicit native unary/stream handlers; prerelease and separately selected |
+| `capabilities` | Exact descriptors, original-caller reads and inert request proposals |
 
 The package contains no provider account integration, gateway signing key,
 installer or supervisor. Installation of this SDK does not authorize effects.

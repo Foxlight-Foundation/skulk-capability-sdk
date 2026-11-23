@@ -20,6 +20,7 @@ MODULES = {
     "_credential_reader.py",
     "_invocation_discovery.py",
     "application.py",
+    "capabilities.py",
     "discovery.py",
     "jobs.py",
     "node_application.py",

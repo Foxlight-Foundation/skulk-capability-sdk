@@ -242,7 +242,12 @@ async def _read_directory(
             verify=verification,
         ) as client:
             async with client.stream(
-                "GET", url, headers={"authorization": "Bearer " + bearer}
+                "GET",
+                url,
+                headers={
+                    "authorization": "Bearer " + bearer,
+                    "accept-encoding": "identity",
+                },
             ) as response:
                 if response.status_code in (401, 403):
                     raise DiscoveryError("denied")
@@ -252,6 +257,10 @@ async def _read_directory(
                     raise DiscoveryError("unavailable")
                 content_type = response.headers.get("content-type", "")
                 if content_type.split(";")[0].strip().lower() != "application/json":
+                    raise DiscoveryError("invalid_directory")
+                # Reject encoded bodies before HTTPX can allocate a decoded chunk.
+                encoding = response.headers.get("content-encoding")
+                if encoding is not None and encoding != "identity":
                     raise DiscoveryError("invalid_directory")
                 data = bytearray()
                 async for chunk in response.aiter_bytes():

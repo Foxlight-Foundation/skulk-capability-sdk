@@ -210,6 +210,16 @@ test('private TLS roots retain certificate-chain and hostname verification', asy
       });
       server.listen(0, '127.0.0.1'); await once(server, 'listening');
       const base = `https://127.0.0.1:${server.address().port}`;
+      // A containing app's global TLS override must not disclose our bearer.
+      const entry = new URL('../dist/discovery.js', import.meta.url).href;
+      const script = `import {discoverCapabilities,DiscoveryError} from ${JSON.stringify(entry)}; for(const options of [{},...( ${correctName} ? [] : [{certificateAuthority:${JSON.stringify(authority)}}])]) { try { await discoverCapabilities(${JSON.stringify(base)},'synthetic-client-key',options); process.exitCode=3; } catch(error) { if(!(error instanceof DiscoveryError))throw error; } }`;
+      const child = spawn(process.execPath, ['--input-type=module', '-e', script], {
+        env: {...process.env, NODE_TLS_REJECT_UNAUTHORIZED: '0'}, stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      let errors = ''; child.stderr.on('data', value => {errors += value;});
+      try { const [code] = await once(child, 'close'); assert.equal(code, 0, errors); }
+      finally { if (child.exitCode === null) child.kill(); }
+      assert.equal(requests.length, 0);
       await assert.rejects(discoverCapabilities(base, 'synthetic-client-key'), DiscoveryError);
       assert.equal(requests.length, 0);
       if (correctName) {

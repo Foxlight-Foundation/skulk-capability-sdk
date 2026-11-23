@@ -27,6 +27,6 @@
     "src/selected-application.ts": "37ba6ac7777565bb0599a654d9cbb0706b17864f4592fccc26b87dd88cf30d6f",
     "tools/copy-types.mjs": "ff7d0e516660fb8821869f376fe382a9396390afba23718cf71af2f273eb9e03",
     "tsconfig.json": "8fd83bf6d9cbe154fff39b923ec124420d75af0522b23a04d6ac74dd8ed10514",
-    "src/discovery.ts": "07511f54e5f62094816256591ebdec652b060fcbc688560920309d21b15e249f"
+    "src/discovery.ts": "3c93a0a1c32099e22a6cdc9e5bd82b0b90718938a92e20c83743a2ea6c25c938"
   }
 }

@@ -262,6 +262,20 @@ async def test_real_http_discovery_uses_only_its_enrolled_bearer() -> None:
         assert len(requests) == 1
         assert requests[0].startswith(b"GET /v1/native-inference HTTP/1.1")
         assert b"authorization: Bearer synthetic-client-key\r\n" in requests[0]
+        assert b"accept-encoding: identity\r\n" in requests[0]
+        await asyncio.wait_for(disconnected.wait(), 3)
+
+
+@pytest.mark.parametrize("encoding", ["gzip", "deflate", "br", "gzip, gzip"])
+async def test_encoded_metadata_refuses_before_body_read(encoding: str) -> None:
+    """Compressed metadata is retired at its headers before any decompression."""
+    async with serving(
+        b"", stalled=True, extra_headers={"Content-Encoding": encoding}
+    ) as (base, requests, disconnected):
+        with pytest.raises(DiscoveryError) as failure:
+            await discover_capabilities(base, "synthetic-client-key", timeout_seconds=1)
+        assert failure.value.code == "invalid_directory"
+        assert len(requests) == 1
         await asyncio.wait_for(disconnected.wait(), 3)
 
 

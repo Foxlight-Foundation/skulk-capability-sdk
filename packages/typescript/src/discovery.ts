@@ -169,7 +169,7 @@ export async function discoverCapabilities(baseUrl: string, bearer: string, opti
     // environment and idle pooled connection retaining this credentialed read.
     const makeRequest = url.startsWith('https:') ? httpsRequest : httpRequest;
     request = makeRequest(url, {...(authority === undefined ? {} : {ca: authority}),
-      method: 'GET', agent: false, signal: controller.signal,
+      method: 'GET', agent: false, rejectUnauthorized: true, signal: controller.signal,
       headers: {authorization: `Bearer ${bearer}`, 'accept-encoding': 'identity'}});
     const pending = request;
     closed = new Promise(resolve => pending.once('close', resolve));

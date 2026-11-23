@@ -103,7 +103,10 @@ accepts only literal loopback addresses, such as `127.0.0.1` or `[::1]`; use a
 literal address rather than `localhost`. Origins must contain no user information,
 path prefix, query or fragment. Redirects and environment proxy configuration
 are disabled for these credential-bearing reads. Node uses an owned one-off
-direct HTTP(S) connection with identity encoding, outside the global fetch pool.
+direct HTTP(S) connection outside the global fetch pool, with TLS verification
+explicitly enabled even when the containing process disables it globally. Both
+languages request identity encoding and refuse other encodings at the headers
+before any response decompression.
 For a private cluster CA, pass its trusted PEM certificate as Python
 `certificate_authority=...` or TypeScript `certificateAuthority: ...`. Certificate
 chain and hostname verification stay enabled; there is no insecure TLS option.

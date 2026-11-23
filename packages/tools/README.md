@@ -73,7 +73,7 @@ Native rebuild references include source-built wheels and directly acquired
 URL wheels when the lock records a hash without a size. Each direct URL still
 needs its exact locked SHA-256; the size comes from an independent acquisition,
 never the candidate. Other-platform native binary sizes come from the immutable
-qualified cohort receipt. Ordinary registry locks and legacy signing retain
+qualified cohort receipt. Ordinary registry locks and legacy signing defaults retain
 their original requirement for a recorded exact size.
 
 Tools `0.2.0rc4` add the issued native7 acquisition receipt. New SDK15 author
@@ -83,3 +83,17 @@ keeping the issued six-field manifest projection unchanged. Earlier native3,
 native4 and native5 receipts retain their exact bytes and artifact identities.
 The matching owner/Core bridge independently controls original-caller discovery
 and execution; package acquisition supplies neither permission.
+
+## Legacy applications on the SDK1 runtime
+
+Tools `0.2.0rc5` add `capability-feed --native-candidate`, matching the wheelhouse
+option. It admits the frozen SDK1 prereleases and glibc2.34 dependency floor for
+legacy runtime-two releases. The application retains its protocol-four manifest,
+governed policy, descriptor identities and signature domain. Installation and
+effect approval still belong to the host.
+
+Use this opt-in in both wheel acquisition and feed assembly. The publisher still
+requires the exact platform set, frozen wheel hashes and independent rebuild.
+`--native` continues to select runtime-five and catalog-four declarations;
+dependency policy does not perform a contract conversion. Existing legacy
+publication defaults and the issued native cohorts remain unchanged.

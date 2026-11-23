@@ -35,9 +35,12 @@ compiled record and `.canonical_json` holds that reader's canonical bytes.
 The validator does not receive a legacy Python `Manifest`.
 
 Build each supported platform from an exact runtime lock. That lock must include
-the separately obtained owner package and all capability dependencies. Acquire
-only an explicitly qualified candidate owner; ordinary runtime recipes still
-name the existing legacy cohort and do not select native execution.
+the separately obtained owner package and all capability dependencies. The
+[public native runtime recipes](native-runtime-acquisition.md) acquire the
+qualified owner 0.18.0rc8 / SDK 0.5.16rc1 / kernel 0.7.0rc7 wheel closure anonymously.
+Use the explicit `runtime --native --recipe` path; ordinary built-in runtime
+recipes retain their legacy cohort. Your application lock and independent
+rebuild remain separate inputs to feed signing.
 
 ```sh
 capability-wheelhouse --lock runtime.uv.lock --spec capability-native.toml \

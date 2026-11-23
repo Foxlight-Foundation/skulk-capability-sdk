@@ -134,10 +134,12 @@ configuration, credentials, cancellation and stream framing.
 
 Local sessions supply synthetic development authority. They do not enroll a
 publisher, create a client grant, install an OS service or permit provider access.
-For signed builds, the [publishing guide](native-publishing.md) additionally
-requires an exact, qualified owner/runtime wheelhouse and compatible Core input.
-Those inputs are separately supplied; this public-only quickstart does not
-provide them or claim a complete independent install/feed/Store journey.
+For signed builds, acquire the exact owner/runtime wheelhouse using the
+[public native runtime recipes](native-runtime-acquisition.md), then follow the
+[publishing guide](native-publishing.md) with a compatible Core input. The runtime
+download is separate from this local author environment and requires no private
+repository access. It does not by itself establish a complete independent
+install/feed/Store journey.
 
 The public-only local journey has been exercised on macOS ARM64 from anonymously
 downloaded SDK/tools/native/Node packages, with no source checkout or private

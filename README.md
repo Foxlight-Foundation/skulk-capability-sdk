@@ -5,14 +5,14 @@ operations, transactional storage, streaming media and declared credential reads
 The SDK is licensed under [MIT](LICENSE.md). Source and package downloads require
 no Foxlight account. A publishing account is separate from runtime authority.
 
-SDK0.5.14rc1 retains the qualified protocol-4 authoring interfaces.
+SDK0.5.15rc1 retains the qualified protocol-4 authoring interfaces.
 Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
 `CapabilityApp` have separate qualification gates. The explicit
 [native Python application runtime](docs/native-application.md) accepts the
-0.7.0rc3, 0.7.0rc4, 0.7.0rc5 and additive 0.7.0rc6 execution candidates. Workspace qualification
-pins the published rc5 Python cohort; TypeScript explicitly uses the published
-rc6 cohort. Installing this SDK does not switch an installed
+0.7.0rc3, 0.7.0rc4, 0.7.0rc5, 0.7.0rc6 and 0.7.0rc7 execution candidates. Workspace qualification
+pins the published rc7 Python and TypeScript cohorts. Its optional discovery1
+profile extends the thirteen unchanged issued profiles. Installing this SDK does not switch an installed
 runtime or migrate an application.
 
 The rc6 native candidate adds an early process-ownership fence shared by Python
@@ -88,7 +88,7 @@ caller-private observations, replay fences and durable state. Clean-package
 qualification is separate from stable publication and normal signed
 Node/OS-session qualification.
 
-Native distribution candidates use author tools `0.2.0rc3`. Explicit
+Native distribution candidates use author tools `0.2.0rc4`. Explicit
 `capability-feed --native` and `capability-catalog --native` preserve runtime-five
 and catalog-four signature domains and full native identities. Issued legacy
 formats and default runtime acquisition recipes remain unchanged. See

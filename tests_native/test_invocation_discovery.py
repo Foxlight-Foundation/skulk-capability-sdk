@@ -138,3 +138,63 @@ async def test_old_native_cohort_reports_unsupported_before_socket_access() -> N
         await peer.invoke("c" * 64)
         value, body = await peer.receive()
         assert value["error"] is None and json.loads(body) == {"ok": True}
+
+
+@pytest.mark.requires_discovery_v1
+async def test_python_cancel_drains_silent_discovery_before_parent_completion() -> None:
+    """Repeated parent cancellation owns the new socket without awaiting a reply."""
+    native = cast(DiscoveryNative, importlib.import_module("_skulk_capability_kernel"))
+    app = CapabilityApp()
+
+    async def handler(call: Invocation) -> dict[str, JsonValue]:
+        if call.call_id == "next":
+            return {"next": True}
+        await call.discover()
+        raise AssertionError("Silent discovery unexpectedly completed")
+
+    app.unary("example", handler)
+    entered, release = asyncio.Event(), asyncio.Event()
+    owned: set[asyncio.Task[None]] = set()
+    async with running(app) as peer:
+        startup = document(peer.startup).decode()
+
+        async def serve(
+            reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+        ) -> None:
+            try:
+                metadata = await header(reader)
+                assert await reader.read(1) == b""
+                native.admit_discovery_request(
+                    startup, len(metadata).to_bytes(4, "big") + metadata
+                )
+                entered.set()
+                await release.wait()
+            finally:
+                writer.close()
+                await writer.wait_closed()
+
+        def accept(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+            owned.add(asyncio.create_task(serve(reader, writer)))
+
+        server = await asyncio.start_unix_server(
+            accept, native.discovery_socket(startup)
+        )
+        try:
+            await peer.invoke("c" * 64)
+            async with asyncio.timeout(5):
+                await entered.wait()
+                await peer.send("cancel", call_id="c" * 64)
+                await peer.send("cancel", call_id="c" * 64)
+                frame, body = await peer.receive()
+                assert frame["error"] == "cancelled" and body == b""
+                assert not release.is_set()
+                await peer.health()
+                await peer.invoke("next")
+                frame, body = await peer.receive()
+                assert frame["error"] is None and json.loads(body) == {"next": True}
+        finally:
+            release.set()
+            server.close()
+            server.close_clients()
+            await server.wait_closed()
+            await asyncio.gather(*owned)

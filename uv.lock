@@ -656,35 +656,35 @@ wheels = [
 
 [[package]]
 name = "skulk-capability-kernel"
-version = "0.7.0rc5"
-source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-macosx_11_0_arm64.whl" }
+version = "0.7.0rc7"
+source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-macosx_11_0_arm64.whl" }
 resolution-markers = [
     "platform_machine == 'arm64' and sys_platform == 'darwin'",
 ]
 wheels = [
-    { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-macosx_11_0_arm64.whl", hash = "sha256:dba1882aae2473e5e768dfe709848091079ce72e0987bdc640603a4f303baf17" },
+    { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-macosx_11_0_arm64.whl", hash = "sha256:8b77f0e30457c7b6a3c49d477464b657fc26dc81ddeec31ba32843886fe3e0fc" },
 ]
 
 [[package]]
 name = "skulk-capability-kernel"
-version = "0.7.0rc5"
-source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-manylinux_2_34_aarch64.whl" }
+version = "0.7.0rc7"
+source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-manylinux_2_34_aarch64.whl" }
 resolution-markers = [
     "platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 wheels = [
-    { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:c3c829dee6a80089faa21a99b843199421e7f780268807acade773841a29be19" },
+    { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:7bae8593f19f067c420b4d906f85076aeda1c3b51fe3e4bda4d1c7ceaabb615b" },
 ]
 
 [[package]]
 name = "skulk-capability-kernel"
-version = "0.7.0rc5"
-source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-manylinux_2_34_x86_64.whl" }
+version = "0.7.0rc7"
+source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-manylinux_2_34_x86_64.whl" }
 resolution-markers = [
     "platform_machine == 'x86_64' and sys_platform == 'linux'",
 ]
 wheels = [
-    { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:ad7dc13b57c6b468345e2eb765dd9524a27a86aa2d47e05d53e48d9d1090ae54" },
+    { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:d56b3a2e61571db4f56884c1bf5ed1119479f158f1d4a70e243fc52acffea129" },
 ]
 
 [[package]]
@@ -718,9 +718,9 @@ dev = [
     { name = "types-jsonschema" },
 ]
 native-runtime = [
-    { name = "skulk-capability-kernel", version = "0.7.0rc5", source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-macosx_11_0_arm64.whl" }, marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
-    { name = "skulk-capability-kernel", version = "0.7.0rc5", source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-manylinux_2_34_aarch64.whl" }, marker = "platform_machine == 'aarch64' and sys_platform == 'linux'" },
-    { name = "skulk-capability-kernel", version = "0.7.0rc5", source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-manylinux_2_34_x86_64.whl" }, marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "skulk-capability-kernel", version = "0.7.0rc7", source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-macosx_11_0_arm64.whl" }, marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
+    { name = "skulk-capability-kernel", version = "0.7.0rc7", source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-manylinux_2_34_aarch64.whl" }, marker = "platform_machine == 'aarch64' and sys_platform == 'linux'" },
+    { name = "skulk-capability-kernel", version = "0.7.0rc7", source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-manylinux_2_34_x86_64.whl" }, marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
 ]
 
 [package.metadata]
@@ -746,14 +746,14 @@ dev = [
     { name = "types-jsonschema" },
 ]
 native-runtime = [
-    { name = "skulk-capability-kernel", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-macosx_11_0_arm64.whl" },
-    { name = "skulk-capability-kernel", marker = "platform_machine == 'aarch64' and sys_platform == 'linux'", url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-manylinux_2_34_aarch64.whl" },
-    { name = "skulk-capability-kernel", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/skulk_capability_kernel-0.7.0rc5-cp313-abi3-manylinux_2_34_x86_64.whl" },
+    { name = "skulk-capability-kernel", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-macosx_11_0_arm64.whl" },
+    { name = "skulk-capability-kernel", marker = "platform_machine == 'aarch64' and sys_platform == 'linux'", url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-manylinux_2_34_aarch64.whl" },
+    { name = "skulk-capability-kernel", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk_capability_kernel-0.7.0rc7-cp313-abi3-manylinux_2_34_x86_64.whl" },
 ]
 
 [[package]]
 name = "skulk-capability-tools"
-version = "0.2.0rc3"
+version = "0.2.0rc4"
 source = { editable = "packages/tools" }
 dependencies = [
     { name = "anyio" },

@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skulk-capability-tools"
-version = "0.2.0rc3"
+version = "0.2.0rc4"
 description = "Public authoring, packaging and publisher tools for Skulk capabilities"
 readme = "README.md"
 requires-python = ">=3.13"
 license = { file = "LICENSE.md" }
 dependencies = [
-    "skulk-capability-sdk>=0.5.13rc1,<0.6",
+    "skulk-capability-sdk>=0.5.15rc1,<0.6",
     "cryptography>=50.0.2,<51",
     "httpx>=0.28.1,<1",
     "anyio>=4.14.2,<5",

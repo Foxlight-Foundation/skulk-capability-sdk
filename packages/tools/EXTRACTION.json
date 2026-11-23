@@ -40,6 +40,11 @@
       "sha256": "fb6ca9e81f80cebd2cb6da735b30f888dc49f8ee6f38d57abc544e9362906f51",
       "source": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.5/native-candidates.json"
     },
+    "src/skulk_capability_tools/native_cohorts/0.7.0rc7.json": {
+      "origin": "public-release",
+      "sha256": "d0b616e5b73111904cbfbc071ce2ad7f0b111624ba02ed5e7649ce6a8ec02de3",
+      "source": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/native-candidates.json"
+    },
     "src/skulk_capability_tools/native_development.py": {
       "origin": "authored",
       "sha256": "7e86187f2f8e358e5d708e92608e5e35c5cdf52a834ef330c9b4544051c3f668",
@@ -52,7 +57,7 @@
     },
     "src/skulk_capability_tools/native_publishing.py": {
       "origin": "authored",
-      "sha256": "5849032f071e4948a7b0c134331d8351e448f025b229f4146c19c1f9403df2a5",
+      "sha256": "767a0da895a0bd2b3656c22466d7318979dc34e51b3f4dfc95fb06fdb92e678b",
       "source": "Authored after public SDK base e18d7681a077c5fd458ac5c5f64d724a2413ece4 using public native ABI and public Core release3/runtime5 contracts; no owner implementation imports."
     },
     "src/skulk_capability_tools/native_runtime_recipe.py": {

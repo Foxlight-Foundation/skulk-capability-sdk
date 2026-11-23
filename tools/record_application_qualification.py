@@ -49,7 +49,7 @@ def main() -> None:
         expected = tomllib.load(source)["project"]["version"]
     if (
         importlib.metadata.version("skulk-capability-sdk") != expected
-        or importlib.metadata.version("skulk-capability-kernel") != "0.7.0rc5"
+        or importlib.metadata.version("skulk-capability-kernel") != "0.7.0rc7"
         or _git("status", "--porcelain")
     ):
         raise ValueError("application qualification source or binary differs")
@@ -69,6 +69,7 @@ def main() -> None:
         ("skulk.composition/3", "composition_v3_profile_digest"),
         ("skulk.calls/1", "calls_profile_digest"),
         ("skulk.calls/2", "calls_v2_profile_digest"),
+        ("skulk.discovery/1", "discovery_profile_digest"),
     ):
         profiles[profile] = cast(Callable[[], str], getattr(module, getter))()
     report = {

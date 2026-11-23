@@ -119,6 +119,11 @@
       "source_sha256": "df36bae5ed67b38b577d198cd4f2b2deb66692fda8cb7ab78711b778550f670f",
       "exported_sha256": "df36bae5ed67b38b577d198cd4f2b2deb66692fda8cb7ab78711b778550f670f",
       "adjustment": "Public invocation-bound metadata client; no private owner or provider implementation"
+    },
+    "skulk_capability_sdk/capabilities.py": {
+      "source_sha256": "20d4b58df7a4e733a9f6bea9696954fabc6f48adbf8d69c7e89b297def331acf",
+      "exported_sha256": "20d4b58df7a4e733a9f6bea9696954fabc6f48adbf8d69c7e89b297def331acf",
+      "adjustment": "Public generic capability interfaces and current package metadata; no private host/provider source"
     }
   }
 }

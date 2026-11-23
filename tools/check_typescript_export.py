@@ -13,6 +13,7 @@ PACKAGE = ROOT / "packages/typescript"
 MODULES = {
     "application",
     "calls",
+    "capabilities",
     "cohort",
     "contracts",
     "discovery",

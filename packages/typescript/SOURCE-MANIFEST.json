@@ -1,17 +1,19 @@
 {
-  "format": 1,
   "files": {
     "LICENSE.md": "e1083846db4922b82e350093e2b2bc825d4289f0712ddfab88275a0a5f64ea34",
     "README.md": "86609915f7749e457ea1d019e70ee0888a312f3e48b76a2967331dd836d136f2",
-    "npm-shrinkwrap.json": "cf92b9f2fe15693341fc07f8be4868f382de9d17170b06436087ff59dc348e5c",
-    "package.json": "623f7a8eedc119a23a2cf3061ab89aafe53854bfd5c152b3fd21f51407a09ee0",
+    "npm-shrinkwrap.json": "d299e5c670a51356619028833ec512d71706b482ae5e473737ea85b8109237f7",
+    "package.json": "1bdac0e47ddbcf04e85eb62b2ea144cae52bf44703e735ef1fd43a09058e097d",
     "src/application.ts": "bc657793c6882873edd6725cabbbd46a67ddb99b09e00c557adca0df857e2499",
     "src/calls.ts": "bdf524a886e0d519e63dc0344bc46ce25042ff95fc6c9518940815dc485a0178",
+    "src/capabilities.ts": "26e2dc0cd7a6b43c6f8443258ced962a91573d878e79bd45fc3bc973774b47ee",
     "src/cohort.ts": "c05889d492e1c64c15a873c3af7e3ac85a20103b1a4a1d40eeee91056b80d965",
     "src/contracts.ts": "b454156f3333c5e339a922d35b9518a567191eec349c27c72c4ad18db6a1f9d5",
-    "src/credential-cohort.ts": "53798048361753a1f6a309667624a96a2184779f6ac720dd223c19e2da27dbe5",
+    "src/credential-cohort.ts": "df27cb9de0e1ba89eea71e3e5fef8e5edde4dd5bb48932171d104c79e2cfb76d",
     "src/credentials.ts": "3bcbebe46b6f0cc8682988e3f98e1f9ddba2bd2d975f97fd53deaf7b80158cbe",
-    "src/index.ts": "d85ab71aecdd6e968aa0ce86c0b98c758da86ad3c34f69853be771c4bab6abff",
+    "src/discovery.ts": "3c93a0a1c32099e22a6cdc9e5bd82b0b90718938a92e20c83743a2ea6c25c938",
+    "src/index.ts": "50540920d483c68523880865977bb50bf798aec2a35381ea3859b1999bcbc5db",
+    "src/invocation-discovery.ts": "c8b81c867bfba72613b48e0e84803d9d6ab63e859ff2a30a8dbfb9f859c019f0",
     "src/job-channel.ts": "5f439078d46451e9b36720c1778584916071f3d03e65444f6f5cff6fc0e0edbf",
     "src/job-client.ts": "d5d7c6a926c1a2d395f6a0e8a3270e9d0541c38dd3d387b9a6273ffe676bbc2a",
     "src/job-contracts.ts": "76761ee8c956426e4f06538ba78e398af4661693bf4bd02ae5344a9fbda65c97",
@@ -26,8 +28,7 @@
     "src/resources.ts": "1768e0b0948ec1e3ca78f56f16bf3f98cd3e5153befff3213bd7b50e04fb385c",
     "src/selected-application.ts": "37ba6ac7777565bb0599a654d9cbb0706b17864f4592fccc26b87dd88cf30d6f",
     "tools/copy-types.mjs": "ff7d0e516660fb8821869f376fe382a9396390afba23718cf71af2f273eb9e03",
-    "tsconfig.json": "8fd83bf6d9cbe154fff39b923ec124420d75af0522b23a04d6ac74dd8ed10514",
-    "src/discovery.ts": "3c93a0a1c32099e22a6cdc9e5bd82b0b90718938a92e20c83743a2ea6c25c938",
-    "src/invocation-discovery.ts": "c8b81c867bfba72613b48e0e84803d9d6ab63e859ff2a30a8dbfb9f859c019f0"
-  }
+    "tsconfig.json": "8fd83bf6d9cbe154fff39b923ec124420d75af0522b23a04d6ac74dd8ed10514"
+  },
+  "format": 1
 }

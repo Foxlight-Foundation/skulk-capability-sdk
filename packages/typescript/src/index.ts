@@ -15,3 +15,5 @@ export type {DurableJobsOptions, JobAdapter, JobObservation, JobPlan} from './jo
 export type {ApplicationRuntime, ApplicationFactory} from './selected-application.js';
 export {CapabilityDirectory, CapabilityOffer, DiscoveryError, discoverCapabilities} from './discovery.js';
 export type {DiscoveryErrorCode, DiscoveryOptions} from './discovery.js';
+export {CapabilityClient, CapabilityDescription, CapabilityProposal, CapabilityInterfaceError} from './capabilities.js';
+export type {CapabilityBehavior, CapabilityDomain, InterfaceErrorCode} from './capabilities.js';

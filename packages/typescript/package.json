@@ -1,6 +1,6 @@
 {
   "name": "@foxlight/skulk-capability-sdk",
-  "version": "0.5.15-rc.1",
+  "version": "0.5.16-rc.1",
   "description": "Public TypeScript authoring and native execution for Skulk capabilities",
   "license": "MIT",
   "type": "module",

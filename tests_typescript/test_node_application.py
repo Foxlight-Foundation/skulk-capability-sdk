@@ -29,7 +29,8 @@ class NodeApplication:
         ).resolve()
         self.script.write_text(
             "import {CapabilityApp,OutputFrame,CapabilityEndpoint,CapabilityCallError,"
-            "CredentialUnavailable,JobDefinition,DurableJobs,SubmissionRefused,DiscoveryError}"
+            "CredentialUnavailable,JobDefinition,DurableJobs,SubmissionRefused,DiscoveryError,"
+            "CapabilityClient,CapabilityProposal,CapabilityInterfaceError}"
             f" from {json.dumps(package.as_uri())};\n"
             + source
             + "\nawait app.serve(Number(process.argv.at(-1)));\n"

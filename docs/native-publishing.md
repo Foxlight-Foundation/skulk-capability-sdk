@@ -1,10 +1,12 @@
 # Native candidate publishing
 
-The experimental **SDK0.5.11rc1 / author tools0.2.0rc1** source adds an explicit
+The experimental **SDK0.5.13rc1 / author tools0.2.0rc3** supplies an explicit
 compiler-free native build path. The Python application interface is unchanged.
 The public tools contain authoring, artifact and signature contracts; the owner,
 supervisor, runtime installer and provider code are independently supplied.
-These source versions are candidates until their package and installed gates pass.
+The packages are publicly available in
+[v0.5.13-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.13-rc.1).
+They remain candidates; SDK1's complete installed and consumer gates are separate.
 
 A native build selects `skulk.managed/2`, release protocol3, runtime protocol5
 and `skulk.calls/2`. It uses the actual public compiled author reader, full native
@@ -17,8 +19,10 @@ size and platform. No legacy revision is truncated or padded.
 
 Use Python3.13 and install the public SDK, author tools and one exact public
 native wheel for your host. The workspace's `native-runtime` group selects
-[native-v0.7.0-rc.4](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.4).
-The separately issued rc3 cohort remains readable and independently selectable.
+[native-v0.7.0-rc.5](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.5).
+The separately issued rc3 and rc4 cohorts remain readable and independently
+selectable. TypeScript durable jobs use the distinct rc6 custody cohort; this
+does not change the Python author reader selected by the workspace.
 No compiler, Foxlight account or publisher registration is needed to acquire
 these public source/packages or to build a disposable candidate.
 
@@ -77,9 +81,13 @@ exact artifacts and runtime admission before startup.
 
 ## Separate delivery and authority gates
 
-Native candidate building does not enable the legacy `skulk-cap check/dev/inspect`
-flows for native apps. Hosted catalog submission and native catalog assembly are
-separate publication surfaces. Local signing does not register a Foxlight
+Use the explicit native [author CLI journey](native-authoring.md) for
+create/run/watch/invoke/debug. Existing legacy flows retain their own contracts.
+`capability-feed --native` assembles and verifies a native catalog from exact
+release inputs and an independent rebuild reference; use `--help` for its
+required identities and expiry bounds. Native catalog assembly and the existing
+reviewed Store submission process are separate publication surfaces. Local
+signing does not register a Foxlight
 publisher, distribute a package, enable inference, approve a provider account or
 grant caller permissions. Use the normal independently qualified Core/owner
 installation path; the publisher contains no installer or host bypass.

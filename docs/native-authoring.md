@@ -8,6 +8,9 @@ and bidirectional handlers. No provider account, model, GPU or fleet is needed.
 This is an SDK1 candidate source journey. SDK **0.5.13rc1** and tools
 **0.2.0rc3** are not stable SDK1 releases. The normal signed owner/Core
 installation, update and rollback journey has a separate acceptance gate.
+The Python SDK, author tools, npm tarball and three selected Node runtime wheels
+are available without an account in the public
+[v0.5.13-rc.1 candidate release](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.13-rc.1).
 
 ## Prepare an author environment
 
@@ -49,8 +52,8 @@ hash and size, builds the asset wheel without executing downloaded code, and
 installs it into this disposable author environment. It refuses an existing
 output directory. It uses the same compiler-free Node selection as packaging;
 Node is not selected from your shell's `PATH` when launching an application.
-The companion release assets may still be unpublished candidates; this source
-recipe does not depend on a draft release being anonymously downloadable.
+The companion Node wheels are published in that candidate release. This source
+recipe instead builds the same measured assets from the pinned upstream archive.
 
 Use Node 22.23.5 and npm for the explicit TypeScript build. A compiler is needed
 only to compile TypeScript source. The packaged Node runtime contains neither

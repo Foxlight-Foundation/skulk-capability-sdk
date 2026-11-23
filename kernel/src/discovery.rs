@@ -242,15 +242,15 @@ pub fn reply(
         return Err(invalid());
     }
     if error.is_none() {
-        let value = portable_json::parse(
-            std::str::from_utf8(&body).map_err(|_| invalid())?,
-            MAX_PAYLOAD_BYTES,
-        )
-        .map_err(|_| invalid())?;
-        let value: Value =
-            serde_json::from_slice(&portable_json::encode(&value).map_err(|_| invalid())?)
-                .map_err(|_| invalid())?;
-        if value.as_array().is_none_or(|v| v.len() > 4096) {
+        // The outer directory has its own byte/depth/cardinality bounds. The
+        // portable node budget belongs to each descriptor, which the typed
+        // directory reader admits separately; aggregating it here rejects
+        // valid rich catalogs well below the directory's declared limits.
+        // The directory array and offer add two levels around a descriptor's
+        // own frozen depth64 budget.
+        let value = codec::parse_bounded(std::str::from_utf8(&body).map_err(|_| invalid())?, 66)
+            .map_err(|_| invalid())?;
+        if !matches!(value, codec::Value::Array(values) if values.len() <= 4096) {
             return Err(invalid());
         }
     }

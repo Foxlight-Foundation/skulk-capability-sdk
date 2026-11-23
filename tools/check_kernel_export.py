@@ -112,6 +112,10 @@ SOURCE_FILES = frozenset(
 
 MAINTAINED_FILES = frozenset(
     [
+        "kernel/contracts/discovery-offer.json",
+        "kernel/tests/discovery.rs",
+        "kernel/bindings/python/tests/test_native_discovery.py",
+        "kernel/bindings/node/tests/discovery.test.mjs",
         "kernel/src/discovery.rs",
         "kernel/contracts/discovery-v1.json",
         "kernel/contracts/discovery-v1-cases.json",

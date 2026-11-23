@@ -1,7 +1,6 @@
 {
   "format": 2,
   "initial_export_sha256": "a1ac2c9ceb511c2250e7f63e9f8a010ecbddf010d9d4ef7e436a3ccb7c0d9a62",
-  "scope": "Public native process custody, caller transport and managed execution; source qualification is not installed SDK1 acceptance",
   "maintained_files": {
     "kernel/Cargo.lock": "56e4d741f7040445dac14c08e9c662564f88658da9d1826ac9ceff33d6d39cde",
     "kernel/Cargo.toml": "66abcc6d08b5bcaf80285509a879d0ef9345faa21c9a3a2b1f24e5021cfd2937",
@@ -17,6 +16,7 @@
     "kernel/bindings/node/tests/calls.test.mjs": "acac00b949294b021bf5ee7d8e670de80fdc5b2e45f1936884460dde2f2c2136",
     "kernel/bindings/node/tests/composition.test.mjs": "5a978f57a6df60c2cf14728e6d4524f1f0f9c370bb0c21065f7b5f0c49e2f054",
     "kernel/bindings/node/tests/custody.test.mjs": "6090ff2104386c4e544d73c77e2bf7be18f88386783fdb7038c299c65fa79eb5",
+    "kernel/bindings/node/tests/discovery.test.mjs": "a559b17594322e0b311e0f1af7bbba7908c68d2f274791cda1e8eb93172fcd73",
     "kernel/bindings/node/tests/execution-calls.test.mjs": "ad5a447fa3cbebcc12bb5e44675ef9db70add652bf4204acffbe5d86dca8dd44",
     "kernel/bindings/node/tests/execution-transport.test.mjs": "f2cb1bfa0ee482b01a9e835b5dcf069f2d2c0026fb054f1ef95dc6b6d19f7cc9",
     "kernel/bindings/node/tests/handshake.test.mjs": "958710796ab667d6ae2bb8a3d9601b658494159e8af8c90539016e115c5e54da",
@@ -41,6 +41,7 @@
     "kernel/bindings/python/tests/test_native_calls.py": "3c6e1075f681c100dc33de350ec459ab4fc8289f1464273399e6947db63dcb95",
     "kernel/bindings/python/tests/test_native_composition.py": "296b078fcbf8e4079f690f7f6306a2c28459f99a6694eaa23d0007362f3bcf7d",
     "kernel/bindings/python/tests/test_native_custody.py": "4a89004a3621552934118ebf15aeda60233b9fda8e86a7d31c9014b3847086cb",
+    "kernel/bindings/python/tests/test_native_discovery.py": "8298b4ea44350788417fe3ae689f2adad986a87e7c0888bdfee457f080c576ef",
     "kernel/bindings/python/tests/test_native_execution_calls.py": "d1b5639f23c5a3ee08ffd0196763e613926d5a3991857f29aa7e8b699cbcf269",
     "kernel/bindings/python/tests/test_native_execution_transport.py": "e7805ef9d4efe4e17603e236ed79ce912e92561e2ba5154c60a71a9e9b3df18b",
     "kernel/bindings/python/tests/test_native_handshake.py": "0d130073afa967dff84af48288d03e22a87114da99eb2d6e2d63f11f86893bd9",
@@ -56,6 +57,7 @@
     "kernel/contracts/composition-v1.json": "6956d39280ee2bf3154ca89bd5827a28fafbf8974b9594d846d7691e4042c2cf",
     "kernel/contracts/composition-v2.json": "7d542fa14d48713798039dddc2b2c34865b1f13604115a7312a2e7dd95c5f36f",
     "kernel/contracts/composition-v3.json": "8c5fe0ac2b68f0aa4f34953b73685a41b113ebd6ea4b90cd36cbe2d0b4496180",
+    "kernel/contracts/discovery-offer.json": "977addff644dac7d734644490e2cb9e4387a3394c134f43ccd806231273ed3d9",
     "kernel/contracts/discovery-v1-cases.json": "e1df970a20cc94ec8b5d5407d46c7344e37a5ca2cf874744dd5f0043e1fc326c",
     "kernel/contracts/discovery-v1.json": "38c983d97508fcf9d8b1ef58c63bd182795c06eafd4558059599d81b43eba5d5",
     "kernel/contracts/handshake-v1-cases.json": "6cc459ad475961260567dcee4a422f4704532671543e144216e9b653d823f08e",
@@ -87,7 +89,7 @@
     "kernel/src/composition.rs": "b55f0e7ac36b9785dc6f7c83880a910c6da8e187d37cc08b73ba179341f07220",
     "kernel/src/composition_v2.rs": "3859777c308600ca79400793ee406b1ae9a557abbcd7a960599ddd8b72d5fc80",
     "kernel/src/composition_v3.rs": "4731bf10187c9cfa2eace9e2c1bfecdb650fa91fe5bfd25a8ca15a70ef1d144a",
-    "kernel/src/discovery.rs": "bb7c0be31cdbde23cc1d905d877792b1f52556fe7d35e710078d7e31d36a5b4f",
+    "kernel/src/discovery.rs": "50f37ec7d5c0a50ae2886586a4fa7fb3d1c8ecc35974eedd6c05c4a6d8a47401",
     "kernel/src/handshake.rs": "b8f9a4cf9fe07848d6174aac722cd9d350cf923da330e463b9f777e881b8682a",
     "kernel/src/handshake_v2.rs": "07c12900c246066fca6da053dbe5cd7ed6b90dbd536934b12e45024910188238",
     "kernel/src/journal.rs": "0674425901bf3914934b1ec0eabdf6c24eb7027a9743a0ec481050fd7fbdb134",
@@ -104,6 +106,7 @@
     "kernel/tests/composition.rs": "5883834a08506bb87acf68876eda4bd533a880146a480cefad2338c7619f2fbe",
     "kernel/tests/composition_execution.rs": "534b8f89d008de305ca3c50774f15cf7a4ad2ec51d851777032460563e020afd",
     "kernel/tests/custody.rs": "fc9e4dca5bf029a3043d985b6f336d000c94fd82bde5e2c8e1662f4dae177044",
+    "kernel/tests/discovery.rs": "c72c696a05ace0843e30529087936ec83d874387a68bafdc9986bed1c7844599",
     "kernel/tests/handshake.rs": "75d5a10655cbd40765b943144ceff0519e82a2257230c078633ab75d0fc9f876",
     "kernel/tests/handshake_inference.rs": "d47c995ce4587c18ad49b138086576a24deb948e18d795cb82f7d727a461c800",
     "kernel/tests/host_streams.rs": "f6469b4f83eb0dd639fecb585dbdb23ea32a5007d3d586ac6b957ce849379ebd",
@@ -126,6 +129,7 @@
     "tools/native_consumer.py": "e47e5f53cd9e632ecb0be7169e21e9e94a9fba5b822b2e5403f78d6858410b0a",
     "tools/native_notices.py": "e33e284fb8c2a0a078fc31da967222bcfc14f72e3dd69f53243483ded42c4721",
     "tools/native_packages.py": "388721b59ac8fdbd89367d8276b5329016dfc768002b48826792b958f4ba6b46",
-    "tools/qualify_kernel.py": "36c9d92861c096ee88ddad56b5b3ba8396fdff1908cbf49b00fa0611c55888de"
-  }
+    "tools/qualify_kernel.py": "f6e52cb0518d8b2495f8244030f6dbe3d0d599de2febe38ed4ede03d4fa08d4b"
+  },
+  "scope": "Public native process custody, caller transport and managed execution; source qualification is not installed SDK1 acceptance"
 }

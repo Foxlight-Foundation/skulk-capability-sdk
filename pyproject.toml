@@ -46,6 +46,10 @@ include = ["/skulk_capability_sdk", "/LICENSE.md", "/README.md", "/SOURCE-MANIFE
 asyncio_mode = "auto"
 testpaths = ["tests", "packages/tools/tests"]
 pythonpath = ["."]
+markers = [
+    "requires_discovery_v1: new native discovery ABI acceptance, qualified separately from issued runtimes",
+    "pre_discovery_v1: explicit unsupported behavior on issued runtimes without discovery",
+]
 
 [tool.basedpyright]
 typeCheckingMode = "strict"

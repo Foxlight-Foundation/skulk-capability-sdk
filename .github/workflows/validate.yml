@@ -99,7 +99,7 @@ jobs:
       - run: uv run --no-sync ruff check
       - run: uv run --no-sync ruff format --check
       - run: uv run --no-sync pytest --junitxml=.runtime/app-root.xml
-      - run: uv run --no-sync pytest tests_native --junitxml=.runtime/app-native.xml
+      - run: uv run --no-sync pytest tests_native -m 'not requires_discovery_v1' --junitxml=.runtime/app-native.xml
       - run: uv run --no-sync pytest tests_authoring/test_python_author.py --junitxml=.runtime/author-python.xml
       - run: uv build --all-packages
       - run: uv run --no-sync python tools/check_export.py

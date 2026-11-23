@@ -205,6 +205,8 @@ def main() -> None:
                 "-q",
                 "kernel/bindings/python/tests",
                 "tests_native",
+                "-m",
+                "not pre_discovery_v1",
                 "--ignore=tests_native/test_native_distribution.py",
                 "--ignore=tests_native/test_native_publishing.py",
                 "--ignore=tests_native/test_node_packaging.py",

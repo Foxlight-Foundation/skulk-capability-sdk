@@ -292,6 +292,8 @@ def check_release_set(
     expectation: ReleaseExpectation,
     lock: Lockfile,
     root: str = DEFAULT_ROOT,
+    *,
+    native_candidate: bool = False,
 ) -> None:
     """Refuse anything but exactly the expected release for the expected platforms.
 
@@ -348,7 +350,12 @@ def check_release_set(
             for wheel in runtime.wheels
         }
         expected = expected_wheels(
-            lock, root, family, reference, manifest.runtime_dependencies
+            lock,
+            root,
+            family,
+            reference,
+            manifest.runtime_dependencies,
+            native_candidate=native_candidate,
         )
         if carried != expected:
             different = sorted(
@@ -424,6 +431,7 @@ def assemble(
     expectation: ReleaseExpectation,
     lock: Lockfile,
     root: str = DEFAULT_ROOT,
+    native_candidate: bool = False,
     feed_url: str,
     revision: int,
     expires_at: int,
@@ -438,7 +446,11 @@ def assemble(
     """
     if not feed_url.startswith("https://") or not feed_url.endswith("/"):
         raise Denied("the feed URL must be an HTTPS directory ending in /")
-    check_release_set(releases, expectation, lock, root)
+    # SDK1 owners also host legacy applications. Their newer dependency floor
+    # must not force a different manifest, effect policy or runtime protocol.
+    check_release_set(
+        releases, expectation, lock, root, native_candidate=native_candidate
+    )
     for built in releases:
         release = built.runtime.release
         # Build runners' clocks may run a little ahead of this one; a release
@@ -568,6 +580,14 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="Explicit runtime-five candidates and catalog-four feed",
     )
+    parser.add_argument(
+        "--native-candidate",
+        action="store_true",
+        help=(
+            "Opt into locked SDK1 prereleases and the glibc2.34 dependency floor; "
+            "this does not select a manifest or runtime protocol"
+        ),
+    )
     key_source = parser.add_mutually_exclusive_group(required=True)
     key_source.add_argument("--private-key", type=Path, help="Owner-only key file")
     key_source.add_argument(
@@ -670,6 +690,7 @@ def main(argv: list[str] | None = None) -> None:
                 expectation=expectation,
                 lock=lock,
                 root=args.root,
+                native_candidate=args.native_candidate,
                 feed_url=args.feed_url,
                 revision=args.catalog_revision,
                 expires_at=args.catalog_expires_at,

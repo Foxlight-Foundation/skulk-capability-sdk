@@ -110,3 +110,17 @@ uv sync --frozen --all-packages --no-editable --group native-runtime \
   --reinstall-package skulk-capability-sdk \
   --reinstall-package skulk-capability-tools
 ```
+
+## Legacy applications using an SDK1 owner
+
+A legacy protocol-four application can use the SDK1 owner and kernel without
+changing its governed operation contracts. Tools `0.2.0rc5` expose the explicit
+`--native-candidate` dependency policy on `capability-feed`, matching
+`capability-wheelhouse --native-candidate`. This permits the locked SDK1 RC
+packages and glibc2.34 floor while producing a legacy runtime-two release and its
+normal legacy catalog. Use it when assembling SDK1 consumer candidates from the
+same lock and independent rebuild. The platform set, every wheel hash, manifest
+identity, permissions and state-schema checks remain mandatory.
+
+Select `--native` only for actual managed/2 native declarations. Dependency-policy
+selection supplies no host authorization or governed-effect approval.

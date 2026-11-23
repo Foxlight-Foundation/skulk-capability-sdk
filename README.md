@@ -22,7 +22,7 @@ requires separate installed qualification. See
 [early application ownership](docs/native-candidates.md#early-application-ownership).
 
 The native Python candidate also provides invocation-scoped clients:
-`CapabilityEndpoint`, `Invocation.call`, `Invocation.stream`, `CallReply`,
+`CapabilityEndpoint`, `Invocation.call`, `Invocation.stream`, `Invocation.discover`, `CallReply`,
 `CallStream`, `CallStreamFrame` and `CapabilityCallError`.
 It preserves exact destination and request identities over the published
 calls/2 execution ABI. See [native application clients](docs/native-application.md#call-an-exact-capability).

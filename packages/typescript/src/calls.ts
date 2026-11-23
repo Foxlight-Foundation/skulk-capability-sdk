@@ -5,6 +5,8 @@ import {native} from './native.js';
 import {copyJson, encodeJson, number, object, parseJson, text, utf8, type JsonObject, type JsonValue} from './json.js';
 import {CapabilityEndpoint, type StreamMode} from './contracts.js';
 import {Cancelled, Expired, type Resource} from './resources.js';
+import {CapabilityDirectory, DiscoveryError} from './discovery.js';
+import {queryInvocation} from './invocation-discovery.js';
 
 /** Closed native error codes; backend exception text never crosses this boundary. */
 export type CallErrorCode = 'invalid_payload' | 'provider_error' | 'timeout' | 'denied' | 'outcome_unknown' | 'cancelled';
@@ -94,15 +96,36 @@ export class Delegations implements Resource {
   #pending: Pending | undefined;
   #sending: Promise<void> | undefined;
   #sequence = 0n;
+  #discoverySequence = 0n;
+  #discovering: {work: Promise<CapabilityDirectory>; controller: AbortController} | undefined;
   active = true;
   constructor(readonly control: Control, readonly frame: Encoder, readonly callId: string,
       readonly context: JsonObject, readonly startup: string, readonly expiry: number | null,
       readonly cancelParent: () => void) {}
   get awaitingReply(): boolean { return this.#pending !== undefined && !this.#pending.received; }
+  /** Fresh scoped observations, with independent sequence and parent-owned cleanup. */
+  async discover(): Promise<CapabilityDirectory> {
+    if (!this.active || this.#pending !== undefined || this.#discovering !== undefined) throw new TypeError('Parent discovery is retired or occupied');
+    if (this.#discoverySequence >= 2n ** 64n - 1n) throw new TypeError('Discovery sequence exhausted');
+    const controller = new AbortController(); this.#discoverySequence += 1n;
+    const check = (): void => { if (!this.active) throw new TypeError('Discovery parent retired'); };
+    const work = queryInvocation(this.startup, this.context, this.callId, this.#discoverySequence,
+      this.expiry, controller.signal, check);
+    const pending = {work, controller}; this.#discovering = pending;
+    try { const result = await work; check(); return result; }
+    catch (error) {
+      if (!(error instanceof DiscoveryError) || !['denied', 'unsupported', 'limit'].includes(error.code)) this.abandon();
+      throw error;
+    } finally {
+      controller.abort(); await Promise.allSettled([work]);
+      if (this.#discovering === pending) this.#discovering = undefined;
+    }
+  }
   /** Retain late correlation while immediately removing abandoned child authority. */
   abandon(): void { this.active = false; if (this.#pending !== undefined) this.#pending.abandoned = true; this.cancelParent(); }
   retire(): void {
     this.active = false;
+    this.#discovering?.controller.abort();
     const pending = this.#pending;
     if (pending !== undefined) {
       if (!pending.received) pending.abandoned = true;
@@ -113,6 +136,10 @@ export class Delegations implements Resource {
   }
   async close(): Promise<void> {
     this.active = false;
+    if (this.#discovering !== undefined) {
+      this.#discovering.controller.abort();
+      await Promise.allSettled([this.#discovering.work]);
+    }
     if (this.#pending !== undefined) { this.abandon(); this.retire(); }
     await Promise.allSettled(this.#tasks);
     await this.#sending;
@@ -141,7 +168,7 @@ export class Delegations implements Resource {
   }
   #begin(destination: CapabilityEndpoint, payload: JsonObject | Uint8Array, options: CallOptions,
       streaming: boolean): {descriptor: JsonObject; pending: Pending} {
-    if (!this.active || this.#pending !== undefined) throw new TypeError('Parent delegation is retired or occupied');
+    if (!this.active || this.#pending !== undefined || this.#discovering !== undefined) throw new TypeError('Parent delegation is retired or occupied');
     if (this.expiry !== null && performance.now() >= this.expiry) { this.abandon(); throw new Expired(); }
     if (this.#sequence >= (1n << 64n) - 1n) throw new TypeError('Delegation sequence exhausted');
     const declared = destination.descriptor();

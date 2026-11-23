@@ -34,6 +34,8 @@ cc 1.6.0: MIT OR Apache-2.0
 Notice blocks: a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2, 378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397
 cfg-if 1.0.5: MIT OR Apache-2.0
 Notice blocks: a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2, 378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397
+cmov 0.5.4: Apache-2.0 OR MIT
+Notice blocks: cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30, 70c9d40f1f9545c3f133b8a67206e89da850f6468eed072281bb3701514114a9
 const-oid 0.10.2: Apache-2.0 OR MIT
 Notice blocks: a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5, 73b9dc2e79c7308998dd30296e073aefaefb944a68fb89aa412c23c0edcabcaa
 convert_case 0.12.0: MIT
@@ -44,6 +46,8 @@ crypto-common 0.2.2: MIT OR Apache-2.0
 Notice blocks: a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5, d2e7ec5355c96eeade56b09187ceb48a6a30299da3ce7531a66d3d11405ab963
 ctor 1.0.13: Apache-2.0 OR MIT
 Notice blocks: a8ad31b1c3f40dca5a84119351b8fa8ddc868edd77fad8a8ebf6d8f2d16fa4ae, bccaa8b6c09f94e81f06696e179dbe058464bbdfbc823b6d49cada1d71e84ac3
+ctutils 0.4.8: Apache-2.0 OR MIT
+Notice blocks: cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30, 91585c36e4fb9ab4ca0d3dfac5d66d3c0c62cc51f640a0e1196542daf2267eae
 data-encoding 2.11.1: MIT
 Notice blocks: b68ad1a3367b825447089e1f8d6829b97f47a89eb78d2f4ebaef4672f5606186
 digest 0.11.3: MIT OR Apache-2.0
@@ -94,6 +98,8 @@ hashlink 0.12.2: MIT OR Apache-2.0
 Notice blocks: c144680885b29e4719e2a51f0aab5439a1e02d980692b5aaf086cae12727f28b, e915669a595b11a200873df8286561881b0e04932f6412a585db6297ba0bc97c
 heck 0.5.0: MIT OR Apache-2.0
 Notice blocks: a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2, 7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0
+hmac 0.13.0: MIT OR Apache-2.0
+Notice blocks: a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5, 9e0dfd2dd4173a530e238cb6adb37aa78c34c6bc7444e0e10c1ab5d8881f63ba
 hybrid-array 0.4.15: MIT OR Apache-2.0
 Notice blocks: a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5, 70c9d40f1f9545c3f133b8a67206e89da850f6468eed072281bb3701514114a9
 indexmap 2.14.2: Apache-2.0 OR MIT
@@ -11544,6 +11550,7 @@ SOFTWARE.
 ========================================================================
 Notice block 70c9d40f1f9545c3f133b8a67206e89da850f6468eed072281bb3701514114a9
 https://crates.io/api/v1/crates/hybrid-array/0.4.15/download#LICENSE-MIT
+https://crates.io/crates/cmov/0.5.4: LICENSE-MIT
 
 Copyright (c) 2022-2026 The RustCrypto Project Developers
 
@@ -12533,6 +12540,37 @@ SOFTWARE.
 
 
 ========================================================================
+Notice block 91585c36e4fb9ab4ca0d3dfac5d66d3c0c62cc51f640a0e1196542daf2267eae
+https://crates.io/crates/ctutils/0.4.8: LICENSE-MIT
+
+Copyright (c) 2025-2026 The RustCrypto Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+
+========================================================================
 Notice block 9387c2d197e2370a740ca457dae1662c56de56b811ee4862024343961307f9bf
 https://crates.io/api/v1/crates/micromap/0.3.0/download#LICENSE.txt
 
@@ -12975,6 +13013,37 @@ https://crates.io/api/v1/crates/zerocopy/0.8.61/download#LICENSE-APACHE
    See the License for the specific language governing permissions and
    limitations under the License.
 
+
+
+========================================================================
+Notice block 9e0dfd2dd4173a530e238cb6adb37aa78c34c6bc7444e0e10c1ab5d8881f63ba
+https://crates.io/crates/hmac/0.13.0: LICENSE-MIT
+
+Copyright (c) 2017 Artyom Pavlov
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
 
 
 ========================================================================
@@ -13722,6 +13791,7 @@ https://crates.io/api/v1/crates/crypto-common/0.2.2/download#LICENSE-APACHE
 https://crates.io/api/v1/crates/digest/0.11.3/download#LICENSE-APACHE
 https://crates.io/api/v1/crates/hybrid-array/0.4.15/download#LICENSE-APACHE
 https://crates.io/api/v1/crates/sha2/0.11.0/download#LICENSE-APACHE
+https://crates.io/crates/hmac/0.13.0: LICENSE-APACHE
 
                               Apache License
                         Version 2.0, January 2004
@@ -15101,6 +15171,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Notice block cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
 https://crates.io/api/v1/crates/nohash-hasher/0.2.0/download#LICENSE-APACHE
 https://crates.io/api/v1/crates/tinyvec/1.13.3/download#LICENSE-APACHE.md
+https://crates.io/crates/ctutils/0.4.8: LICENSE-APACHE
+https://crates.io/crates/cmov/0.5.4: LICENSE-APACHE
 
 
                                  Apache License

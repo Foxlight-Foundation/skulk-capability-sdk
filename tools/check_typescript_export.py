@@ -16,6 +16,7 @@ MODULES = {
     "cohort",
     "contracts",
     "discovery",
+    "invocation-discovery",
     "credentials",
     "credential-cohort",
     "index",

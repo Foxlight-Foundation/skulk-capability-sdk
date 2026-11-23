@@ -455,3 +455,39 @@ def open_call_v2_control(
 ) -> Awaitable[NativeCallControlV2]:
     """Derive endpoint/hello natively; host separately authenticates and authorizes."""
     ...
+
+def discovery_profile_digest() -> str:
+    """Identify the independent optional parent-bound metadata protocol."""
+    ...
+
+def discovery_socket(startup: str) -> str:
+    """Derive only the private sibling endpoint of an admitted startup."""
+    ...
+
+def discovery_request(startup: str, context: str, parent: str, sequence: int) -> bytes:
+    """Frame startup proof and parent correlation without granting authority."""
+    ...
+
+def discovery_payload_size(source: str) -> int:
+    """Admit a bounded body allocation hint before reading media."""
+    ...
+
+def decode_discovery_frame(packet: bytes) -> tuple[bytes, bytes]:
+    """Admit a complete checksummed metadata frame without active-scope authority."""
+    ...
+
+def admit_discovery_request(startup: str, packet: bytes) -> bytes:
+    """Match private startup proof, returning only token-free parent identifiers."""
+    ...
+
+def discovery_reply(
+    startup: str, request: str, payload: bytes, error: str | None
+) -> bytes:
+    """Frame exact directory bytes or a body-free refusal."""
+    ...
+
+def discovery_response(
+    startup: str, request: str, packet: bytes
+) -> tuple[str | None, bytes]:
+    """Match every parent/query identifier before exposing a directory body."""
+    ...

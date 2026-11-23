@@ -18,6 +18,7 @@ MODULES = {
     "__init__.py",
     "_credential_bridge.py",
     "_credential_reader.py",
+    "_invocation_discovery.py",
     "application.py",
     "discovery.py",
     "jobs.py",

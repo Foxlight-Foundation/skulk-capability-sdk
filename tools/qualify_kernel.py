@@ -28,9 +28,27 @@ OUTPUT = ROOT / ".runtime/native-qualification"
 
 def run(args: list[str], env: dict[str, str], cwd: Path = ROOT) -> str:
     """Bound each build/test command and stop immediately on failure."""
-    result = subprocess.run(
-        args, cwd=cwd, env=env, check=False, capture_output=True, text=True, timeout=600
-    )
+    try:
+        result = subprocess.run(
+            args,
+            cwd=cwd,
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+    except subprocess.TimeoutExpired as error:
+        # Keep the actual partial build/test observations when an external
+        # resource bound expires, instead of losing them behind the traceback.
+        for output, stream in ((error.stdout, sys.stdout), (error.stderr, sys.stderr)):
+            if output:
+                print(
+                    output.decode(),
+                    end="",
+                    file=stream,
+                )
+        raise
     if result.stderr:
         print(result.stderr, end="", file=sys.stderr)
     if result.returncode:
@@ -514,6 +532,34 @@ def main() -> None:
                 ),
                 end="",
             )
+    print(
+        run(
+            [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "discovery_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
+    for backend in ("rust", "python", "node"):
+        command = [
+            sys.executable,
+            "-m",
+            "tools.check_discovery_profile",
+            "--backend",
+            backend,
+            "--report",
+            str(OUTPUT / f"discovery-{backend}.json"),
+        ]
+        if backend == "node":
+            command += ["--node-facade", str(NODE / "dist/loader.cjs")]
+        print(run(command, python_env), end="")
     calls_report = json.loads((OUTPUT / "calls-rust.json").read_text())
     composition_report = json.loads((OUTPUT / "composition-rust.json").read_text())
     transport_report = json.loads((OUTPUT / "transport-rust.json").read_text())
@@ -561,6 +607,7 @@ def main() -> None:
             "sha256": hashlib.sha256(package.read_bytes()).hexdigest(),
         },
         "runtime_adoption": False,
+        "discovery_profile": json.loads((OUTPUT / "discovery-rust.json").read_text()),
         "inference_profiles": [
             json.loads((OUTPUT / f"{kind}-rust.json").read_text())
             for kind in (

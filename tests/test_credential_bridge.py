@@ -60,7 +60,7 @@ def test_bridge_reads_rotated_values_and_optional_retirement(tmp_path: Path) -> 
         hello, reply = [json.loads(line) for line in result.stdout.splitlines()]
         assert hello == {
             "protocol": 1,
-            "sdk_version": "0.5.14rc1",
+            "sdk_version": "0.5.15rc1",
             "reader_sha256": reader_identity(),
         }
         assert reply == {

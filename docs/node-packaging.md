@@ -95,9 +95,12 @@ The upstream release is described in the
 `skulk_capability_tools.node_runtime.build_node_runtime(archive, platform, output)`
 builds that deterministic asset wheel from the exact pinned upstream archive.
 It verifies all bytes and retains upstream notices without executing the archive.
-Companion wheels have not yet been published as a supported runtime cohort;
-account-free binary acquisition and independent three-platform qualification
-must precede that publication.
+The unchanged three selected companion wheels are published in
+[v0.5.13-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.13-rc.1).
+The [public package quickstart](native-public-quickstart.md) selects their exact
+platform hashes. The separate [native runtime recipes](native-runtime-acquisition.md)
+acquire the owner/Python closure; they do not include this Node wheel or your
+application asset wheel.
 
 Add the exact Node and application wheels to the complete reviewed Python
 runtime wheelhouse, including the compatible separately licensed owner, public

@@ -6,8 +6,9 @@ the application runtime. It supports unary, server-streaming, client-streaming
 and bidirectional handlers. No provider account, model, GPU or fleet is needed.
 
 This is an SDK1 candidate source journey. SDK **0.5.16rc1** and tools
-**0.2.0rc4** are not stable SDK1 releases. The normal signed owner/Core
-installation, update and rollback journey has a separate acceptance gate.
+**0.2.0rc4** are not stable SDK1 releases. The complete independent
+author/feed/Store journey has a separate acceptance gate. Public, compiler-free
+runtime inputs are available through the [native runtime recipes](native-runtime-acquisition.md).
 Current SDK and tools packages are public in
 [v0.5.16-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.16-rc.1).
 The unchanged three selected Node runtime wheels remain available in

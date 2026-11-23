@@ -1,0 +1,175 @@
+{
+  "format": 2,
+  "owner_version": "0.18.0rc8",
+  "sdk_version": "0.5.16rc1",
+  "platform": "linux-glibc-x86_64",
+  "source_owner_commit": "23e905d73a1f9a25219b7d9b85929d18e70c61db",
+  "source_runtime_digest": "e87623144b18afdd6cf3ee21d1205ba214d7fef39c9c9ab794b43818f0ac9eb6",
+  "kernel": {
+    "version": "0.7.0rc7",
+    "source_commit": "511a5c248b65845919089c2c86c37cdcef122d50",
+    "portable": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+    "managed": "add1362825790e109c779ae5ec5b3467710b42acebf8a2081b404fb18f73cacc",
+    "handshake": "a621193448577ba88a492bf5a8b61166b56e72d99fda7ceaa2efbb5632ae253c",
+    "transport": "bfc5b4ece93e9bf0083b29ad46a69977b2d765d613494a9f0a59f4ee8ddf6769",
+    "composition": "4097a7f03943da0bb44dc1a312976c0eb92854f016dc5a276bb8e8b85854f6f1",
+    "calls": "81f72dc3e2a07321480af80bafede3da4a3b14ab80ea620c5c8600b51bc76101"
+  },
+  "wheels": [
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/annotated_types-0.8.0-py3-none-any.whl",
+      "hash": "sha256:f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+      "size": 13427
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/anyio-4.16.0-py3-none-any.whl",
+      "hash": "sha256:c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026",
+      "size": 134521
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/attrs-26.1.0-py3-none-any.whl",
+      "hash": "sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+      "size": 67548
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/certifi-2026.7.22-py3-none-any.whl",
+      "hash": "sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775",
+      "size": 136983
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/cffi-2.1.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "hash": "sha256:a931079504ecc49efed7744c476a5c343a92fabf66dec2db95edb1b2fdc770e2",
+      "size": 221824
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl",
+      "hash": "sha256:9dab55f57c74c3cad24c323bacbbd04be4705ba6eb0d92e920b1fc4837ed5079",
+      "size": 4752576
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/h11-0.16.0-py3-none-any.whl",
+      "hash": "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86",
+      "size": 37515
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/httpcore-1.0.9-py3-none-any.whl",
+      "hash": "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55",
+      "size": 78784
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/httpx-0.28.1-py3-none-any.whl",
+      "hash": "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad",
+      "size": 73517
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/idna-3.19-py3-none-any.whl",
+      "hash": "sha256:815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4",
+      "size": 68550
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/jaraco.classes-3.4.0-py3-none-any.whl",
+      "hash": "sha256:f662826b6bed8cace05e7ff873ce0f9283b5c924470fe664fff1c2f00f581790",
+      "size": 6777
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/jaraco_context-6.1.2-py3-none-any.whl",
+      "hash": "sha256:bf8150b79a2d5d91ae48629d8b427a8f7ba0e1097dd6202a9059f29a36379535",
+      "size": 7871
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/jaraco_functools-4.6.0-py3-none-any.whl",
+      "hash": "sha256:99e3dc0060c5cbe8fcd1cdb36258e2a65ca40f1566b2033b12abb1bb44dd3c30",
+      "size": 11677
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/jeepney-0.9.0-py3-none-any.whl",
+      "hash": "sha256:97e5714520c16fc0a45695e5365a2e11b81ea79bba796e26f9f1d178cb182683",
+      "size": 49010
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/jsonschema-4.26.0-py3-none-any.whl",
+      "hash": "sha256:d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce",
+      "size": 90630
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/jsonschema_specifications-2025.9.1-py3-none-any.whl",
+      "hash": "sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe",
+      "size": 18437
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/keyring-25.7.0-py3-none-any.whl",
+      "hash": "sha256:be4a0b195f149690c166e850609a477c532ddbfbaed96a404d4e43f8d5e2689f",
+      "size": 39160
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/more_itertools-11.1.0-py3-none-any.whl",
+      "hash": "sha256:4b65538ae22f6fed0ce4874efd317463a7489796a0939fa66824dd542125a192",
+      "size": 72226
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/packaging-26.3-py3-none-any.whl",
+      "hash": "sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+      "size": 129956
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl",
+      "hash": "sha256:076a2d2f923fd4821644f5ba89f059523da90dc9014e85f8e45a5774ca5bc6f9",
+      "size": 155560
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/pycparser-3.0-py3-none-any.whl",
+      "hash": "sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992",
+      "size": 48172
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/pydantic-2.13.5-py3-none-any.whl",
+      "hash": "sha256:346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73",
+      "size": 472589
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/pydantic_core-2.46.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "hash": "sha256:6f7b393a8b3da82f5c1fc0751e6d01ac6c55b93c18226a60bdfba4a724efafd1",
+      "size": 2066633
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/referencing-0.37.0-py3-none-any.whl",
+      "hash": "sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231",
+      "size": 26766
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/rpds_py-2026.6.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "hash": "sha256:acac386b453c2516111b50985d60ce46e7fadb5ea71ae7b25f4c946935bf27cf",
+      "size": 365678
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/secretstorage-3.5.0-py3-none-any.whl",
+      "hash": "sha256:0ce65888c0725fcb2c5bc0fdb8e5438eece02c523557ea40ce0703c266248137",
+      "size": 15554
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/skulk_capability_kernel-0.7.0rc7-cp313-abi3-manylinux_2_34_x86_64.whl",
+      "hash": "sha256:d56b3a2e61571db4f56884c1bf5ed1119479f158f1d4a70e243fc52acffea129",
+      "size": 4694363
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/skulk_capability_nodes-0.18.0rc8-py3-none-any.whl",
+      "hash": "sha256:635ddd1ab2cd47be0bcda729f4b31058bbdc1982cd44fad89a5938eb0b1576bf",
+      "size": 642931
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/skulk_capability_sdk-0.5.16rc1-py3-none-any.whl",
+      "hash": "sha256:f61591b608e2f3991ad4052ce607ef57af9384c880b81472dc1fc3b897e4a15f",
+      "size": 89318
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/typing_extensions-4.16.0-py3-none-any.whl",
+      "hash": "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+      "size": 45571
+    },
+    {
+      "url": "https://skulkapps.foxlight.ai/releases/foxlight.sdk-reference/45233353911/linux-glibc-x86_64/typing_inspection-0.4.4-py3-none-any.whl",
+      "hash": "sha256:65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+      "size": 14750
+    }
+  ]
+}

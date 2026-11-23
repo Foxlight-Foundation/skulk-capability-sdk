@@ -303,9 +303,11 @@ state and binding refusal, and reclamation of rejected caller metadata. These
 use synthetic adapters and actual native control/journal/process boundaries;
 they do not establish provider-specific adoption or signed runtime installation.
 
-The public CLI/templates, successful native OS-session credential qualification and normal signed
-language-specific runtime acquisition/install/update/rollback/remove journey
-also remain release gates. The current Python runtime closure must not be
-presented as a Node runtime, and ambient `node` availability is not an installed
+The [native author guide](native-authoring.md) records the CLI/templates and
+signed Python/TypeScript lifecycle evidence. Actual OS-session credential reads
+use a separate [native-storage suite](native-credentials.md), independent of
+these synthetic backend tests. Complete independent author/feed/Store journeys
+and final matched SDK1 installation remain release gates. A Python runtime
+closure is not a Node runtime, and ambient `node` availability is not installed
 runtime qualification. See [native publishing](native-publishing.md) and
-[native jobs](native-jobs.md) for their existing, separately scoped contracts.
+[native jobs](native-jobs.md) for their separately scoped contracts.

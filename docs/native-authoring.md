@@ -236,6 +236,11 @@ are separate steps. SDK download access does not grant any of them.
    and ready discovery before sending a new call; do not replay a request whose
    outcome is unknown.
 
+Declared credentials use the owner's explicitly selected storage backend. See
+[native credential sessions](native-credentials.md) for the Python/TypeScript
+reader interfaces, headless versus OS-session prerequisites and the separate
+repeatable native-storage qualification.
+
 See the [candidate host API contract](https://github.com/Foxlight-Foundation/Skulk/blob/66cd3dc36219665d89dab21585437e942d290236/website/docs/api-guide.md)
 for authentication, settings, exact grants, stream framing and cleanup behavior.
 The host reference is pinned to the candidate source used for this author

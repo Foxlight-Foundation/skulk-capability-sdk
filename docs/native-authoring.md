@@ -257,3 +257,11 @@ two-version update, restart with existing key/grants, explicit rollback and
 uninstall cleanup on macOS ARM64. This evidence does not establish distributed
 operation, provider account behavior, OS-service setup or complete SDK1 release
 readiness. Those require their own matched host and package qualification.
+
+## Maintained native reference
+
+The [SDK Native Reference](../examples/native_reference/README.md) is a small
+model-free managed capability with the same four I/O modes. Its source uses only
+public SDK interfaces and includes an actual CLI/media/failure test. It is also
+the reference source for qualifying compiler-free native author runtime delivery.
+Source acceptance and public runtime/Store availability remain separate gates.

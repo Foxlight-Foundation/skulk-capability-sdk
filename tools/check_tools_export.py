@@ -59,6 +59,7 @@ DATA = {
     "native_cohorts/0.7.0rc3.json",
     "native_cohorts/0.7.0rc4.json",
     "native_cohorts/0.7.0rc5.json",
+    "native_cohorts/0.7.0rc7.json",
 }
 ADDITIONS = {
     "src/skulk_capability_tools/_native_build_worker.py",
@@ -78,6 +79,7 @@ ADDITIONS = {
     "src/skulk_capability_tools/native_cohorts/0.7.0rc3.json",
     "src/skulk_capability_tools/native_cohorts/0.7.0rc4.json",
     "src/skulk_capability_tools/native_cohorts/0.7.0rc5.json",
+    "src/skulk_capability_tools/native_cohorts/0.7.0rc7.json",
 }
 
 TESTS = {

@@ -5,6 +5,7 @@ installed owner/Core qualification or binary artifact byte verification.
 """
 
 import hashlib
+import importlib
 import importlib.metadata
 import json
 
@@ -226,3 +227,15 @@ def test_cohort_data_matches_the_real_installed_binary() -> None:
     assert selected.source_commit == native_cohort(selected.version)["source_commit"]
     with pytest.raises(ValueError, match="unavailable"):
         native_cohort("99.0.0")
+
+
+@pytest.mark.requires_discovery_v1
+def test_optional_discovery_profile_must_match_its_issued_cohort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The six-field wire projection cannot omit full-cohort discovery validation."""
+    assert importlib.metadata.version("skulk-capability-kernel") == "0.7.0rc7"
+    native = importlib.import_module("_skulk_capability_kernel")
+    monkeypatch.setattr(native, "discovery_profile_digest", lambda: "0" * 64)
+    with pytest.raises(ValueError, match="ABI differs"):
+        NativeProfiles.installed()

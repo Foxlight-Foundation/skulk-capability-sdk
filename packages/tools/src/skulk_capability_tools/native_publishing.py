@@ -30,6 +30,7 @@ _SCHEMA: TypeAdapter[dict[str, JsonValue] | bool | None] = TypeAdapter(
     dict[str, JsonValue] | bool | None
 )
 _COHORTS = {
+    "0.7.0rc7": "d0b616e5b73111904cbfbc071ce2ad7f0b111624ba02ed5e7649ce6a8ec02de3",
     "0.7.0rc5": "fb6ca9e81f80cebd2cb6da735b30f888dc49f8ee6f38d57abc544e9362906f51",
     "0.7.0rc3": "da446b54ddd8996ea21cbd61f1155bc1e840ddfff2e36f435ffc973806c865ae",
     "0.7.0rc4": "3702b717039632845f68557c87d10551480501505230134d973b04644b14e2d2",
@@ -64,6 +65,7 @@ class _Factory(Protocol):
 class _Kernel(Protocol):
     ManagedV2Contract: _Factory
 
+    def discovery_profile_digest(self) -> str: ...
     def portable_profile_digest(self) -> str: ...
     def managed_profile_digest(self) -> str: ...
     def handshake_profile_digest(self) -> str: ...
@@ -192,7 +194,7 @@ class NativeManifest(Contract):
 class NativeProfiles(Contract):
     """Exact public native cohort selection, distinct from author and host authority."""
 
-    version: Literal["0.7.0rc3", "0.7.0rc4", "0.7.0rc5"] = Field(
+    version: Literal["0.7.0rc3", "0.7.0rc4", "0.7.0rc5", "0.7.0rc7"] = Field(
         description="Selected binary version."
     )
     source_commit: str = Field(
@@ -222,7 +224,7 @@ class NativeProfiles(Contract):
 
     @classmethod
     def installed(cls) -> "NativeProfiles":
-        """Verify all thirteen actual ABI fingerprints before selecting execution."""
+        """Verify every selected ABI fingerprint, including optional discovery1."""
         version = importlib.metadata.version("skulk-capability-kernel")
         receipt, kernel = native_cohort(version), _kernel()
         observed = {
@@ -240,6 +242,8 @@ class NativeProfiles(Contract):
             "skulk.calls/2": kernel.calls_v2_profile_digest(),
             "skulk.transport/2": kernel.transport_v2_profile_digest(),
         }
+        if version == "0.7.0rc7":
+            observed["skulk.discovery/1"] = kernel.discovery_profile_digest()
         expected = {
             _TEXT.validate_python(item["profile"], strict=True): item["profile_digest"]
             for item in _OBJECTS.validate_python(receipt["profiles"], strict=True)

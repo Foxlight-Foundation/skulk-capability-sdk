@@ -75,3 +75,11 @@ needs its exact locked SHA-256; the size comes from an independent acquisition,
 never the candidate. Other-platform native binary sizes come from the immutable
 qualified cohort receipt. Ordinary registry locks and legacy signing retain
 their original requirement for a recorded exact size.
+
+Tools `0.2.0rc4` add the issued native7 acquisition receipt. New SDK15 author
+environments select that cohort for Python and TypeScript. Publisher admission
+checks all fourteen native fingerprints, including optional discovery1, while
+keeping the issued six-field manifest projection unchanged. Earlier native3,
+native4 and native5 receipts retain their exact bytes and artifact identities.
+The matching owner/Core bridge independently controls original-caller discovery
+and execution; package acquisition supplies neither permission.

@@ -27,9 +27,9 @@
   },
   "dependencies": {
     "@types/node": "22.18.0",
-    "@foxlight/skulk-kernel-linux-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.6/skulk-capability-kernel-0.7.0rc6-linux-glibc-aarch64.tgz",
-    "@foxlight/skulk-kernel-linux-x64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.6/skulk-capability-kernel-0.7.0rc6-linux-glibc-x86_64.tgz",
-    "@foxlight/skulk-kernel-macos-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.6/skulk-capability-kernel-0.7.0rc6-macos-arm64.tgz"
+    "@foxlight/skulk-kernel-linux-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk-capability-kernel-0.7.0rc7-linux-glibc-aarch64.tgz",
+    "@foxlight/skulk-kernel-linux-x64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk-capability-kernel-0.7.0rc7-linux-glibc-x86_64.tgz",
+    "@foxlight/skulk-kernel-macos-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk-capability-kernel-0.7.0rc7-macos-arm64.tgz"
   },
   "devDependencies": {
     "typescript": "5.8.3"

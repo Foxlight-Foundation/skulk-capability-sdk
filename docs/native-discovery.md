@@ -51,8 +51,10 @@ This optional feature uses the separately fingerprinted `skulk.discovery/1`
 companion channel in native 0.7.0rc7 and requires a matching owner/Core bridge.
 Issued calls/2 and startup bytes retain their meaning. Older cohorts or hosts
 report `DiscoveryError("unsupported")`; they never try a different endpoint.
-The source implementation is awaiting new-cohort publication and installed
-qualification. The currently issued native5/6 package pins remain unchanged.
+The SDK15 Python and TypeScript source candidates select the
+[issued native7 cohort](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.7).
+Matching owner/Core receipt adoption and normally installed qualification remain
+separate gates. Earlier native5/6 release assets and profile meanings are preserved.
 This invocation read uses the local companion channel and needs no HTTPX extra.
 The examples below describe the distinct external enrolled-client interface.
 

@@ -8,6 +8,7 @@ import {CallContext, CapabilityEndpoint, InputFrame, OutputFrame, type Mode, typ
 import {Cancelled, Expired, Resources, check, type Resource} from './resources.js';
 import {CallReply, CallStream, CapabilityCallError, Deadline, Delegations, type CallOptions} from './calls.js';
 import {CredentialReader, type PythonCredentialHelper} from './credentials.js';
+import type {CapabilityDirectory} from './discovery.js';
 
 /** Private-startup projection containing only admitted application metadata. */
 export class ApplicationStartup {
@@ -53,6 +54,10 @@ export class Invocation {
   }
   get payload(): JsonObject { return copyJson(this.#payload); }
   get rawPayload(): Uint8Array { return Buffer.from(this.#raw); }
+  /** Observe only this original caller's narrowed permissions; metadata grants no access.
+   * Join before completion or delegation. Cancellation retires the parent and drains
+   * the socket; older hosts explicitly report unsupported. No cache or retry. */
+  discover(): Promise<CapabilityDirectory> { return this.#calls.discover(); }
   /** Retain acquisition and LIFO cleanup even if cancellation races either one. */
   enterResource<Value extends Resource>(acquire: () => Promise<Value>): Promise<Value> {
     return this.#resources.enter(acquire, this.signal);

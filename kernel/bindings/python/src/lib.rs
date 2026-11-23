@@ -1,4 +1,5 @@
 //! CPython-native conversion and journal ownership; no helper process.
+mod discovery;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -1001,6 +1002,7 @@ impl NativeJournal {
 #[pymodule]
 fn _skulk_capability_kernel(module: &Bound<'_, PyModule>) -> PyResult<()> {
     pyo3_async_runtimes::tokio::init(streams::runtime_builder());
+    discovery::register(module)?;
     module.add_function(wrap_pyfunction!(canonical, module)?)?;
     module.add_function(wrap_pyfunction!(canonical_json, module)?)?;
     module.add_function(wrap_pyfunction!(validate_contract_json, module)?)?;

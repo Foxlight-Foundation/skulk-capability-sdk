@@ -119,3 +119,13 @@ the typed Node facade. See [caller media](../docs/native-caller-streams.md) for
 half-close, terminal/end, cancellation and separate control-finalization rules.
 This additive ABI does not change the thirteen frozen wire profiles or select
 new runtime pins; public binary and matched installed acceptance remain separate.
+
+## Optional invocation discovery candidate
+
+Native 0.7.0rc7 adds the independent `skulk.discovery/1` codec and Python/Node
+bindings. It preserves all thirteen issued profile identities. A request binds
+actual startup and parent scope/input identifiers; domain-separated HMAC proofs
+avoid transmitting the startup control token. Replies authenticate exact bounded
+directory bytes and the original request identifiers. Parsing grants no caller
+or execution authority: matching Core/owner custody and installed qualification
+remain separate gates. See [discovery](../docs/native-discovery.md).

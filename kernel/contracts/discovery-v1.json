@@ -1,0 +1,173 @@
+{
+  "profile": "skulk.discovery/1",
+  "protocol": 1,
+  "canonicalization": "skulk.portable-json/1",
+  "managed_profile": "skulk.managed/2",
+  "composition_profile": "skulk.composition/3",
+  "limits": {
+    "metadata_bytes": 4096,
+    "payload_bytes": 8388608,
+    "offers": 4096,
+    "metadata_seconds": 30
+  },
+  "framing": "One request and one reply per protected Unix connection: u32 big-endian metadata byte length, canonical UTF-8 metadata, exactly payload_size raw bytes, then EOF. Bounds are checked before allocation.",
+  "socket": "discovery.sock alongside the admitted Startup.socket, inside the same host-owned private child directory. Missing support refuses; no alternate endpoint or credential is tried.",
+  "semantics": [
+    "This independent optional metadata profile does not change any issued calls, managed, handshake, transport or composition profile. Old hosts refuse it without downgrade.",
+    "Requests use a domain-separated HMAC-SHA256 proof of the exact private startup, without resending or consuming its one-use control token. Each reply independently authenticates its complete header and exact body digest. The proof is HMAC with the 32 decoded startup-token bytes over ASCII domain skulk.discovery.request/1 followed by NUL and canonical request metadata excluding startup_proof; replies use domain skulk.discovery.response/1 and exclude owner_proof. Hosts derive the original caller only from their actual active Core parent registry. Proofs and parent metadata are sensitive and never logged.",
+    "Discovery intersects the original parent target and processing-domain ceilings, current caller grants and live signed observations. No author-supplied caller, issuer, policy, replacement principal, destination filter or credential is accepted. An observation never grants dispatch authority.",
+    "The host rechecks source incarnation, current policy, cancellation and actual finite expiry before and after observation and at the physical response write. Completed, revoked, stale, foreign, uncertain or concurrent parents refuse. Each active parent owns a separate monotonic query sequence; discovery never consumes an effect-delegation sequence.",
+    "Only read and inference observations are exposed. Current/ancestral executors are excluded; this profile never exposes or executes governed proposals and never classifies or routes tasks.",
+    "Connection, partial I/O and the entire metadata query have a bounded resource lifetime attenuated by any actual parent expiry. Null parent expiry adds no generation allowance. Cancellation drains owned query work and never retries or caches a grant.",
+    "Request authentication and structural native parsing establish neither active-call ownership nor current policy. The private local socket is not a sandbox against other code running as the same operating-system user.",
+    "A reply binds all four request/parent identifiers and SHA256 of the exact directory bytes. Successful directory admission remains atomic through the public typed directory and compiled portable/2 descriptors; an error reply contains no body or diagnostic content."
+  ],
+  "models": {
+    "Request": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.discovery/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "parent_call_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "parent_scope_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "parent_request_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8388608
+        },
+        "kind": {
+          "const": "discover"
+        },
+        "node_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]{1,128}$"
+        },
+        "host_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]{1,128}$"
+        },
+        "transport_node_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:@-]{1,128}$"
+        },
+        "manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "startup_proof": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "request_id",
+        "parent_call_id",
+        "parent_scope_id",
+        "parent_request_sha256",
+        "payload_size",
+        "kind",
+        "node_id",
+        "host_id",
+        "transport_node_id",
+        "manifest_sha256",
+        "startup_proof"
+      ]
+    },
+    "Response": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": 1
+        },
+        "contract_profile": {
+          "const": "skulk.discovery/1"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "parent_call_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "parent_scope_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "parent_request_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "payload_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8388608
+        },
+        "kind": {
+          "const": "directory"
+        },
+        "directory_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "error": {
+          "enum": [
+            null,
+            "denied",
+            "unavailable",
+            "limit"
+          ]
+        },
+        "owner_proof": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "protocol",
+        "contract_profile",
+        "profile_digest",
+        "request_id",
+        "parent_call_id",
+        "parent_scope_id",
+        "parent_request_sha256",
+        "payload_size",
+        "kind",
+        "directory_sha256",
+        "error",
+        "owner_proof"
+      ]
+    }
+  }
+}

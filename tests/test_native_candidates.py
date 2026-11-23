@@ -64,6 +64,7 @@ def bundle(path: Path, *, clean: bool = True, source: str = SOURCE) -> Path:
         **{
             f"{kind}-{backend}.json": b"{}"
             for kind in [
+                "discovery",
                 "portable",
                 "managed",
                 "handshake",

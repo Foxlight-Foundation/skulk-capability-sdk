@@ -164,6 +164,7 @@ main().catch(error=>{console.error(error);process.exitCode=1});
         "inference-calls",
         "inference-managed",
         "inference-handshake",
+        "discovery",
     ]:
         for backend in ["python", "node"]:
             command = [
@@ -187,7 +188,14 @@ main().catch(error=>{console.error(error);process.exitCode=1});
             elif kind.startswith("inference-"):
                 command.append("--inference")
             if backend == "node":
-                command += ["--node-facade", str(facade)]
+                command += [
+                    "--node-facade",
+                    str(
+                        facade.with_name("loader.cjs")
+                        if kind == "discovery"
+                        else facade
+                    ),
+                ]
             _run(command, python_env)
     for kind in [
         "portable",
@@ -203,6 +211,7 @@ main().catch(error=>{console.error(error);process.exitCode=1});
         "inference-calls",
         "inference-managed",
         "inference-handshake",
+        "discovery",
     ]:
         expected = json.loads((output / f"{kind}-rust.json").read_text())
         for backend in ["python", "node"]:

@@ -15,6 +15,8 @@ pub mod composition;
 pub mod composition_v2;
 pub mod composition_v3;
 pub mod contracts;
+#[cfg(unix)]
+pub mod discovery;
 pub mod handshake;
 pub mod handshake_v2;
 #[cfg(unix)]

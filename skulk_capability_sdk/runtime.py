@@ -12,6 +12,7 @@ def native_module() -> object:
         "0.7.0rc4",
         "0.7.0rc5",
         "0.7.0rc6",
+        "0.7.0rc7",
     }:
         raise ValueError("native application requires the explicit execution cohort")
     return importlib.import_module("_skulk_capability_kernel")

@@ -76,9 +76,9 @@
       "adjustment": "Standalone-package import grouping only"
     },
     "skulk_capability_sdk/application.py": {
-      "source_sha256": "0a911858e5b561b1cb6dd47aacbd6a4f30c22ab0d238754c6134d4a576e581e7",
-      "exported_sha256": "0a911858e5b561b1cb6dd47aacbd6a4f30c22ab0d238754c6134d4a576e581e7",
-      "adjustment": "Public typed caller-authorized native discovery and exact descriptor identities; no private host or provider implementation"
+      "source_sha256": "b831a1bfa27d065491f8ff4876254eb28f3fb235304046c358b969535124cbd1",
+      "exported_sha256": "b831a1bfa27d065491f8ff4876254eb28f3fb235304046c358b969535124cbd1",
+      "adjustment": "Public invocation-bound metadata client and native compatibility; no private host or provider imports"
     },
     "skulk_capability_sdk/jobs.py": {
       "source_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",
@@ -86,9 +86,9 @@
       "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     },
     "skulk_capability_sdk/runtime.py": {
-      "source_sha256": "ddce6eb026f1f82613e27629d2dcbd096c8b58fac587d07173e8242fbc5c80cb",
-      "exported_sha256": "ddce6eb026f1f82613e27629d2dcbd096c8b58fac587d07173e8242fbc5c80cb",
-      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
+      "source_sha256": "f6bb44020205d8d221c19eebb736529497cfc8c3c65c1c5f2b9318f1e8862e11",
+      "exported_sha256": "f6bb44020205d8d221c19eebb736529497cfc8c3c65c1c5f2b9318f1e8862e11",
+      "adjustment": "Public optional native discovery compatibility; no owner or provider implementation"
     },
     "skulk_capability_sdk/_credential_bridge.py": {
       "source_sha256": "922d5e0584bc90e7410493631eb2a2075a6400c2df7a4c64ed672a843294a4ca",
@@ -114,6 +114,11 @@
       "source_sha256": "769146464121fbd0b93883a2f190d773169be38bdca4ea5b90f93aa0392ff5d1",
       "exported_sha256": "769146464121fbd0b93883a2f190d773169be38bdca4ea5b90f93aa0392ff5d1",
       "adjustment": "Public typed caller-authorized native discovery and exact descriptor identities; no private host or provider implementation"
+    },
+    "skulk_capability_sdk/_invocation_discovery.py": {
+      "source_sha256": "df36bae5ed67b38b577d198cd4f2b2deb66692fda8cb7ab78711b778550f670f",
+      "exported_sha256": "df36bae5ed67b38b577d198cd4f2b2deb66692fda8cb7ab78711b778550f670f",
+      "adjustment": "Public invocation-bound metadata client; no private owner or provider implementation"
     }
   }
 }

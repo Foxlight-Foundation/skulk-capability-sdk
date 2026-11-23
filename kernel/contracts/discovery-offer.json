@@ -1,0 +1,35 @@
+{
+  "plugin_id": "managed.example",
+  "runtime_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "incarnation": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "target": {
+    "node_id": "example-node",
+    "capability_id": "example",
+    "version": "1.0.0",
+    "descriptor_revision": "0561684d4cf1d30a07129e1ac038a3149319ee9201cb3fc310f97b0840c39484",
+    "behavior": "inference",
+    "processing_domain": "external"
+  },
+  "descriptor": {
+    "annotations": {},
+    "behavior": "inference",
+    "contract_profile": "skulk.portable/2",
+    "description": "Synthetic contract",
+    "id": "example",
+    "input_chunk_schema": null,
+    "input_schema": {
+      "type": "object"
+    },
+    "io_mode": "unary",
+    "output_chunk_schema": null,
+    "output_schema": null,
+    "processing_domain": "external",
+    "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+    "title": "Example",
+    "version": "1.0.0"
+  },
+  "stream_seconds": 300,
+  "cleanup_seconds": 3,
+  "startup_seconds": 5,
+  "inference_seconds": null
+}

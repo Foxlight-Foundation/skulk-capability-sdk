@@ -23,7 +23,7 @@ from contextlib import (
     asynccontextmanager,
 )
 from dataclasses import dataclass, field
-from typing import Literal, Protocol, cast, final
+from typing import TYPE_CHECKING, Literal, Protocol, cast, final
 
 from pydantic import JsonValue, TypeAdapter
 
@@ -31,6 +31,9 @@ from .contracts import OperationBounds
 from .credentials import CredentialAccess, CredentialReader
 from .runtime import finish_owned as _finish_owned
 from .runtime import native_module
+
+if TYPE_CHECKING:
+    from .discovery import CapabilityDirectory
 
 _OBJECT = TypeAdapter(dict[str, JsonValue])
 _TEXT = TypeAdapter(str)
@@ -416,6 +419,55 @@ class _Delegations:
         self.active = True
         self.pending: _PendingDelegation | None = None
         self.sending: asyncio.Task[None] | None = None
+        self.discovery_sequence = 0
+        self.discovering: asyncio.Task[CapabilityDirectory] | None = None
+
+    async def discover(self) -> CapabilityDirectory:
+        from ._invocation_discovery import query
+        from .discovery import DiscoveryError
+
+        if not self.active or self.pending is not None or self.discovering is not None:
+            raise ValueError("application discovery is closed or already occupied")
+        if self.discovery_sequence >= 2**64 - 1:
+            raise ValueError("application discovery sequence exhausted")
+        self.discovery_sequence += 1
+
+        def check() -> None:
+            if not self.active:
+                raise ValueError("application discovery parent retired")
+
+        task = asyncio.create_task(
+            query(
+                self.startup.canonical(),
+                self.context,
+                self.call_id,
+                self.discovery_sequence,
+                self.expires_at,
+                check,
+            )
+        )
+        self.discovering = task
+        try:
+            result = await asyncio.shield(task)
+            check()
+            return result
+        except DiscoveryError as error:
+            if error.code not in ("denied", "unsupported", "limit"):
+                self.abandon()
+            raise
+        except BaseException:
+            self.abandon()
+            raise
+        finally:
+            if not task.done():
+                task.cancel()
+            await _finish_owned(asyncio.create_task(self._join_discovery(task)))
+            if self.discovering is task:
+                self.discovering = None
+
+    @staticmethod
+    async def _join_discovery(task: asyncio.Task[CapabilityDirectory]) -> None:
+        await asyncio.gather(task, return_exceptions=True)
 
     def receive(self, request: dict[str, JsonValue], body: bytes) -> None:
         pending = self.pending
@@ -479,6 +531,8 @@ class _Delegations:
 
     def retire(self) -> None:
         self.active = False
+        if self.discovering is not None:
+            self.discovering.cancel()
         if self.pending is not None:
             # Cleanup may already own an uncancellable resource exit awaiting a
             # child. Wake that wait without requiring a response from a scope
@@ -495,6 +549,11 @@ class _Delegations:
 
     async def close(self) -> None:
         self.active = False
+        if self.discovering is not None:
+            self.discovering.cancel()
+            await _finish_owned(
+                asyncio.create_task(self._join_discovery(self.discovering))
+            )
         if self.pending is not None:
             self.abandon()
             if not self.pending.reply.done():
@@ -516,7 +575,7 @@ class _Delegations:
         *,
         streaming: bool = False,
     ) -> tuple[dict[str, JsonValue], _PendingDelegation]:
-        if not self.active or self.pending is not None:
+        if not self.active or self.pending is not None or self.discovering is not None:
             raise ValueError("application delegation is closed or already pending")
         if self.sequence >= 2**64 - 1:
             raise ValueError("application delegation sequence exhausted")
@@ -528,6 +587,7 @@ class _Delegations:
             if importlib.metadata.version("skulk-capability-kernel") not in {
                 "0.7.0rc5",
                 "0.7.0rc6",
+                "0.7.0rc7",
             }:
                 raise ValueError("application caller streams require native rc5 or rc6")
             mode = _STREAM_MODE.validate_python(fields["io_mode"], strict=True)
@@ -983,6 +1043,19 @@ class Invocation:
     context: CallContext = field(repr=False)
     _resources: AsyncExitStack = field(default_factory=AsyncExitStack, repr=False)
     _calls: _Delegations | None = field(default=None, repr=False)
+
+    async def discover(self) -> CapabilityDirectory:
+        """Observe destinations within this invocation's original caller permissions.
+
+        The host intersects fresh observations with this parent's narrowed scope
+        and current authorization. Metadata grants no permission. Join discovery
+        before returning or starting a child call; cancellation drains the query
+        and retires the parent. There is no bearer substitution, cache or retry.
+        Older hosts or native cohorts explicitly report unsupported.
+        """
+        if self._calls is None:
+            raise ValueError("application invocation has no active discovery client")
+        return await self._calls.discover()
 
     @property
     def version(self) -> str:

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skulk-capability-sdk"
-version = "0.5.14rc1"
+version = "0.5.15rc1"
 description = "Public authoring contracts and lifecycle primitives for Skulk capabilities"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -46,6 +46,10 @@ include = ["/skulk_capability_sdk", "/LICENSE.md", "/README.md", "/SOURCE-MANIFE
 asyncio_mode = "auto"
 testpaths = ["tests", "packages/tools/tests"]
 pythonpath = ["."]
+markers = [
+    "requires_discovery_v1: new native discovery ABI acceptance, qualified separately from issued runtimes",
+    "pre_discovery_v1: explicit unsupported behavior on issued runtimes without discovery",
+]
 
 [tool.basedpyright]
 typeCheckingMode = "strict"

@@ -153,5 +153,21 @@ declare const native: {
   NativeJournal: typeof NativeJournal;
   NativeProcessFence: typeof NativeProcessFence;
   openProcessFence(directory: string): Promise<NativeProcessFence>;
+/** Independent optional parent-bound metadata protocol fingerprint. */
+discoveryProfileDigest(): string;
+/** Private sibling of an admitted startup; no ambient endpoint fallback. */
+discoverySocket(startup: string): string;
+/** Sensitive startup proof and original-parent correlation; no caller authority. */
+discoveryRequest(startup: string, context: string, parent: string, sequence: string): Buffer;
+/** Bounded body allocation hint; full admission is still required. */
+discoveryPayloadSize(source: string): number;
+/** Exact native-admitted metadata and defensive payload copy. */
+decodeDiscoveryFrame(packet: Buffer): {metadata: Buffer; payload: Buffer};
+/** Match startup proof, returning only token-free parent identifiers. */
+admitDiscoveryRequest(startup: string, packet: Buffer): Buffer;
+/** Exact directory bytes or a bounded body-free refusal. */
+discoveryReply(startup: string, request: string, payload: Buffer, error: string | null): Buffer;
+/** Match every original parent/query identifier before exposing the body. */
+discoveryResponse(startup: string, request: string, packet: Buffer): {error?: string | null; payload: Buffer};
 };
 export = native;

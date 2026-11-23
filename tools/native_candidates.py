@@ -85,7 +85,9 @@ def _identity(*args: str) -> str:
     ).strip()
 
 
-def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
+def validate_corpora(
+    files: dict[str, bytes], *, discovery: bool = False
+) -> tuple[Corpus, ...]:
     """Require complete, identical observations across all three native backends."""
     from tools.check_calls_profile import fixture as calls_fixture
     from tools.check_composition_profile import fixture as composition_fixture
@@ -219,6 +221,44 @@ def validate_corpora(files: dict[str, bytes]) -> tuple[Corpus, ...]:
                     "Inference observations differ from independent corpus"
                 )
         qualified.append(reports[0])
+    if discovery:
+        from tools.check_discovery_profile import fixture as discovery_fixture
+
+        inputs = discovery_fixture()
+        expected_input = hashlib.sha256(
+            "\n".join(
+                json.dumps(c.request.model_dump(), sort_keys=True) for c in inputs.cases
+            ).encode()
+        ).hexdigest()
+        expected = tuple(
+            Observation(
+                case=c.identity,
+                sha256=hashlib.sha256(
+                    c.expected().model_dump_json().encode()
+                ).hexdigest(),
+            )
+            for c in inputs.cases
+        )
+        reports = [
+            Corpus.model_validate_json(files[f"discovery-{backend}.json"])
+            for backend in ("rust", "python", "node")
+        ]
+        for report, backend in zip(reports, ("rust", "python", "node"), strict=True):
+            if (
+                report.backend != backend
+                or report.profile != inputs.profile
+                or report.profile_digest != inputs.profile_digest
+                or report.input_sha256 != expected_input
+                or report.observations != expected
+                or report.cases != len(expected)
+                or len({o.case for o in report.observations}) != report.cases
+                or report.model_dump(exclude={"backend"})
+                != reports[0].model_dump(exclude={"backend"})
+            ):
+                raise ValueError(
+                    "Discovery observations differ from independent corpus"
+                )
+        qualified.append(reports[0])
     return tuple(qualified)
 
 
@@ -274,10 +314,11 @@ def create_bundle(output: Path) -> Path:
                 "composition-",
                 "calls-",
                 "inference-",
+                "discovery-",
             )
         )
     }
-    validate_corpora(evidence)
+    validate_corpora(evidence, discovery=python_version == "0.7.0rc7")
     archive = output / f"native-candidate-{family}.zip"
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zipped:
         zipped.writestr("candidate.json", metadata.model_dump_json(indent=2) + "\n")
@@ -300,7 +341,7 @@ def read_bundle(
     with zipfile.ZipFile(path) as zipped:
         entries = zipped.infolist()
         if (
-            len(entries) != 44
+            len(entries) not in (44, 47)
             or sum(e.file_size for e in entries) > 2 * MAX_ASSET_BYTES
         ):
             raise ValueError("Native candidate bundle inventory differs")
@@ -353,6 +394,10 @@ def read_bundle(
             for backend in ["rust", "python", "node"]
         ],
     }
+    if bundle.version == "0.7.0rc7":
+        expected.update(
+            f"discovery-{backend}.json" for backend in ("rust", "python", "node")
+        )
     if set(files) != expected:
         raise ValueError("Native candidate bundle inventory differs")
     require_wheel_platform(bundle.wheel.name, bundle.platform)
@@ -388,7 +433,11 @@ def read_bundle(
             selected = Path(temporary) / asset.name
             selected.write_bytes(files[asset.name])
             inspect(selected)
-    return bundle, files, validate_corpora(files)
+    return (
+        bundle,
+        files,
+        validate_corpora(files, discovery=bundle.version == "0.7.0rc7"),
+    )
 
 
 def assemble(paths: list[Path], destination: Path, source: str) -> Path:

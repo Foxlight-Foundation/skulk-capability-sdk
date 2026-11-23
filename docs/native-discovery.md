@@ -17,6 +17,45 @@ Application invocations retain their original caller through the separate
 an invocation's parent scope. Generic governed and Steward exposure remains a
 separate SDK1 acceptance item.
 
+## Discovery inside an active invocation
+
+The SDK 0.5.15rc1 source candidate adds `await invocation.discover()` in both
+Python and TypeScript. It takes no client key or caller argument. Core resolves
+the actual active parent on its protected owner connection and intersects fresh
+observations with that parent's original caller permissions, exact allowed
+destinations, processing domains and ancestry. It excludes the executor and
+ancestors across version aliases. Discovering an offer never grants access.
+
+```python
+async def handle(invocation: Invocation) -> dict[str, JsonValue]:
+    directory = await invocation.discover()
+    offer = directory.select("configured.application", "configured.read", "1.0.0")
+    reply = await invocation.call(offer.endpoint, {"input": "application task"})
+    return reply.payload
+```
+
+```ts
+const directory = await invocation.discover();
+const offer = directory.select('configured.application', 'configured.read', '1.0.0');
+const reply = await invocation.call(offer.endpoint, {input: 'application task'});
+```
+
+Only one query or child call may be pending per invocation. Await discovery
+before calling a child or completing the handler. Cancellation owns and joins
+the socket cleanup; interrupted or invalid observations retire the parent. A
+separate monotonic metadata sequence never consumes a child-effect sequence.
+The host rechecks caller credentials, policy, parent and owner before delivery.
+There is no service bearer, permission cache, retry, automatic selection or route.
+
+This optional feature uses the separately fingerprinted `skulk.discovery/1`
+companion channel in native 0.7.0rc7 and requires a matching owner/Core bridge.
+Issued calls/2 and startup bytes retain their meaning. Older cohorts or hosts
+report `DiscoveryError("unsupported")`; they never try a different endpoint.
+The source implementation is awaiting new-cohort publication and installed
+qualification. The currently issued native5/6 package pins remain unchanged.
+This invocation read uses the local companion channel and needs no HTTPX extra.
+The examples below describe the distinct external enrolled-client interface.
+
 ## Python
 
 From a reviewed SDK checkout, prepare the public packages and issued native wheel:

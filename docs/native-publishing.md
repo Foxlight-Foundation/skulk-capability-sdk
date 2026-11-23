@@ -1,16 +1,18 @@
 # Native candidate publishing
 
-The experimental **SDK0.5.14rc1 / author tools0.2.0rc3** supplies an explicit
+The experimental **SDK0.5.16rc1 / author tools0.2.0rc4** supplies an explicit
 compiler-free native build path. The Python application interface is unchanged.
 The public tools contain authoring, artifact and signature contracts; the owner,
 supervisor, runtime installer and provider code are independently supplied.
-The preceding SDK0.5.13rc1 and current author tools packages are available in
-[v0.5.13-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.13-rc.1).
+Current SDK and author tools packages are available in
+[v0.5.16-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.16-rc.1).
+The [public quickstart](native-public-quickstart.md) supplies the separate local
+Python/TypeScript development path without a private runtime.
 They remain candidates; SDK1's complete installed and consumer gates are separate.
 
 A native build selects `skulk.managed/2`, release protocol3, runtime protocol5
 and `skulk.calls/2`. It uses the actual public compiled author reader, full native
-identities and the six active profile fingerprints. All thirteen installed ABI
+identities and the active profile fingerprints. All fourteen installed ABI
 fingerprints are compared with the immutable public candidate receipt. The
 selected runtime kernel wheel must match that receipt's exact filename, SHA-256,
 size and platform. No legacy revision is truncated or padded.
@@ -19,10 +21,9 @@ size and platform. No legacy revision is truncated or padded.
 
 Use Python3.13 and install the public SDK, author tools and one exact public
 native wheel for your host. The workspace's `native-runtime` group selects
-[native-v0.7.0-rc.5](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.5).
-The separately issued rc3 and rc4 cohorts remain readable and independently
-selectable. TypeScript durable jobs use the distinct rc6 custody cohort; this
-does not change the Python author reader selected by the workspace.
+[native-v0.7.0-rc.7](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.7).
+Python and TypeScript select this same declared-discovery cohort. Separately
+issued older cohorts remain readable and independently selectable.
 No compiler, Foxlight account or publisher registration is needed to acquire
 these public source/packages or to build a disposable candidate.
 

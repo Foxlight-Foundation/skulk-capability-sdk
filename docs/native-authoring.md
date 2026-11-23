@@ -5,12 +5,17 @@ and runs the same compiled managed/2, calls/2 and transport/2 interfaces used by
 the application runtime. It supports unary, server-streaming, client-streaming
 and bidirectional handlers. No provider account, model, GPU or fleet is needed.
 
-This is an SDK1 candidate source journey. SDK **0.5.15rc1** and tools
+This is an SDK1 candidate source journey. SDK **0.5.16rc1** and tools
 **0.2.0rc4** are not stable SDK1 releases. The normal signed owner/Core
 installation, update and rollback journey has a separate acceptance gate.
-The previous SDK0.5.13rc1, current author tools and three selected Node runtime wheels
-are available without an account in the public
-[v0.5.13-rc.1 candidate release](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.13-rc.1).
+Current SDK and tools packages are public in
+[v0.5.16-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.16-rc.1).
+The unchanged three selected Node runtime wheels remain available in
+[v0.5.13-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.13-rc.1).
+
+For a clean environment using only public release downloads, start with the
+[public package quickstart](native-public-quickstart.md). The source recipe below
+is useful when developing the SDK itself.
 
 ## Prepare an author environment
 
@@ -40,9 +45,9 @@ npm ci --ignore-scripts --prefix packages/typescript
 npm run build --prefix packages/typescript
 mkdir -p .runtime
 npm pack ./packages/typescript --pack-destination .runtime
-SDK_TARBALL="$PWD/.runtime/foxlight-skulk-capability-sdk-0.5.15-rc.1.tgz"
+SDK_TARBALL="$PWD/.runtime/foxlight-skulk-capability-sdk-0.5.16-rc.1.tgz"
 uv run --no-sync python tools/check_typescript_export.py \
-  .runtime/foxlight-skulk-capability-sdk-0.5.15-rc.1.tgz
+  .runtime/foxlight-skulk-capability-sdk-0.5.16-rc.1.tgz
 uv run --no-sync python tools/prepare_node_qualification.py \
   --output .runtime/selected-node
 ```

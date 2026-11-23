@@ -1,0 +1,252 @@
+{
+  "arguments": [],
+  "bounds": {
+    "backoff_seconds": 0.1,
+    "call_seconds": 30,
+    "concurrency": 1,
+    "health_seconds": 2,
+    "inference_seconds": null,
+    "log_bytes": 0,
+    "max_children": 4,
+    "restart_budget": 3,
+    "shutdown_seconds": 5,
+    "startup_seconds": 30,
+    "stream_seconds": 300
+  },
+  "bundle_id": "foxlight.sdk-reference",
+  "bundle_version": "0.1.0",
+  "contract_profile": "skulk.managed/2",
+  "contracts": {
+    "configuration_schema": {
+      "type": "object"
+    },
+    "contract_profile": "skulk.portable/2",
+    "descriptors": [
+      {
+        "annotations": {},
+        "behavior": "read",
+        "contract_profile": "skulk.portable/2",
+        "description": "Local model-free text/media example.",
+        "id": "foxlight.sdk-reference.echo",
+        "input_chunk_schema": null,
+        "input_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "io_mode": "unary",
+        "output_chunk_schema": null,
+        "output_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "processing_domain": "local",
+        "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+        "title": "Echo",
+        "version": "1.0.0"
+      },
+      {
+        "annotations": {},
+        "behavior": "read",
+        "contract_profile": "skulk.portable/2",
+        "description": "Local model-free text/media example.",
+        "id": "foxlight.sdk-reference.stream",
+        "input_chunk_schema": null,
+        "input_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "io_mode": "server_streaming",
+        "output_chunk_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "output_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "processing_domain": "local",
+        "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+        "title": "Stream",
+        "version": "1.0.0"
+      },
+      {
+        "annotations": {},
+        "behavior": "read",
+        "contract_profile": "skulk.portable/2",
+        "description": "Local model-free text/media example.",
+        "id": "foxlight.sdk-reference.collect",
+        "input_chunk_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "input_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "io_mode": "client_streaming",
+        "output_chunk_schema": null,
+        "output_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "processing_domain": "local",
+        "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+        "title": "Collect",
+        "version": "1.0.0"
+      },
+      {
+        "annotations": {},
+        "behavior": "read",
+        "contract_profile": "skulk.portable/2",
+        "description": "Local model-free text/media example.",
+        "id": "foxlight.sdk-reference.duplex",
+        "input_chunk_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "input_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "io_mode": "bidirectional",
+        "output_chunk_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "output_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "processing_domain": "local",
+        "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+        "title": "Duplex",
+        "version": "1.0.0"
+      }
+    ],
+    "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+    "protocol": 6
+  },
+  "credential_inputs": [],
+  "effect": "read",
+  "executable": "bundle.pyz",
+  "executable_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "operations": null,
+  "preflight_profile": null,
+  "profile_digest": "add1362825790e109c779ae5ec5b3467710b42acebf8a2081b404fb18f73cacc",
+  "protocol": 6,
+  "runtime_dependencies": [
+    "skulk-capability-sdk"
+  ],
+  "skulk_requires": ">=2.0.3,<3",
+  "steward": [],
+  "surfaces": [],
+  "title": "foxlight.sdk-reference"
+}

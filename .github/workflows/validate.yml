@@ -96,11 +96,12 @@ jobs:
           python-version: '3.13'
       - run: uv sync --frozen --all-packages --no-editable --group native-runtime --reinstall-package skulk-capability-sdk --reinstall-package skulk-capability-tools
       - run: uv run --no-sync basedpyright --pythonpath .venv/bin/python
+      - run: uv run --no-sync basedpyright --pythonpath .venv/bin/python examples/native_reference/sdk_reference
       - run: uv run --no-sync ruff check
       - run: uv run --no-sync ruff format --check
       - run: uv run --no-sync pytest --junitxml=.runtime/app-root.xml
       - run: uv run --no-sync pytest tests_native -m 'not pre_discovery_v1' --junitxml=.runtime/app-native.xml
-      - run: uv run --no-sync pytest tests_authoring/test_python_author.py --junitxml=.runtime/author-python.xml
+      - run: uv run --no-sync pytest tests_authoring/test_python_author.py tests_authoring/test_reference.py --junitxml=.runtime/author-python.xml
       - run: uv build --all-packages
       - run: uv run --no-sync python tools/check_export.py
       - run: uv run --no-sync python tools/check_tools_export.py

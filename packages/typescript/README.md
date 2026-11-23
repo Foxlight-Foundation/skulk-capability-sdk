@@ -5,6 +5,16 @@ This is the SDK1 source candidate. The public package uses the issued native
 Fabric authority. Managed installation and complete author journeys require
 their own matching host/runtime qualification.
 
+`discoverCapabilities` reads Core's caller-filtered native directory with an
+explicit enrolled client key. Immutable `CapabilityDirectory`/`CapabilityOffer`
+values preserve exact descriptors, resource settings and observed generations.
+HTTPS trust, bounded transfers, cancellation and revocation are explicit;
+discovery grants no execution rights. See the
+[discovery guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/initiative/sdk1-completion/docs/native-discovery.md).
+
+Repository TLS qualification tests use the OpenSSL CLI to create disposable
+test certificates. The runtime client uses Node's built-in HTTP(S)/TLS modules.
+
 Supported author runtimes are Node 22.18 or later in the Node 22 line, on
 macOS ARM64 and glibc 2.34+ Linux x86_64/ARM64. The exact supported addon is
 selected and verified before it loads. Unsupported platforms refuse explicitly.

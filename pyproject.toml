@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skulk-capability-sdk"
-version = "0.5.13rc1"
+version = "0.5.14rc1"
 description = "Public authoring contracts and lifecycle primitives for Skulk capabilities"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -13,13 +13,14 @@ dependencies = ["pydantic>=2.12,<3", "jsonschema>=4.26,<5", "packaging>=24"]
 
 [project.optional-dependencies]
 native-credentials = ["keyring>=25,<26"]
+native-discovery = ["httpx>=0.28.1,<1"]
 
 [project.urls]
 Source = "https://github.com/Foxlight-Foundation/skulk-capability-sdk"
 Documentation = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/tree/main/docs"
 
 [dependency-groups]
-dev = ["pytest==9.1.1", "pytest-asyncio==1.4.0", "ruff==0.14.11", "basedpyright==1.39.10", "types-jsonschema", "pydantic==2.13.5", "keyring>=25,<26"]
+dev = ["pytest==9.1.1", "pytest-asyncio==1.4.0", "ruff==0.14.11", "basedpyright==1.39.10", "types-jsonschema", "pydantic==2.13.5", "keyring>=25,<26", "httpx==0.28.1", "cryptography==50.0.2"]
 
 # Explicit compiler-free author-runtime qualification, separate from the legacy SDK.
 native-runtime = [

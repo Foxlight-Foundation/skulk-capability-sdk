@@ -39,8 +39,8 @@ jobs:
       - run: npm run check --prefix packages/typescript
       - run: npm test --prefix packages/typescript
       - run: mkdir -p .runtime/node-installed && npm pack ./packages/typescript --pack-destination .runtime --json > .runtime/npm-pack.json
-      - run: uv run --no-sync python tools/check_typescript_export.py .runtime/foxlight-skulk-capability-sdk-0.5.13-rc.1.tgz
-      - run: npm install --ignore-scripts --omit=dev --prefix .runtime/node-installed ./.runtime/foxlight-skulk-capability-sdk-0.5.13-rc.1.tgz
+      - run: uv run --no-sync python tools/check_typescript_export.py .runtime/foxlight-skulk-capability-sdk-0.5.14-rc.1.tgz
+      - run: npm install --ignore-scripts --omit=dev --prefix .runtime/node-installed ./.runtime/foxlight-skulk-capability-sdk-0.5.14-rc.1.tgz
       - name: Compile a clean author against the installed declarations
         run: |
           cp packages/typescript/tests/consumer.ts .runtime/node-installed/consumer.mts
@@ -59,7 +59,7 @@ jobs:
             uv run --no-sync pytest tests_packaged --junitxml=.runtime/selected-node/tests.xml
       - name: Create, compile and run a clean native TypeScript author
         run: |
-          SKULK_TYPESCRIPT_PACKAGE="$PWD/.runtime/foxlight-skulk-capability-sdk-0.5.13-rc.1.tgz" \
+          SKULK_TYPESCRIPT_PACKAGE="$PWD/.runtime/foxlight-skulk-capability-sdk-0.5.14-rc.1.tgz" \
             uv run --no-sync pytest tests_authoring/test_node_author.py --junitxml=.runtime/author-node.xml
       - run: git diff --exit-code
       - run: uv run --no-sync python tools/record_typescript_qualification.py
@@ -68,7 +68,7 @@ jobs:
         with:
           name: typescript-sdk-${{ matrix.runner }}
           path: |
-            .runtime/foxlight-skulk-capability-sdk-0.5.13-rc.1.tgz
+            .runtime/foxlight-skulk-capability-sdk-0.5.14-rc.1.tgz
             .runtime/npm-pack.json
             .runtime/typescript.xml
             .runtime/author-node.xml

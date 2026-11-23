@@ -1,12 +1,12 @@
 {
   "name": "@foxlight/skulk-capability-sdk",
-  "version": "0.5.13-rc.1",
+  "version": "0.5.14-rc.1",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@foxlight/skulk-capability-sdk",
-      "version": "0.5.13-rc.1",
+      "version": "0.5.14-rc.1",
       "license": "MIT",
       "dependencies": {
         "@foxlight/skulk-kernel-linux-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.6/skulk-capability-kernel-0.7.0rc6-linux-glibc-aarch64.tgz",

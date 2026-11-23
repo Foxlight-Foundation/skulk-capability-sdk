@@ -19,6 +19,7 @@ MODULES = {
     "_credential_bridge.py",
     "_credential_reader.py",
     "application.py",
+    "discovery.py",
     "jobs.py",
     "node_application.py",
     "node_runtime.py",

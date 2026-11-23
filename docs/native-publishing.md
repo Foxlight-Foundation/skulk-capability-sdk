@@ -1,10 +1,10 @@
 # Native candidate publishing
 
-The experimental **SDK0.5.13rc1 / author tools0.2.0rc3** supplies an explicit
+The experimental **SDK0.5.14rc1 / author tools0.2.0rc3** supplies an explicit
 compiler-free native build path. The Python application interface is unchanged.
 The public tools contain authoring, artifact and signature contracts; the owner,
 supervisor, runtime installer and provider code are independently supplied.
-The packages are publicly available in
+The preceding SDK0.5.13rc1 and current author tools packages are available in
 [v0.5.13-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.13-rc.1).
 They remain candidates; SDK1's complete installed and consumer gates are separate.
 

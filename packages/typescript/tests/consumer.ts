@@ -1,4 +1,19 @@
-import {CapabilityApp, CapabilityEndpoint, OutputFrame, JobDefinition, DurableJobs, SubmissionRefused, type ApplicationFactory, type JobAdapter, type Resource, type JsonObject} from '@foxlight/skulk-capability-sdk';
+import {CapabilityApp, CapabilityEndpoint, OutputFrame, JobDefinition, DurableJobs, SubmissionRefused, discoverCapabilities, type CapabilityDirectory, type CapabilityOffer, type ApplicationFactory, type JobAdapter, type Resource, type JsonObject} from '@foxlight/skulk-capability-sdk';
+
+/** Compile read-only discovery against only the installed public declarations. */
+export async function discover(baseUrl: string, bearer: string): Promise<CapabilityOffer | undefined> {
+  const directory: CapabilityDirectory = await discoverCapabilities(baseUrl, bearer);
+  const offer = directory.offers[0];
+  if (offer !== undefined) {
+    const seconds: number | null = offer.inferenceSeconds;
+    void seconds;
+    // @ts-expect-error an observation is not an execution grant
+    void offer.grant;
+    // @ts-expect-error the runtime identity is immutable
+    offer.runtimeDigest = 'replacement';
+  }
+  return offer;
+}
 
 // A staged module's default export receives only selected runtime metadata.
 const createApplication: ApplicationFactory = runtime => new CapabilityApp({

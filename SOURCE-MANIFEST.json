@@ -76,9 +76,9 @@
       "adjustment": "Standalone-package import grouping only"
     },
     "skulk_capability_sdk/application.py": {
-      "source_sha256": "ea027d823474ca657b1604725fd3cd5244bfb354790df71b5fb969dec8d07942",
-      "exported_sha256": "ea027d823474ca657b1604725fd3cd5244bfb354790df71b5fb969dec8d07942",
-      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
+      "source_sha256": "0a911858e5b561b1cb6dd47aacbd6a4f30c22ab0d238754c6134d4a576e581e7",
+      "exported_sha256": "0a911858e5b561b1cb6dd47aacbd6a4f30c22ab0d238754c6134d4a576e581e7",
+      "adjustment": "Public typed caller-authorized native discovery and exact descriptor identities; no private host or provider implementation"
     },
     "skulk_capability_sdk/jobs.py": {
       "source_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",
@@ -109,6 +109,11 @@
       "source_sha256": "cd795056c6c1752e3687b4d03960deb46db8b93e75fd7586280eafd299ea57b2",
       "exported_sha256": "cd795056c6c1752e3687b4d03960deb46db8b93e75fd7586280eafd299ea57b2",
       "adjustment": "Authored public selected Node runtime and application asset custody; no owner, provider or Core implementation"
+    },
+    "skulk_capability_sdk/discovery.py": {
+      "source_sha256": "769146464121fbd0b93883a2f190d773169be38bdca4ea5b90f93aa0392ff5d1",
+      "exported_sha256": "769146464121fbd0b93883a2f190d773169be38bdca4ea5b90f93aa0392ff5d1",
+      "adjustment": "Public typed caller-authorized native discovery and exact descriptor identities; no private host or provider implementation"
     }
   }
 }

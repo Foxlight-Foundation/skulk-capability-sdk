@@ -5,7 +5,7 @@ operations, transactional storage, streaming media and declared credential reads
 The SDK is licensed under [MIT](LICENSE.md). Source and package downloads require
 no Foxlight account. A publishing account is separate from runtime authority.
 
-SDK0.5.13rc1 retains the qualified protocol-4 authoring interfaces.
+SDK0.5.14rc1 retains the qualified protocol-4 authoring interfaces.
 Protocol-3 unary applications remain compatible during the documented reader
 window. The shared native kernel, TypeScript facade and higher-level
 `CapabilityApp` have separate qualification gates. The explicit
@@ -93,3 +93,5 @@ Native distribution candidates use author tools `0.2.0rc3`. Explicit
 and catalog-four signature domains and full native identities. Issued legacy
 formats and default runtime acquisition recipes remain unchanged. See
 [distribution tools](packages/tools/README.md#native-distribution-candidates).
+
+Caller-authorized native capability discovery is documented in [the discovery guide](docs/native-discovery.md). It uses the existing Core directory, immutable descriptor observations and explicit client authentication; discovery grants no execution rights.

@@ -227,7 +227,7 @@ def hello() -> str:
     """Use the actual source cohort, not a bypass in the Node reader."""
     value = {
         "protocol": 1,
-        "sdk_version": "0.5.13rc1",
+        "sdk_version": "0.5.14rc1",
         "reader_sha256": reader_identity(),
     }
     return "print(" + repr(json.dumps(value)) + ",flush=True)\n"

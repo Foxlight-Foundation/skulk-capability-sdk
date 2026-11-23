@@ -13,3 +13,5 @@ export type {JobDefinitionOptions} from './job-contracts.js';
 export {DurableJobs, SubmissionRefused} from './jobs.js';
 export type {DurableJobsOptions, JobAdapter, JobObservation, JobPlan} from './jobs.js';
 export type {ApplicationRuntime, ApplicationFactory} from './selected-application.js';
+export {CapabilityDirectory, CapabilityOffer, DiscoveryError, discoverCapabilities} from './discovery.js';
+export type {DiscoveryErrorCode, DiscoveryOptions} from './discovery.js';

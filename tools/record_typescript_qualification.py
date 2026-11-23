@@ -16,7 +16,7 @@ def git(*arguments: str) -> str:
 
 def main() -> None:
     """Record an exact clean source/package receipt, never host authorization."""
-    package = ROOT / ".runtime/foxlight-skulk-capability-sdk-0.5.13-rc.1.tgz"
+    package = ROOT / ".runtime/foxlight-skulk-capability-sdk-0.5.14-rc.1.tgz"
     installed = (
         ROOT / ".runtime/node-installed/node_modules/@foxlight/skulk-capability-sdk"
     )

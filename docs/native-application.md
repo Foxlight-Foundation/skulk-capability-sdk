@@ -1,6 +1,6 @@
 # Native Python application runtime
 
-SDK **0.5.13rc1** provides `skulk_capability_sdk.application` as an explicit
+SDK **0.5.14rc1** provides `skulk_capability_sdk.application` as an explicit
 prerelease author runtime. The existing protocol-4 modules retain their frozen
 schemas and bytes. Importing the SDK does not import a native extension or select
 a runtime. This module requires the separately installed, immutable native

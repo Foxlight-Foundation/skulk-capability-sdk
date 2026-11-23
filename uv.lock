@@ -689,7 +689,7 @@ wheels = [
 
 [[package]]
 name = "skulk-capability-sdk"
-version = "0.5.13rc1"
+version = "0.5.14rc1"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },
@@ -701,10 +701,15 @@ dependencies = [
 native-credentials = [
     { name = "keyring" },
 ]
+native-discovery = [
+    { name = "httpx" },
+]
 
 [package.dev-dependencies]
 dev = [
     { name = "basedpyright" },
+    { name = "cryptography" },
+    { name = "httpx" },
     { name = "keyring" },
     { name = "pydantic" },
     { name = "pytest" },
@@ -720,16 +725,19 @@ native-runtime = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", marker = "extra == 'native-discovery'", specifier = ">=0.28.1,<1" },
     { name = "jsonschema", specifier = ">=4.26,<5" },
     { name = "keyring", marker = "extra == 'native-credentials'", specifier = ">=25,<26" },
     { name = "packaging", specifier = ">=24" },
     { name = "pydantic", specifier = ">=2.12,<3" },
 ]
-provides-extras = ["native-credentials"]
+provides-extras = ["native-credentials", "native-discovery"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "basedpyright", specifier = "==1.39.10" },
+    { name = "cryptography", specifier = "==50.0.2" },
+    { name = "httpx", specifier = "==0.28.1" },
     { name = "keyring", specifier = ">=25,<26" },
     { name = "pydantic", specifier = "==2.13.5" },
     { name = "pytest", specifier = "==9.1.1" },

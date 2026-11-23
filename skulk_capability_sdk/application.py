@@ -334,6 +334,23 @@ class CapabilityEndpoint:
         """Return exact admitted descriptor bytes without implying signed custody."""
         return self._descriptor
 
+    @property
+    def capability_id(self) -> str:
+        """Return the exact declared capability ID from the admitted descriptor."""
+        return _TEXT.validate_python(self.descriptor()["id"], strict=True)
+
+    @property
+    def version(self) -> str:
+        """Return the exact declared version without selecting a compatible version."""
+        return _TEXT.validate_python(self.descriptor()["version"], strict=True)
+
+    @property
+    def descriptor_revision(self) -> str:
+        """Return the issued portable/2 digest of these immutable descriptor bytes."""
+        return _native().portable_v2_contract_digest(
+            "Descriptor", self._descriptor.decode()
+        )
+
 
 @final
 @dataclass(frozen=True, slots=True, repr=False)

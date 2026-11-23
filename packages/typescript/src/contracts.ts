@@ -1,5 +1,5 @@
-import {native} from './native.js';
-import {copyJson, encodeJson, object, parseJson, text, utf8, type JsonObject, type JsonValue} from './json.js';
+import {native, canonicalValue} from './native.js';
+import {copyJson, object, parseJson, text, utf8, type JsonObject, type JsonValue} from './json.js';
 
 /** Explicit shared I/O modes; null lifetime remains uncapped inference. */
 export type Mode = 'unary' | 'server_streaming' | 'client_streaming' | 'bidirectional';
@@ -25,8 +25,8 @@ export class CapabilityEndpoint {
   readonly version: string;
   readonly descriptorRevision: string;
   constructor(nodeId: string, descriptor: JsonObject) {
-    this.#descriptor = utf8(native.portableV2ContractJson('Descriptor', utf8(encodeJson(descriptor))));
-    const admitted = object(parseJson(this.#descriptor));
+    this.#descriptor = utf8(native.portableV2ContractJson('Descriptor', utf8(canonicalValue(descriptor))));
+    const admitted = admittedDescriptor(this.#descriptor);
     this.nodeId = nodeId;
     this.capabilityId = text(admitted.id);
     this.version = text(admitted.version);
@@ -34,9 +34,15 @@ export class CapabilityEndpoint {
     Object.freeze(this);
   }
   /** Return an owned copy of the exact normalized descriptor. */
-  descriptor(): JsonObject { return object(parseJson(this.#descriptor)); }
+  descriptor(): JsonObject { return admittedDescriptor(this.#descriptor); }
   /** Return independent canonical bytes for exact target binding. */
   canonicalDescriptor(): Uint8Array { return Buffer.from(this.#descriptor); }
+}
+
+function admittedDescriptor(canonical: string): JsonObject {
+  // Compiled portable/2 already validated these exact private bytes. Descriptor
+  // records have a larger bound than the separate 64 KiB invocation payload.
+  return object(JSON.parse(canonical) as JsonValue);
 }
 
 /** One native-admitted input packet, with binary media kept separate from JSON. */

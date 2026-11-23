@@ -14,7 +14,6 @@ from contextlib import asynccontextmanager
 import _skulk_capability_kernel as native  # pyright: ignore[reportMissingModuleSource]
 import pytest
 from pydantic import JsonValue, TypeAdapter
-from test_application import Peer, document, header, running, startup_value
 
 from skulk_capability_sdk.application import (
     CapabilityApp,
@@ -24,6 +23,7 @@ from skulk_capability_sdk.application import (
     Invocation,
     OutputFrame,
 )
+from tests_native.test_application import Peer, document, header, running, startup_value
 
 _OBJECT = TypeAdapter(dict[str, JsonValue])
 _OBJECTS = TypeAdapter(list[dict[str, JsonValue]])

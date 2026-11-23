@@ -9,8 +9,6 @@ from typing import Protocol, cast
 
 import pytest
 from pydantic import JsonValue, TypeAdapter
-from test_application import document, header, running
-from test_delegation import endpoint, reply, target
 
 from skulk_capability_sdk.application import (
     CapabilityApp,
@@ -23,6 +21,8 @@ from skulk_capability_sdk.capabilities import (
     CapabilityInterfaceError,
     CapabilityProposal,
 )
+from tests_native.test_application import document, header, running
+from tests_native.test_delegation import endpoint, reply, target
 from tools.check_discovery_profile import Native
 
 _OBJECT = TypeAdapter(dict[str, JsonValue])

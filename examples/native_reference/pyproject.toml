@@ -1,0 +1,8 @@
+[project]
+name = "skulk-sdk-native-reference"
+version = "0.2.1"
+requires-python = ">=3.13"
+dependencies = ["skulk-capability-sdk==1.0.1"]
+
+[tool.uv.sources]
+skulk-capability-sdk = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/v1.0.1/skulk_capability_sdk-1.0.1-py3-none-any.whl#sha256=df30b89d8fa8588d94b12af03894dcfe3845acd2397b371194481801d9e46c0a" }

@@ -1,5 +1,9 @@
 # Build a Python capability
 
+For native `CapabilityApp` development, use the explicit
+[native author CLI](native-authoring.md). The legacy source journey below keeps
+its qualified default protocol and unary harness.
+
 The public SDK and author tools use MIT and require no Foxlight account.
 Installing them grants no Skulk permissions. Catalog publishing registration,
 provider accounts and host authorization are separate concerns.

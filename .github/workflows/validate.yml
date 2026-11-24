@@ -2,10 +2,83 @@ name: Public SDK qualification
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, feature/capability-developer-tooling]
 permissions:
   contents: read
 jobs:
+  typescript:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.5'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.22'
+          python-version: '3.13'
+      - name: Observe preinstalled interpreter custody
+        run: |
+          uv run --no-project --python 3.13 python - <<'PY'
+          import json, os, stat, sys
+          info = os.stat(sys.executable)
+          print(json.dumps({"regular": stat.S_ISREG(info.st_mode),
+              "mode": oct(info.st_mode), "owner_matches": info.st_uid in {0, os.getuid()},
+              "group_world_writable": bool(info.st_mode & 0o022)}))
+          PY
+      # Credential fixtures select a private runtime explicitly. A runner's
+      # preinstalled interpreter is not part of that selected helper closure.
+      - run: uv sync --frozen --managed-python --all-packages --no-editable --group native-runtime --reinstall-package skulk-capability-sdk --reinstall-package skulk-capability-tools
+      - run: npm ci --ignore-scripts --prefix packages/typescript
+      - run: npm run build --prefix packages/typescript
+      - run: npm run check --prefix packages/typescript
+      - run: npm test --prefix packages/typescript
+      - run: mkdir -p .runtime/node-installed && npm pack ./packages/typescript --pack-destination .runtime --json > .runtime/npm-pack.json
+      - run: uv run --no-sync python tools/check_typescript_export.py .runtime/foxlight-skulk-capability-sdk-1.0.1.tgz
+      - run: npm install --ignore-scripts --omit=dev --prefix .runtime/node-installed ./.runtime/foxlight-skulk-capability-sdk-1.0.1.tgz
+      - name: Compile a clean author against the installed declarations
+        run: |
+          cp packages/typescript/tests/consumer.ts .runtime/node-installed/consumer.mts
+          cd .runtime/node-installed
+          node ../../packages/typescript/node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --lib ES2024 --module NodeNext --moduleResolution NodeNext consumer.mts
+      - name: Qualify the independently installed public package
+        run: |
+          SKULK_TYPESCRIPT_ENTRY="$PWD/.runtime/node-installed/node_modules/@foxlight/skulk-capability-sdk/dist/index.js" \
+            uv run --no-sync pytest tests_typescript --junitxml=.runtime/typescript.xml
+      - name: Prepare the explicitly selected Node runtime without a compiler
+        run: uv run --no-sync python tools/prepare_node_qualification.py --output .runtime/selected-node
+      - name: Qualify installed Node asset wheels and the Python bootstrap
+        run: |
+          SKULK_TYPESCRIPT_ENTRY="$PWD/.runtime/node-installed/node_modules/@foxlight/skulk-capability-sdk/dist/index.js" \
+          SKULK_NODE_QUALIFICATION_OUTPUT="$PWD/.runtime/selected-node/application" \
+            uv run --no-sync pytest tests_packaged --junitxml=.runtime/selected-node/tests.xml
+      - name: Create, compile and run a clean native TypeScript author
+        run: |
+          SKULK_TYPESCRIPT_PACKAGE="$PWD/.runtime/foxlight-skulk-capability-sdk-1.0.1.tgz" \
+            uv run --no-sync pytest tests_authoring/test_node_author.py --junitxml=.runtime/author-node.xml
+      - run: git diff --exit-code
+      - run: uv run --no-sync python tools/record_typescript_qualification.py
+      - run: uv run --no-sync python tools/record_node_qualification.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: typescript-sdk-${{ matrix.runner }}
+          path: |
+            .runtime/foxlight-skulk-capability-sdk-1.0.1.tgz
+            .runtime/npm-pack.json
+            .runtime/typescript.xml
+            .runtime/author-node.xml
+            .runtime/typescript-source.json
+            .runtime/selected-node/selection.json
+            .runtime/selected-node/qualification.json
+            .runtime/selected-node/tests.xml
+            .runtime/selected-node/wheels/*.whl
+            .runtime/selected-node/application/*
+          include-hidden-files: true
   python:
     strategy:
       fail-fast: false
@@ -21,16 +94,26 @@ jobs:
         with:
           version: '0.8.22'
           python-version: '3.13'
-      - run: uv sync --frozen --all-packages --no-editable
+      - run: uv sync --frozen --all-packages --no-editable --group native-runtime --reinstall-package skulk-capability-sdk --reinstall-package skulk-capability-tools
       - run: uv run --no-sync basedpyright --pythonpath .venv/bin/python
+      - run: uv run --no-sync basedpyright --pythonpath .venv/bin/python examples/native_reference/sdk_reference
       - run: uv run --no-sync ruff check
       - run: uv run --no-sync ruff format --check
-      - run: uv run --no-sync pytest
+      - run: uv run --no-sync pytest --junitxml=.runtime/app-root.xml
+      - run: uv run --no-sync pytest tests_native -m 'not pre_discovery_v1' --junitxml=.runtime/app-native.xml
+      - run: uv run --no-sync pytest tests_authoring/test_python_author.py tests_authoring/test_reference.py --junitxml=.runtime/author-python.xml
       - run: uv build --all-packages
       - run: uv run --no-sync python tools/check_export.py
       - run: uv run --no-sync python tools/check_tools_export.py
       - run: git diff --exit-code
+      - run: uv run --no-sync python tools/record_application_qualification.py
       - uses: actions/upload-artifact@v4
         with:
           name: python-sdk-${{ matrix.runner }}
-          path: dist/*
+          path: |
+            dist/*
+            .runtime/app-root.xml
+            .runtime/app-native.xml
+            .runtime/author-python.xml
+            .runtime/native-app-source.json
+          include-hidden-files: true

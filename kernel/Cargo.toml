@@ -4,7 +4,7 @@ resolver = "3"
 
 [package]
 name = "skulk-capability-kernel"
-version = "0.1.0"
+version = "0.7.0"
 edition = "2024"
 rust-version = "1.94"
 publish = false
@@ -16,6 +16,8 @@ ryu = "=1.0.23"
 rusqlite = { version = "=0.40.2", features = ["bundled"] }
 rustix = { version = "=1.1.5", features = ["process", "fs"] }
 sha2 = "=0.11.0"
+hmac = "=0.13.0"
+subtle = { version = "=2.6.1", default-features = false }
 thiserror = "=2.0.21"
 serde_json = { version = "=1.0.151", features = ["arbitrary_precision"] }
 jsonschema = { version = "=0.58.6", default-features = false, features = ["arbitrary-precision"] }
@@ -27,6 +29,7 @@ unicode-normalization = "=0.1.23"
 tokio = { version = "=1.53.2", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros"] }
 
 [dev-dependencies]
+tokio = { version = "=1.53.2", features = ["test-util"] }
 serde_json = { version = "=1.0.151", features = ["arbitrary_precision"] }
 tempfile = "=3.27.0"
 

@@ -1,0 +1,37 @@
+{
+  "name": "@foxlight/skulk-capability-sdk",
+  "version": "1.0.1",
+  "description": "Public TypeScript authoring and native execution for Skulk capabilities",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "^22.18.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md",
+    "npm-shrinkwrap.json",
+    "SOURCE-MANIFEST.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node tools/copy-types.mjs",
+    "check": "tsc -p tsconfig.json --noEmit && tsc --noEmit --strict --target ES2022 --lib ES2024 --module NodeNext --moduleResolution NodeNext tests/consumer.ts",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@types/node": "22.18.0",
+    "@foxlight/skulk-kernel-linux-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk-capability-kernel-0.7.0-linux-glibc-aarch64.tgz",
+    "@foxlight/skulk-kernel-linux-x64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk-capability-kernel-0.7.0-linux-glibc-x86_64.tgz",
+    "@foxlight/skulk-kernel-macos-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk-capability-kernel-0.7.0-macos-arm64.tgz"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  }
+}

@@ -12,29 +12,43 @@ import shutil
 import subprocess
 import sys
 import sysconfig
-import tarfile
-import zipfile
 from pathlib import Path
 from typing import cast
 
-from check_kernel_export import validate_source
+from tools.check_kernel_export import validate_source
+from tools.native_candidates import create_bundle
+from tools.native_consumer import verify_install
+from tools.native_notices import NOTICE, render
+from tools.native_packages import inspect_npm, inspect_wheel
 
 ROOT = Path(__file__).resolve().parents[1]
 NODE = ROOT / "kernel/bindings/node"
 OUTPUT = ROOT / ".runtime/native-qualification"
-FACADE = (
-    b"from ._skulk_capability_kernel import *\n\n"
-    b"__doc__ = _skulk_capability_kernel.__doc__\n"
-    b'if hasattr(_skulk_capability_kernel, "__all__"):\n'
-    b"    __all__ = _skulk_capability_kernel.__all__"
-)
 
 
 def run(args: list[str], env: dict[str, str], cwd: Path = ROOT) -> str:
     """Bound each build/test command and stop immediately on failure."""
-    result = subprocess.run(
-        args, cwd=cwd, env=env, check=False, capture_output=True, text=True, timeout=600
-    )
+    try:
+        result = subprocess.run(
+            args,
+            cwd=cwd,
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+    except subprocess.TimeoutExpired as error:
+        # Keep the actual partial build/test observations when an external
+        # resource bound expires, instead of losing them behind the traceback.
+        for output, stream in ((error.stdout, sys.stdout), (error.stderr, sys.stderr)):
+            if output:
+                print(
+                    output.decode(),
+                    end="",
+                    file=stream,
+                )
+        raise
     if result.stderr:
         print(result.stderr, end="", file=sys.stderr)
     if result.returncode:
@@ -43,68 +57,11 @@ def run(args: list[str], env: dict[str, str], cwd: Path = ROOT) -> str:
     return result.stdout
 
 
-def inspect_wheel(path: Path) -> None:
-    """Allow only native implementation, declarations, one import shim and metadata."""
-    approved = {
-        "_skulk_capability_kernel/__init__.py",
-        "_skulk_capability_kernel/__init__.pyi",
-        "_skulk_capability_kernel/_skulk_capability_kernel.abi3.so",
-        "_skulk_capability_kernel/py.typed",
-        "skulk_capability_kernel-0.1.0.dist-info/METADATA",
-        "skulk_capability_kernel-0.1.0.dist-info/WHEEL",
-        "skulk_capability_kernel-0.1.0.dist-info/RECORD",
-        "skulk_capability_kernel-0.1.0.dist-info/licenses/LICENSE.md",
-    }
-    with zipfile.ZipFile(path) as archive:
-        if set(archive.namelist()) != approved:
-            raise ValueError("unexpected native wheel contents")
-        if archive.read("_skulk_capability_kernel/__init__.py") != FACADE:
-            raise ValueError("unexpected readable native implementation")
-        for name in archive.namelist():
-            inspect_paths(archive.read(name))
-
-
-def inspect_paths(data: bytes) -> None:
-    """Refuse local source identity in text metadata and stripped binary strings."""
-    for marker in [
-        str(ROOT).encode(),
-        str(Path.home()).encode(),
-        b"file:///",
-        b"/Users/",
-        b"/home/runner/",
-    ]:
-        if marker in data:
-            raise ValueError("build-host path leaked into native artifact")
-
-
-def inspect_npm(path: Path) -> None:
-    """A positive list excludes native source, test fixtures and build material."""
-    approved = {
-        "package/package.json",
-        "package/dist/codec.js",
-        "package/dist/codec.d.ts",
-        "package/dist/portable.js",
-        "package/dist/portable.d.ts",
-        "package/dist/kernel.node",
-        "package/dist/loader.cjs",
-        "package/dist/loader.d.cts",
-        "package/dist/LICENSE.md",
-    }
-    with tarfile.open(path, "r:gz") as archive:
-        if {member.name for member in archive.getmembers()} != approved:
-            raise ValueError("unexpected native npm contents")
-        for member in archive.getmembers():
-            if not member.isfile():
-                raise ValueError("non-file native npm member")
-            source = archive.extractfile(member)
-            if source is None:
-                raise ValueError("unreadable native npm member")
-            inspect_paths(source.read())
-
-
 def main() -> None:
     """Build native artifacts, enforce their contents and compare every outcome."""
     source = validate_source()
+    if NOTICE.read_bytes() != render():
+        raise ValueError("Native dependency notices differ")
     if sys.platform not in {"darwin", "linux"}:
         raise ValueError("Native qualification requires macOS or Linux")
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -164,6 +121,21 @@ def main() -> None:
         ],
     ]:
         print(run(command, env), end="")
+    print(
+        run(
+            [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "transport_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
     print(
         run(
             [
@@ -232,10 +204,36 @@ def main() -> None:
                 "pytest",
                 "-q",
                 "kernel/bindings/python/tests",
+                "tests_native",
+                "-m",
+                "not pre_discovery_v1",
+                "--ignore=tests_native/test_native_distribution.py",
+                "--ignore=tests_native/test_native_publishing.py",
+                "--ignore=tests_native/test_node_packaging.py",
                 "--basetemp",
                 str(OUTPUT / "python-test-scratch"),
             ],
             python_env,
+        ),
+        end="",
+    )
+    # A binary under qualification has no immutable public release receipt yet.
+    # Exercise artifact/signature custody with the separately locked published
+    # kernel; never invent that receipt or reuse its identity for new binaries.
+    print(
+        run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "tests_native/test_native_distribution.py",
+                "tests_native/test_native_publishing.py",
+                "tests_native/test_node_packaging.py",
+                "--basetemp",
+                str(OUTPUT / "published-test-scratch"),
+            ],
+            env,
         ),
         end="",
     )
@@ -307,6 +305,7 @@ def main() -> None:
     for name in ["loader.cjs", "loader.d.cts"]:
         shutil.copyfile(NODE / name, NODE / "dist" / name)
     shutil.copyfile(ROOT / "kernel/LICENSE.md", NODE / "dist/LICENSE.md")
+    shutil.copyfile(NOTICE, NODE / "dist/THIRD_PARTY_NOTICES.txt")
     print(run(["npm", "test"], env, NODE), end="")
     print(
         run(
@@ -345,6 +344,36 @@ def main() -> None:
         raise ValueError("Unexpected npm archive record")
     package = npm_output / str(packed[0]["filename"])
     inspect_npm(package)
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_managed_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"managed-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    managed_reports = [
+        json.loads((OUTPUT / f"managed-{backend}.json").read_text())
+        for backend in ["rust", "python", "node"]
+    ]
+    for current in managed_reports[1:]:
+        for field in [
+            "profile",
+            "profile_digest",
+            "cases",
+            "input_sha256",
+            "observations",
+        ]:
+            if current[field] != managed_reports[0][field]:
+                raise ValueError("Complete managed observations differ")
     reports = [
         json.loads((OUTPUT / f"portable-{backend}.json").read_text())
         for backend in ["rust", "python", "node"]
@@ -359,6 +388,184 @@ def main() -> None:
         ]:
             if current[field] != reports[0][field]:
                 raise ValueError("Complete portable observations differ")
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_handshake_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"handshake-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_transport_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"transport-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    print(
+        run(
+            [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "composition_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_composition_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"composition-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    print(
+        run(
+            [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "calls_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
+    for backend in ["rust", "python", "node"]:
+        print(
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.check_calls_profile",
+                    "--backend",
+                    backend,
+                    "--report",
+                    str(OUTPUT / f"calls-{backend}.json"),
+                ],
+                python_env,
+            ),
+            end="",
+        )
+    print(
+        run(
+            [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "inference_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
+    for kind in ("inference-author", "inference-composition", "inference-execution"):
+        for backend in ("rust", "python", "node"):
+            print(
+                run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "tools.check_inference_profiles",
+                        "--kind",
+                        kind,
+                        "--backend",
+                        backend,
+                        "--report",
+                        str(OUTPUT / f"{kind}-{backend}.json"),
+                    ],
+                    python_env,
+                ),
+                end="",
+            )
+    for kind in ("managed", "handshake", "transport", "calls"):
+        for backend in ("rust", "python", "node"):
+            print(
+                run(
+                    [
+                        sys.executable,
+                        "-m",
+                        f"tools.check_{kind}_profile",
+                        "--inference",
+                        "--backend",
+                        backend,
+                        "--report",
+                        str(OUTPUT / f"inference-{kind}-{backend}.json"),
+                    ],
+                    python_env,
+                ),
+                end="",
+            )
+    print(
+        run(
+            [
+                "cargo",
+                "build",
+                "--manifest-path",
+                "kernel/Cargo.toml",
+                "--locked",
+                "--example",
+                "discovery_probe",
+            ],
+            env,
+        ),
+        end="",
+    )
+    for backend in ("rust", "python", "node"):
+        command = [
+            sys.executable,
+            "-m",
+            "tools.check_discovery_profile",
+            "--backend",
+            backend,
+            "--report",
+            str(OUTPUT / f"discovery-{backend}.json"),
+        ]
+        if backend == "node":
+            command += ["--node-facade", str(NODE / "dist/loader.cjs")]
+        print(run(command, python_env), end="")
+    calls_report = json.loads((OUTPUT / "calls-rust.json").read_text())
+    composition_report = json.loads((OUTPUT / "composition-rust.json").read_text())
+    transport_report = json.loads((OUTPUT / "transport-rust.json").read_text())
+    handshake_report = json.loads((OUTPUT / "handshake-rust.json").read_text())
     report = {
         "scope": (
             "Shared-kernel/native ABI qualification; not installed SDK 1.0 acceptance"
@@ -372,6 +579,26 @@ def main() -> None:
         "profile": reports[0]["profile"],
         "profile_digest": reports[0]["profile_digest"],
         "cases_per_backend": reports[0]["cases"],
+        "calls_profile": calls_report["profile"],
+        "calls_profile_digest": calls_report["profile_digest"],
+        "calls_cases_per_backend": calls_report["cases"],
+        "calls_input_sha256": calls_report["input_sha256"],
+        "composition_profile": composition_report["profile"],
+        "composition_profile_digest": composition_report["profile_digest"],
+        "composition_cases_per_backend": composition_report["cases"],
+        "composition_input_sha256": composition_report["input_sha256"],
+        "transport_profile": transport_report["profile"],
+        "transport_profile_digest": transport_report["profile_digest"],
+        "transport_cases_per_backend": transport_report["cases"],
+        "transport_input_sha256": transport_report["input_sha256"],
+        "handshake_profile": handshake_report["profile"],
+        "handshake_profile_digest": handshake_report["profile_digest"],
+        "handshake_cases_per_backend": handshake_report["cases"],
+        "handshake_input_sha256": handshake_report["input_sha256"],
+        "managed_profile": managed_reports[0]["profile"],
+        "managed_profile_digest": managed_reports[0]["profile_digest"],
+        "managed_cases_per_backend": managed_reports[0]["cases"],
+        "managed_input_sha256": managed_reports[0]["input_sha256"],
         "input_sha256": reports[0]["input_sha256"],
         "wheel": {
             "name": wheel.name,
@@ -382,8 +609,23 @@ def main() -> None:
             "sha256": hashlib.sha256(package.read_bytes()).hexdigest(),
         },
         "runtime_adoption": False,
+        "discovery_profile": json.loads((OUTPUT / "discovery-rust.json").read_text()),
+        "inference_profiles": [
+            json.loads((OUTPUT / f"{kind}-rust.json").read_text())
+            for kind in (
+                "inference-author",
+                "inference-composition",
+                "inference-execution",
+                "inference-transport",
+                "inference-calls",
+                "inference-managed",
+                "inference-handshake",
+            )
+        ],
     }
     (OUTPUT / "report.json").write_text(json.dumps(report, indent=2) + "\n")
+    verify_install(wheel, package, OUTPUT)
+    print(create_bundle(OUTPUT))
     print(json.dumps(report))
 
 

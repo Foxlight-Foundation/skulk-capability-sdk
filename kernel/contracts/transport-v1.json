@@ -1,0 +1,514 @@
+{
+  "canonicalization": "skulk.portable-json/1",
+  "controls": {
+    "health": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_profile": {
+          "const": "skulk.transport/1"
+        },
+        "kind": {
+          "const": "health"
+        },
+        "nonce": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 5
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "surfaces": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "port": {
+                "maximum": 65535,
+                "minimum": 1024,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "surface_id": {
+                "pattern": "^[a-z][a-z0-9-]{0,31}$",
+                "type": "string"
+              },
+              "url": {
+                "maxLength": 512,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "surface_id",
+              "ready",
+              "port",
+              "url"
+            ],
+            "type": "object"
+          },
+          "maxItems": 4,
+          "type": "array"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "nonce",
+        "ready",
+        "surfaces"
+      ],
+      "type": "object"
+    },
+    "invoke": {
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "capability_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "contract_profile": {
+          "const": "skulk.transport/1"
+        },
+        "descriptor_revision": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "invoke"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 5
+        },
+        "remaining_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "type": "number"
+        },
+        "version": {
+          "maxLength": 64,
+          "pattern": "^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "call_id",
+        "capability_id",
+        "version",
+        "descriptor_revision",
+        "payload",
+        "remaining_seconds"
+      ],
+      "type": "object"
+    },
+    "result": {
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "contract_profile": {
+          "const": "skulk.transport/1"
+        },
+        "error": {
+          "enum": [
+            null,
+            "invalid_payload",
+            "provider_error",
+            "timeout"
+          ]
+        },
+        "kind": {
+          "const": "result"
+        },
+        "payload": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 5
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "call_id",
+        "payload",
+        "error"
+      ],
+      "type": "object"
+    },
+    "shutdown": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_profile": {
+          "const": "skulk.transport/1"
+        },
+        "kind": {
+          "const": "shutdown"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 5
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "stream_invoke": {
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "capability_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "contract_profile": {
+          "const": "skulk.transport/1"
+        },
+        "descriptor_revision": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "stream_invoke"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 5
+        },
+        "remaining_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "type": "number"
+        },
+        "version": {
+          "maxLength": 64,
+          "pattern": "^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "call_id",
+        "capability_id",
+        "version",
+        "descriptor_revision",
+        "payload",
+        "remaining_seconds"
+      ],
+      "type": "object"
+    }
+  },
+  "header": {
+    "additionalProperties": false,
+    "properties": {
+      "contract_profile": {
+        "const": "skulk.transport/1"
+      },
+      "frame": {
+        "type": "object"
+      },
+      "media_size": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "profile_digest": {
+        "pattern": "^[a-f0-9]{64}$",
+        "type": "string"
+      },
+      "protocol": {
+        "const": 5
+      }
+    },
+    "required": [
+      "contract_profile",
+      "profile_digest",
+      "protocol",
+      "frame",
+      "media_size"
+    ],
+    "type": "object"
+  },
+  "limits": {
+    "control_bytes": 65536,
+    "header_bytes": 65536,
+    "hello_bytes": 16384,
+    "input_window": 8,
+    "media_bytes": 1048576
+  },
+  "packet": {
+    "oneOf": [
+      {
+        "additionalProperties": false,
+        "properties": {
+          "call_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9._:@-]+$",
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "caller_to_provider",
+              "provider_to_caller"
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "provider_error",
+                      "transport_error",
+                      "unreachable",
+                      "cancelled",
+                      "timeout",
+                      "invalid_frame"
+                    ]
+                  },
+                  "message": {
+                    "maxLength": 2048,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "enum": [
+              "started",
+              "chunk",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "media": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "channels": {
+                    "minimum": 1,
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "codec": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "duration_seconds": {
+                    "minimum": 0,
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "kind": {
+                    "const": "inline"
+                  },
+                  "media_type": {
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  "sample_rate": {
+                    "minimum": 1,
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "timestamp_seconds": {
+                    "minimum": 0,
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "media_type"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "blob_id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "blob"
+                  },
+                  "media_type": {
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[a-f0-9]{64}$",
+                    "type": "string"
+                  },
+                  "size_bytes": {
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "blob_id",
+                  "media_type",
+                  "size_bytes",
+                  "sha256"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payload": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "sequence": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "synthetic": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "call_id",
+          "direction",
+          "sequence",
+          "kind"
+        ],
+        "type": "object"
+      },
+      {
+        "additionalProperties": false,
+        "properties": {
+          "call_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9._:@-]+$",
+            "type": "string"
+          },
+          "kind": {
+            "const": "end"
+          }
+        },
+        "required": [
+          "call_id",
+          "kind"
+        ],
+        "type": "object"
+      }
+    ]
+  },
+  "profile": "skulk.transport/1",
+  "protocol": 5,
+  "semantics": [
+    "Each record begins with an unsigned big-endian four-byte JSON byte length. Control and hello have no attachment. Stream headers are followed by exactly media_size raw bytes. Canonical JSON uses the frozen portable scalar/number rules.",
+    "Every control and stream header requires protocol 5, this profile and its complete fingerprint. Hello records use skulk.handshake/1. Missing/unknown identities refuse without downgrade.",
+    "All control fields are required. Result has exactly one of payload or error. Health surfaces have unique identities and a ready surface requires a port or an HTTPS public URL, never both.",
+    "Invocation descriptor_revision is the full domain-separated skulk.portable/1 Descriptor identity. Structural admission does not verify destination selection, signatures, original caller or current authority.",
+    "Packet defaults are synthetic=false and payload/media/error=null; omitted inline codec/sample_rate/channels/timestamps become null. Started has sequence zero and no content. Chunks have content and no error. Completed has no error. Failed/cancelled have the corresponding error and no content.",
+    "Each direction has a contiguous sequence, one terminal and exact call binding. Caller completed half-closes input without closing output. Provider terminal is retained until iterator cleanup; one end acknowledgment follows. Client-streaming has no provider chunks. Host owns the initial provider started frame.",
+    "Eight pending input packets bound the ingress queue. Writes await socket backpressure. An absolute invocation deadline covers connect, hello, reads and writes. Cancellation/EOF/invalid input fences success and uncertain work is never replayed.",
+    "Control/media admission validates complete headers and lengths before attachment allocation. Errors expose no supplied paths, tokens, payloads or backend text. Record ceilings are transport resource bounds, not inference output or owner usage caps.",
+    "Existing protocol-four transport remains explicitly selected for qualified pinned generations; protocol-five never relabels or falls back to it. Host owns handshake binding, one-use/replay state and execution admission.",
+    "Control channels bound connect/hello, each read/write including lock admission, and idle time. Successful complete records renew idle time; active healthy children have no fixed channel-lifetime limit. Interrupted I/O fences the channel and host reconnect never replays uncertain work."
+  ]
+}

@@ -16,7 +16,17 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = "skulk_capability_sdk"
 MODULES = {
     "__init__.py",
+    "_credential_bridge.py",
     "_credential_reader.py",
+    "_invocation_discovery.py",
+    "application.py",
+    "capabilities.py",
+    "discovery.py",
+    "jobs.py",
+    "node_application.py",
+    "node_runtime.py",
+    "node_cohort.json",
+    "runtime.py",
     "contracts.py",
     "credentials.py",
     "database.py",

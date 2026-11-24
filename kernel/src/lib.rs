@@ -4,13 +4,29 @@
 //! profile is deliberately Python-compatible, including numeric kinds and
 //! surrogate code points; normal JSON serializers are not substitutes for it.
 
+#[cfg(unix)]
+pub mod caller_streams;
+#[cfg(unix)]
+pub mod calls;
+#[cfg(unix)]
+pub mod calls_v2;
 pub mod codec;
+pub mod composition;
+pub mod composition_v2;
+pub mod composition_v3;
 pub mod contracts;
 #[cfg(unix)]
+pub mod discovery;
+pub mod handshake;
+pub mod handshake_v2;
+#[cfg(unix)]
 pub mod journal;
+pub mod managed;
+pub mod managed_v2;
 pub mod portable;
 mod portable_json;
 mod portable_schema;
+pub mod portable_v2;
 pub mod schema;
 mod schema_alias;
 mod schema_graph;
@@ -31,3 +47,8 @@ pub mod operations;
 
 #[cfg(unix)]
 pub mod operation_logs;
+
+#[cfg(unix)]
+pub mod transport;
+#[cfg(unix)]
+pub mod transport_v2;

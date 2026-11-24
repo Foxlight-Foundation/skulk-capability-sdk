@@ -4,28 +4,32 @@
   "license_decision_commit": "cb21ff9446511e0a01ab53f652e647d58041941e",
   "files": {
     "skulk_capability_sdk/__init__.py": {
-      "source_sha256": "be59f50d228426ca7f0555e1708a2586ed8d0954f08ddcf65ffa5741420c439e",
-      "exported_sha256": "be59f50d228426ca7f0555e1708a2586ed8d0954f08ddcf65ffa5741420c439e"
+      "source_sha256": "e9c207a8f1f87696529c80a22fbbfb947990968f3c0052557f6e4bfe9bb3bd18",
+      "exported_sha256": "e9c207a8f1f87696529c80a22fbbfb947990968f3c0052557f6e4bfe9bb3bd18",
+      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     },
     "skulk_capability_sdk/_credential_reader.py": {
-      "source_sha256": "a42314b92e54e68829af15acbb859f0c4956c089cbc6e3e43e17734adeadef70",
-      "exported_sha256": "a42314b92e54e68829af15acbb859f0c4956c089cbc6e3e43e17734adeadef70"
+      "source_sha256": "7b9b46245c4d9eba8283725e5d71c4b86f911dc1a53e844e73e34b71ca5aa8f3",
+      "exported_sha256": "7b9b46245c4d9eba8283725e5d71c4b86f911dc1a53e844e73e34b71ca5aa8f3",
+      "adjustment": "Public cross-language credential containment; no private owner or provider implementation"
     },
     "skulk_capability_sdk/contracts.py": {
       "source_sha256": "545ef221a7529cd7ba691739326ffd5d19c3c6be8cdef72aa07361c224baf06a",
       "exported_sha256": "545ef221a7529cd7ba691739326ffd5d19c3c6be8cdef72aa07361c224baf06a"
     },
     "skulk_capability_sdk/credentials.py": {
-      "source_sha256": "c983809ce98ee54d39e73a9f5408f9e0b3bfea6bb9dad8be9cfca471b466812b",
-      "exported_sha256": "c983809ce98ee54d39e73a9f5408f9e0b3bfea6bb9dad8be9cfca471b466812b"
+      "source_sha256": "2dd80035a724e23e8618eee0bb108b839600f5169c1fb3671e135723694d8490",
+      "exported_sha256": "2dd80035a724e23e8618eee0bb108b839600f5169c1fb3671e135723694d8490",
+      "adjustment": "Public cross-language credential containment; no private owner or provider implementation"
     },
     "skulk_capability_sdk/database.py": {
       "source_sha256": "d294bc7be863e0d47990d79334081c29e1bc745cb679ad0d23bfd1f7be599777",
       "exported_sha256": "d294bc7be863e0d47990d79334081c29e1bc745cb679ad0d23bfd1f7be599777"
     },
     "skulk_capability_sdk/operations.py": {
-      "source_sha256": "dc752bbd2113acd6a7526db771d0c0473e4443ba830813c297e527777ba30122",
-      "exported_sha256": "dc752bbd2113acd6a7526db771d0c0473e4443ba830813c297e527777ba30122"
+      "source_sha256": "85ae342aa89307ad59049296ae29ceeb9df225771b867879456a25bf2fccb578",
+      "exported_sha256": "85ae342aa89307ad59049296ae29ceeb9df225771b867879456a25bf2fccb578",
+      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     },
     "skulk_capability_sdk/py.typed": {
       "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -70,6 +74,56 @@
       "source_sha256": "02dc411090b3bbbe617bbe87b923f60ce9bc6a59c20c8e0606f18d99466701d9",
       "exported_sha256": "6ded152f0271681a9a22035391e3e1156ec50010aef58cdaed21c4c1cd44f18b",
       "adjustment": "Standalone-package import grouping only"
+    },
+    "skulk_capability_sdk/application.py": {
+      "source_sha256": "c12343fb0844e9da30708b6b8429bdfe327ceb9a3e7e4aaaa65c1a1ffe772d6f",
+      "exported_sha256": "c12343fb0844e9da30708b6b8429bdfe327ceb9a3e7e4aaaa65c1a1ffe772d6f",
+      "adjustment": "Public terminal-publication custody fix; no owner/provider source or contract changes"
+    },
+    "skulk_capability_sdk/jobs.py": {
+      "source_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",
+      "exported_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",
+      "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
+    },
+    "skulk_capability_sdk/runtime.py": {
+      "source_sha256": "34a3757069fd4f0b639cfd3a2621b58af5ad4972355e51204fec47f3e60337f1",
+      "exported_sha256": "34a3757069fd4f0b639cfd3a2621b58af5ad4972355e51204fec47f3e60337f1",
+      "adjustment": "Public stable 0.7.0 execution cohort admission; earlier issued cohorts retained, no range or private runtime implementation"
+    },
+    "skulk_capability_sdk/_credential_bridge.py": {
+      "source_sha256": "922d5e0584bc90e7410493631eb2a2075a6400c2df7a4c64ed672a843294a4ca",
+      "exported_sha256": "922d5e0584bc90e7410493631eb2a2075a6400c2df7a4c64ed672a843294a4ca",
+      "adjustment": "Public cross-language credential containment; no private owner or provider implementation"
+    },
+    "skulk_capability_sdk/node_runtime.py": {
+      "source_sha256": "be333b1176957045d7ed7d00a43dfe8e1c412a064a86c674aeeab67af864fbec",
+      "exported_sha256": "be333b1176957045d7ed7d00a43dfe8e1c412a064a86c674aeeab67af864fbec",
+      "adjustment": "Authored public selected Node runtime and application asset custody; no owner, provider or Core implementation"
+    },
+    "skulk_capability_sdk/node_application.py": {
+      "source_sha256": "6cac03a822bc22d9b565f54fb2ab917528c7fe3e125a26e2f19bb12cab2b1b73",
+      "exported_sha256": "6cac03a822bc22d9b565f54fb2ab917528c7fe3e125a26e2f19bb12cab2b1b73",
+      "adjustment": "Explicit verified source snapshot bridge shared with installed launch, preserving native startup and same-process exec; no private owner/provider implementation."
+    },
+    "skulk_capability_sdk/node_cohort.json": {
+      "source_sha256": "cd795056c6c1752e3687b4d03960deb46db8b93e75fd7586280eafd299ea57b2",
+      "exported_sha256": "cd795056c6c1752e3687b4d03960deb46db8b93e75fd7586280eafd299ea57b2",
+      "adjustment": "Authored public selected Node runtime and application asset custody; no owner, provider or Core implementation"
+    },
+    "skulk_capability_sdk/discovery.py": {
+      "source_sha256": "769146464121fbd0b93883a2f190d773169be38bdca4ea5b90f93aa0392ff5d1",
+      "exported_sha256": "769146464121fbd0b93883a2f190d773169be38bdca4ea5b90f93aa0392ff5d1",
+      "adjustment": "Public typed caller-authorized native discovery and exact descriptor identities; no private host or provider implementation"
+    },
+    "skulk_capability_sdk/_invocation_discovery.py": {
+      "source_sha256": "5dc8723205c304c512a4fa75cf6b6a056a006d315efbdebc3b4b043c942f1ba6",
+      "exported_sha256": "5dc8723205c304c512a4fa75cf6b6a056a006d315efbdebc3b4b043c942f1ba6",
+      "adjustment": "Public stable 0.7.0 feature admission alongside issued cohorts; exact execution contracts and host authority unchanged"
+    },
+    "skulk_capability_sdk/capabilities.py": {
+      "source_sha256": "20d4b58df7a4e733a9f6bea9696954fabc6f48adbf8d69c7e89b297def331acf",
+      "exported_sha256": "20d4b58df7a4e733a9f6bea9696954fabc6f48adbf8d69c7e89b297def331acf",
+      "adjustment": "Public generic capability interfaces and current package metadata; no private host/provider source"
     }
   }
 }

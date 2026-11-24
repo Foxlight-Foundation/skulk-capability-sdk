@@ -109,6 +109,144 @@ SOURCE_FILES = frozenset(
         "tools/portable_profile_cases.py",
     ]
 )
+
+MAINTAINED_FILES = frozenset(
+    [
+        "kernel/contracts/discovery-offer.json",
+        "kernel/tests/discovery.rs",
+        "kernel/bindings/python/tests/test_native_discovery.py",
+        "kernel/bindings/node/tests/discovery.test.mjs",
+        "kernel/src/discovery.rs",
+        "kernel/contracts/discovery-v1.json",
+        "kernel/contracts/discovery-v1-cases.json",
+        "kernel/examples/discovery_probe.rs",
+        "kernel/bindings/python/src/discovery.rs",
+        "kernel/bindings/node/src/discovery.rs",
+        "kernel/bindings/node/tools/discovery_probe.mjs",
+        "tools/check_discovery_profile.py",
+        "kernel/tests/custody.rs",
+        "kernel/src/journal.rs",
+        "kernel/bindings/python/tests/test_native_custody.py",
+        "kernel/bindings/node/tests/custody.test.mjs",
+        "kernel/tests/operations.rs",
+        "kernel/src/caller_streams.rs",
+        "kernel/tests/caller_streams.rs",
+        "kernel/bindings/python/tests/test_native_caller_streams.py",
+        "kernel/bindings/node/tests/caller-streams.test.mjs",
+        "kernel/tests/host_streams.rs",
+        "kernel/contracts/host-observer-cases.json",
+        "kernel/bindings/node/tests/execution-transport.test.mjs",
+        "kernel/bindings/node/tests/execution-calls.test.mjs",
+        "kernel/bindings/python/tests/test_native_execution_transport.py",
+        "kernel/bindings/python/tests/test_native_execution_calls.py",
+        "kernel/tests/inference_sessions.rs",
+        "kernel/tests/inference_wire.rs",
+        "kernel/tests/composition_execution.rs",
+        "kernel/src/transport_v2.rs",
+        "kernel/src/calls_v2.rs",
+        "kernel/src/composition_v3.rs",
+        "kernel/contracts/transport-v2-cases.json",
+        "kernel/contracts/transport-v2.json",
+        "kernel/contracts/calls-v2-cases.json",
+        "kernel/contracts/calls-v2.json",
+        "kernel/contracts/inference-v3-cases.json",
+        "kernel/contracts/composition-v3.json",
+        "kernel/contracts/managed-v2.json",
+        "kernel/contracts/handshake-v2.json",
+        "kernel/contracts/managed-v2-cases.json",
+        "kernel/contracts/handshake-v2-cases.json",
+        "kernel/src/managed_v2.rs",
+        "kernel/src/handshake_v2.rs",
+        "kernel/tests/managed_inference.rs",
+        "kernel/tests/handshake_inference.rs",
+        "kernel/bindings/python/tests/test_native_runtime_inference.py",
+        "kernel/bindings/node/tests/runtime-inference.test.mjs",
+        "kernel/src/composition_v2.rs",
+        "kernel/src/portable_v2.rs",
+        "kernel/contracts/composition-v2.json",
+        "kernel/contracts/portable-v2.json",
+        "kernel/contracts/inference-v2-cases.json",
+        "kernel/examples/inference_probe.rs",
+        "kernel/tests/inference.rs",
+        "kernel/bindings/python/tests/test_native_inference.py",
+        "kernel/bindings/node/tests/inference.test.mjs",
+        "kernel/bindings/node/tools/inference_probe.mjs",
+        "tools/check_inference_profiles.py",
+        "kernel/src/calls.rs",
+        "kernel/contracts/calls-v1.json",
+        "kernel/contracts/calls-v1-cases.json",
+        "kernel/tests/calls.rs",
+        "kernel/examples/calls_probe.rs",
+        "kernel/bindings/python/tests/test_native_calls.py",
+        "kernel/bindings/node/tests/calls.test.mjs",
+        "kernel/bindings/node/tools/calls_probe.mjs",
+        "tools/check_calls_profile.py",
+        "kernel/src/composition.rs",
+        "kernel/contracts/composition-v1.json",
+        "kernel/contracts/composition-v1-cases.json",
+        "kernel/tests/composition.rs",
+        "kernel/examples/composition_probe.rs",
+        "kernel/bindings/python/tests/test_native_composition.py",
+        "kernel/bindings/node/tests/composition.test.mjs",
+        "kernel/bindings/node/tools/composition_probe.mjs",
+        "tools/check_composition_profile.py",
+        "kernel/src/transport.rs",
+        "kernel/src/streams.rs",
+        "kernel/contracts/transport-v1.json",
+        "kernel/contracts/transport-v1-cases.json",
+        "kernel/tests/transport.rs",
+        "kernel/examples/transport_probe.rs",
+        "kernel/bindings/node/tests/transport.test.mjs",
+        "kernel/bindings/node/tools/transport_probe.mjs",
+        "kernel/bindings/python/tests/test_native_transport.py",
+        "tools/check_transport_profile.py",
+        "kernel/src/portable.rs",
+        "kernel/src/handshake.rs",
+        "kernel/contracts/handshake-v1.json",
+        "kernel/contracts/handshake-v1-cases.json",
+        "kernel/tests/handshake.rs",
+        "kernel/bindings/python/tests/test_native_handshake.py",
+        "kernel/bindings/node/tests/handshake.test.mjs",
+        "tools/check_handshake_profile.py",
+        "kernel/Cargo.lock",
+        "kernel/Cargo.toml",
+        "kernel/README.md",
+        "kernel/bindings/node/Cargo.toml",
+        "kernel/bindings/node/loader.d.cts",
+        "kernel/bindings/node/package-lock.json",
+        "kernel/bindings/node/package.json",
+        "kernel/bindings/node/portable.ts",
+        "kernel/bindings/node/src/lib.rs",
+        "kernel/bindings/node/tests/managed.test.mjs",
+        "kernel/bindings/node/tests/portable-consumer.ts",
+        "kernel/bindings/node/tools/portable_probe.mjs",
+        "kernel/bindings/python/Cargo.toml",
+        "kernel/bindings/python/THIRD_PARTY_NOTICES.txt",
+        "kernel/bindings/python/_skulk_capability_kernel.pyi",
+        "kernel/bindings/python/pyproject.toml",
+        "kernel/bindings/python/src/lib.rs",
+        "kernel/bindings/python/tests/test_native_managed.py",
+        "kernel/contracts/managed-v1-cases.json",
+        "kernel/contracts/managed-v1.json",
+        "kernel/dependency-notices.json",
+        "kernel/examples/portable_probe.rs",
+        "kernel/src/lib.rs",
+        "kernel/src/managed.rs",
+        "kernel/tests/managed.rs",
+        "tools/check_managed_profile.py",
+        "tools/check_portable_profile.py",
+        "tools/native_candidates.py",
+        "tools/native_consumer.py",
+        "tools/native_notices.py",
+        "tools/native_packages.py",
+        "tools/qualify_kernel.py",
+    ]
+)
+
+INITIAL_EXPORT_SHA256 = (
+    "a1ac2c9ceb511c2250e7f63e9f8a010ecbddf010d9d4ef7e436a3ccb7c0d9a62"
+)
+
 GENERATED_FILES = frozenset({"kernel/README.md"})
 BUILD_DIRECTORIES = frozenset(
     {
@@ -174,6 +312,16 @@ class KernelExport(BaseModel):
     generated_files: dict[str, str]
 
 
+class PublicMaintenance(BaseModel):
+    """Reviewed public changes, distinct from immutable private-export evidence."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    format: Literal[2]
+    initial_export_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    scope: str
+    maintained_files: dict[str, str]
+
+
 def _kernel_files() -> set[str]:
     """Find source files in a checkout or an anonymous source archive."""
     if (ROOT / ".git").exists():
@@ -211,20 +359,36 @@ def _kernel_files() -> set[str]:
 
 def validate_source() -> dict[str, str | int]:
     """Refuse undeclared kernel files, changed code or non-MIT license copies."""
-    manifest = KernelExport.model_validate_json(
+    maintenance = PublicMaintenance.model_validate_json(
         (ROOT / "KERNEL-SOURCE-MANIFEST.json").read_bytes()
     )
+    original = (ROOT / "KERNEL-INITIAL-EXPORT.json").read_bytes()
+    if (
+        maintenance.initial_export_sha256 != INITIAL_EXPORT_SHA256
+        or hashlib.sha256(original).hexdigest() != INITIAL_EXPORT_SHA256
+        or frozenset(maintenance.maintained_files) != MAINTAINED_FILES
+    ):
+        raise ValueError("Initial kernel export or reviewed maintenance set differs")
+    manifest = KernelExport.model_validate_json(original)
     if (
         frozenset(manifest.files) != SOURCE_FILES
         or frozenset(manifest.generated_files) != GENERATED_FILES
     ):
         raise ValueError("Kernel source export differs from the reviewed positive list")
     expected_kernel = {
-        name for name in SOURCE_FILES if name.startswith("kernel/")
+        name for name in SOURCE_FILES | MAINTAINED_FILES if name.startswith("kernel/")
     } | GENERATED_FILES
     if _kernel_files() != expected_kernel:
         raise ValueError("Undeclared kernel source files")
+    for name, digest in maintenance.maintained_files.items():
+        path = ROOT / name
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("Maintained kernel source must be a regular file")
+        if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            raise ValueError("Maintained public kernel source identity differs")
     for name, record in manifest.files.items():
+        if name in MAINTAINED_FILES:
+            continue
         path = ROOT / name
         if path.is_symlink() or not path.is_file():
             raise ValueError("Kernel source must be a regular file")
@@ -248,6 +412,8 @@ def validate_source() -> dict[str, str | int]:
         ):
             raise ValueError("Qualified kernel implementation changed")
     for name, digest in manifest.generated_files.items():
+        if name in MAINTAINED_FILES:
+            continue
         if hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != digest:
             raise ValueError("Generated kernel reference differs")
     license_bytes = (ROOT / "LICENSE.md").read_bytes()
@@ -264,7 +430,9 @@ def validate_source() -> dict[str, str | int]:
     if fingerprint != manifest.profile_digest:
         raise ValueError("Kernel profile differs from the qualified source")
     return {
-        "source_files": len(manifest.files),
+        "source_files": len(SOURCE_FILES | MAINTAINED_FILES),
+        "initial_export_sha256": INITIAL_EXPORT_SHA256,
+        "maintained_files": len(MAINTAINED_FILES),
         "profile": manifest.profile,
         "profile_digest": fingerprint,
     }

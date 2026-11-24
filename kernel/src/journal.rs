@@ -633,18 +633,7 @@ impl Journal {
     /// Fence a complete reconciliation using the same lock name as Python.
     pub fn ownership(&self) -> Result<Ownership> {
         let parent = self.path.parent().ok_or(JournalError::PrivateDirectory)?;
-        let file = private_file(&parent.join("supervisor.lock"), MAX_DATABASE_BYTES)?;
-        let deadline = Instant::now() + Duration::from_secs(2);
-        loop {
-            match file.try_lock() {
-                Ok(()) => return Ok(Ownership { _file: file }),
-                Err(TryLockError::WouldBlock) if Instant::now() < deadline => {
-                    std::thread::sleep(Duration::from_millis(5))
-                }
-                Err(TryLockError::WouldBlock) => return Err(JournalError::Busy),
-                Err(TryLockError::Error(error)) => return Err(error.into()),
-            }
-        }
+        acquire_directory_file(parent)
     }
 
     fn prune(&self, transaction: &Transaction<'_>) -> Result<Vec<(String, String)>> {
@@ -693,6 +682,45 @@ impl Journal {
 /// Held ownership is released by closing its file, including on every error path.
 pub struct Ownership {
     _file: File,
+}
+
+impl Ownership {
+    /// Acquire the existing directory fence without opening/recovering a journal.
+    ///
+    /// An application facade uses its established custody directory here before
+    /// inspecting binding markers or caller indexes. The lock file stays in place
+    /// after release: removing it would let another process lock a different inode.
+    /// This is local process exclusion, not caller authorization.
+    pub fn acquire(directory: &Path) -> Result<Self> {
+        private_directory(directory)?;
+        acquire_directory_file(directory)
+    }
+
+    /// Keep bounded filesystem/lock waits off an async control executor.
+    ///
+    /// If the awaiting future is dropped, a late blocking-task result is dropped
+    /// too, releasing its file. Language facades must also own a successfully
+    /// returned resource through their actual application cleanup.
+    pub async fn open(directory: PathBuf) -> Result<Self> {
+        tokio::task::spawn_blocking(move || Self::acquire(&directory))
+            .await
+            .map_err(|_| JournalError::Busy)?
+    }
+}
+
+fn acquire_directory_file(directory: &Path) -> Result<Ownership> {
+    let file = private_file(&directory.join("supervisor.lock"), MAX_DATABASE_BYTES)?;
+    let deadline = Instant::now() + Duration::from_secs(2);
+    loop {
+        match file.try_lock() {
+            Ok(()) => return Ok(Ownership { _file: file }),
+            Err(TryLockError::WouldBlock) if Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(5))
+            }
+            Err(TryLockError::WouldBlock) => return Err(JournalError::Busy),
+            Err(TryLockError::Error(error)) => return Err(error.into()),
+        }
+    }
 }
 
 pub(crate) fn private_directory(path: &Path) -> Result<()> {

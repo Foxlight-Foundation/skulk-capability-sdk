@@ -1,6 +1,12 @@
 version = 1
 revision = 5
 requires-python = ">=3.13"
+resolution-markers = [
+    "platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'x86_64') or (platform_machine == 'aarch64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine == 'arm64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')",
+]
 
 [manifest]
 members = [
@@ -649,8 +655,41 @@ wheels = [
 ]
 
 [[package]]
+name = "skulk-capability-kernel"
+version = "0.7.0"
+source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-macosx_11_0_arm64.whl" }
+resolution-markers = [
+    "platform_machine == 'arm64' and sys_platform == 'darwin'",
+]
+wheels = [
+    { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-macosx_11_0_arm64.whl", hash = "sha256:ac66250223f65870bf59543a430930fa2f366cef7669ca3b0603b4d8e172c778" },
+]
+
+[[package]]
+name = "skulk-capability-kernel"
+version = "0.7.0"
+source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_aarch64.whl" }
+resolution-markers = [
+    "platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:1c86be3a6e318dcf4ad0ef83ff98446a72bacdbaface2b7ad40e24be30accdc0" },
+]
+
+[[package]]
+name = "skulk-capability-kernel"
+version = "0.7.0"
+source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_x86_64.whl" }
+resolution-markers = [
+    "platform_machine == 'x86_64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:27cd7bada32a6511448648fcd58543abf393bd33975c4a35f117a6e547268d65" },
+]
+
+[[package]]
 name = "skulk-capability-sdk"
-version = "0.5.7"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },
@@ -662,10 +701,15 @@ dependencies = [
 native-credentials = [
     { name = "keyring" },
 ]
+native-discovery = [
+    { name = "httpx" },
+]
 
 [package.dev-dependencies]
 dev = [
     { name = "basedpyright" },
+    { name = "cryptography" },
+    { name = "httpx" },
     { name = "keyring" },
     { name = "pydantic" },
     { name = "pytest" },
@@ -673,19 +717,27 @@ dev = [
     { name = "ruff" },
     { name = "types-jsonschema" },
 ]
+native-runtime = [
+    { name = "skulk-capability-kernel", version = "0.7.0", source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-macosx_11_0_arm64.whl" }, marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
+    { name = "skulk-capability-kernel", version = "0.7.0", source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_aarch64.whl" }, marker = "platform_machine == 'aarch64' and sys_platform == 'linux'" },
+    { name = "skulk-capability-kernel", version = "0.7.0", source = { url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_x86_64.whl" }, marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+]
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", marker = "extra == 'native-discovery'", specifier = ">=0.28.1,<1" },
     { name = "jsonschema", specifier = ">=4.26,<5" },
     { name = "keyring", marker = "extra == 'native-credentials'", specifier = ">=25,<26" },
     { name = "packaging", specifier = ">=24" },
     { name = "pydantic", specifier = ">=2.12,<3" },
 ]
-provides-extras = ["native-credentials"]
+provides-extras = ["native-credentials", "native-discovery"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "basedpyright", specifier = "==1.39.10" },
+    { name = "cryptography", specifier = "==50.0.2" },
+    { name = "httpx", specifier = "==0.28.1" },
     { name = "keyring", specifier = ">=25,<26" },
     { name = "pydantic", specifier = "==2.13.5" },
     { name = "pytest", specifier = "==9.1.1" },
@@ -693,10 +745,15 @@ dev = [
     { name = "ruff", specifier = "==0.14.11" },
     { name = "types-jsonschema" },
 ]
+native-runtime = [
+    { name = "skulk-capability-kernel", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-macosx_11_0_arm64.whl" },
+    { name = "skulk-capability-kernel", marker = "platform_machine == 'aarch64' and sys_platform == 'linux'", url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_aarch64.whl" },
+    { name = "skulk-capability-kernel", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", url = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_x86_64.whl" },
+]
 
 [[package]]
 name = "skulk-capability-tools"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "packages/tools" }
 dependencies = [
     { name = "anyio" },

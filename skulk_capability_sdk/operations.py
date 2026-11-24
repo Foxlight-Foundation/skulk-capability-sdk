@@ -206,6 +206,29 @@ def operation_descriptor(
     a succeeded status. Both are embedded so a caller that has never heard of
     the operation can validate what it sends and receives.
     """
+    call_schema, output_schema = operation_schemas(input_schema, result_schema)
+    return Descriptor(
+        id=id,
+        version=version,
+        title=title,
+        description=description,
+        input_schema=call_schema,
+        output_schema=output_schema,
+        annotations={OPERATION_ANNOTATION: "1"},
+    )
+
+
+def operation_schemas(
+    input_schema: dict[str, JsonValue],
+    result_schema: dict[str, JsonValue],
+    *,
+    maximum_offset: int = MAX_OFFSET,
+) -> tuple[dict[str, JsonValue], dict[str, JsonValue]]:
+    """Compose operation envelopes without constructing a descriptor or authority.
+
+    Legacy callers retain their exact schemas. A native caller may narrow the
+    numeric offset bound before admitting the result with its portable reader.
+    """
     input_body = dict(input_schema)
     call_definitions: dict[str, JsonValue] = {}
     _hoist_definitions(input_body, call_definitions)
@@ -218,7 +241,7 @@ def operation_descriptor(
     offset: dict[str, JsonValue] = {
         "type": "integer",
         "minimum": 0,
-        "maximum": MAX_OFFSET,
+        "maximum": maximum_offset,
     }
 
     def verb(op: str, required: list[str], **extra: JsonValue) -> dict[str, JsonValue]:
@@ -275,15 +298,7 @@ def operation_descriptor(
     output_schema: dict[str, JsonValue] = {"oneOf": variants}
     if definitions:
         output_schema["$defs"] = definitions
-    return Descriptor(
-        id=id,
-        version=version,
-        title=title,
-        description=description,
-        input_schema=call_schema,
-        output_schema=output_schema,
-        annotations={OPERATION_ANNOTATION: "1"},
-    )
+    return call_schema, output_schema
 
 
 def _hoist_definitions(

@@ -1,0 +1,349 @@
+{
+  "$defs": {
+    "Target": {
+      "additionalProperties": false,
+      "properties": {
+        "behavior": {
+          "enum": [
+            "read",
+            "inference",
+            "governed"
+          ]
+        },
+        "capability_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "descriptor_revision": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "processing_domain": {
+          "enum": [
+            "local",
+            "private_site",
+            "external"
+          ]
+        },
+        "version": {
+          "maxLength": 64,
+          "pattern": "^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "capability_id",
+        "version",
+        "descriptor_revision",
+        "processing_domain",
+        "behavior"
+      ],
+      "type": "object"
+    }
+  },
+  "canonicalization": "skulk.portable-json/1",
+  "limits": {
+    "allowed_targets": 64,
+    "ancestry": 8,
+    "record_bytes": 262144,
+    "request_bytes": 16777216
+  },
+  "models": {
+    "Context": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_processing_domains": {
+          "items": {
+            "enum": [
+              "local",
+              "private_site",
+              "external"
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "allowed_targets": {
+          "items": {
+            "$ref": "#/$defs/Target"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "ancestry": {
+          "items": {
+            "$ref": "#/$defs/Target"
+          },
+          "maxItems": 8,
+          "type": "array"
+        },
+        "caller_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "caller_kind": {
+          "enum": [
+            "operator",
+            "client",
+            "service"
+          ]
+        },
+        "contract_profile": {
+          "const": "skulk.composition/3"
+        },
+        "deadline_unix_ms": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "executor": {
+          "$ref": "#/$defs/Target"
+        },
+        "issuer_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "context"
+        },
+        "parent_scope_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policy_revision": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 3
+        },
+        "request_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "root_scope_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "scope_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "scope_id",
+        "root_scope_id",
+        "parent_scope_id",
+        "caller_id",
+        "caller_kind",
+        "issuer_node_id",
+        "executor",
+        "request_sha256",
+        "policy_revision",
+        "allowed_targets",
+        "allowed_processing_domains",
+        "ancestry",
+        "deadline_unix_ms"
+      ],
+      "type": "object"
+    },
+    "DelegateRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_profile": {
+          "const": "skulk.composition/3"
+        },
+        "deadline_unix_ms": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "destination": {
+          "$ref": "#/$defs/Target"
+        },
+        "kind": {
+          "const": "delegate"
+        },
+        "parent_request_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "parent_scope_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 3
+        },
+        "request_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "request_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "request_id",
+        "parent_scope_id",
+        "parent_request_sha256",
+        "destination",
+        "request_sha256",
+        "deadline_unix_ms"
+      ],
+      "type": "object"
+    },
+    "Policy": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_processing_domains": {
+          "items": {
+            "enum": [
+              "local",
+              "private_site",
+              "external"
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "allowed_targets": {
+          "items": {
+            "$ref": "#/$defs/Target"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "caller_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "caller_kind": {
+          "enum": [
+            "operator",
+            "client",
+            "service"
+          ]
+        },
+        "contract_profile": {
+          "const": "skulk.composition/3"
+        },
+        "deadline_unix_ms": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "issuer_node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "policy"
+        },
+        "policy_revision": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 3
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "kind",
+        "caller_id",
+        "caller_kind",
+        "issuer_node_id",
+        "policy_revision",
+        "allowed_targets",
+        "allowed_processing_domains",
+        "deadline_unix_ms"
+      ],
+      "type": "object"
+    }
+  },
+  "profile": "skulk.composition/3",
+  "protocol": 3,
+  "semantics": [
+    "Context and Policy must come from host-owned authenticated active-call and live policy state. Parsing caller-supplied records never establishes authority.",
+    "A host atomically resolves the live parent scope under the authenticated executor connection, reserves a parent-scoped one-use request_id, and owns cancellation, revocation, disconnect, expiry and uncertain execution. Pure admission does not consume a grant, execute or permit replay.",
+    "Delegation compares the authenticated executor with the parent executor and binds both parent scope and parent request. It hashes the actual destination request bytes; hashes are wire-byte identities, not JSON semantic identities.",
+    "The live exact destination must appear in both parent and current policy targets. The live policy must bind the same original caller id, kind and issuer as the parent. Its revision must equal the parent revision; changed policy requires a fresh host admission.",
+    "Caller id, caller kind, issuer and root scope remain unchanged. Child scope is a fresh host-generated random identity, distinct from parent/root/request identities. The host must also prevent collisions with previous scopes.",
+    "Child targets and processing domains are intersections of parent and current policy, deadlines can only shorten, and ancestors/current executor cannot be reentered by changing descriptor revision or version.",
+    "Context is sensitive caller metadata, not a bearer credential. Do not log or replicate it, request hashes or scope-derived identities. Provider credentials and host signing keys never enter these records.",
+    "Only read and inference execution are eligible. Governed proposal/write effects remain denied even when present in Policy. Parsing never establishes authenticated caller or signed-destination provenance.",
+    "The current executor is an effect ceiling: a read executor can delegate only reads; an inference executor can delegate reads or inference. Every read child loses inference targets even if its original caller or parent has broader permission. The inference parent retains its own separately authorized sibling targets.",
+    "A Context executor must be read or inference, and every allowed target must fit that executor ceiling. The host attenuates root permission by the exact signed entry-point behavior before creating Context.",
+    "Processing permission is independent from inference permission. Destination processing domain must be in the parent/current-policy intersection; an inference grant never implies external-provider consent.",
+    "Allowed targets are a host-owned permission snapshot, not a current-capacity catalog. Unrelated readiness changes do not rewrite permission; the host independently verifies actual selected destination/runtime/incarnation and current policy immediately before dispatch.",
+    "The host binds Target behavior and processing_domain to the exact signed destination descriptor; a caller-supplied target, model/task label or annotation never establishes those facts.",
+    "Independent protocol3 requires an explicitly selected compatible execution cohort. Issued composition1 and composition2 remain unchanged and refuse these records; no profile guessing, relabeling or automatic downgrade.",
+    "deadline_unix_ms is required and explicitly null when there is no overall authority deadline. A finite value is an absolute Unix millisecond timestamp. Missing fields never select unbounded lifetime.",
+    "The effective child deadline is the earliest non-null deadline from the active parent, current caller policy and requested child deadline. Null adds no ceiling and never removes a finite ancestor, caller or credential expiry. Every supplied finite deadline must still be in the future; no expired authority can be revived by requesting null.",
+    "The host supplies a valid current Unix millisecond clock in the portable safe-integer range. Null does not remove live authorization, revocation, disconnect, cancellation, bounded active scopes or the prohibition on replaying uncertain work.",
+    "Authority expiry, optional owner generation ceilings and bounded transport connect/hello/partial-I/O watchdogs are separate controls. An uncapped inference must not acquire an implicit30second unary limit,300second stream limit, maximum-integer sentinel or aggregate output/request-count allowance. Hosts intersect any real owner ceiling before dispatch."
+  ]
+}

@@ -1,50 +1,65 @@
-# Skulk Capability SDK
+# Skulk capability SDK
 
-Build capabilities for Skulk with Python contracts, local IPC, durable
-operations, transactional storage, streaming media and declared credential reads.
-The SDK is licensed under [MIT](LICENSE.md). Source and package downloads require
-no Foxlight account. A publishing account is separate from runtime authority.
+Public MIT authoring contracts, Python and TypeScript application/client APIs,
+shared native bindings and author tools for managed Skulk capabilities.
 
-This Python release retains the qualified protocol-4 authoring interfaces.
-Protocol-3 unary applications remain compatible during the documented reader
-window. The shared native kernel, TypeScript facade and higher-level
-`CapabilityApp` are separate release gates; this package does not switch the
-installed runtime to unfinished native code.
+The SDK supplies application setup, unary/server/client/bidirectional I/O, declared
+settings and credentials, health/readiness, invocation-scoped discovery and
+composition, durable inference jobs, and cancellation-safe resource ownership.
+The host authenticates the original caller and authorizes every effect.
+Installing a package grants no Fabric authority or provider-account access.
 
-Python 3.13 is required. The SDK itself needs no compiler, GPU, model or fleet
-lease. Capability execution also requires a compatible Skulk host; joining a
-larger fabric is optional. Native Windows is not qualified.
+## Start here
 
-The modules are:
+[SDK1 package and host cohort](docs/sdk1-cohort.md) distinguishes the new release
+qualification from the separately issued preview.
 
-| Module | Purpose |
+- [Python and TypeScript native author guide](docs/native-authoring.md): create,
+  run, debug, watch, invoke and build a model-free application.
+- [Public package quickstart](docs/native-public-quickstart.md): exact downloads,
+  package inspection and independent acquisition.
+- [Runtime acquisition](docs/native-runtime-acquisition.md): select a compatible,
+  separately licensed owner/runtime using its versioned release receipt.
+- [Signing, feeds and Store submission](docs/native-publishing.md): publish an
+  independently operated HTTPS feed; Store admission is a separate boundary.
+- [Legacy Python author guide](docs/python-authoring.md): maintained governed
+  protocol-four/runtime-two authoring and lifecycle commands.
+
+SDK1 Python/TypeScript packages target version `1.0.1`, author tools `0.2.0`, native
+kernel `0.7.0` and selected managed Node `22.23.5`. Package, owner/Core and
+installed-application qualification are recorded separately. Consult the
+acquisition guide for issued artifacts and the compatible host cohort.
+
+## Interfaces
+
+| Module / interface | Purpose |
 | --- | --- |
-| `contracts` | Strict manifests, descriptors, wire messages and canonical bytes |
-| `wire` | Local framed IPC |
-| `storage` | Owner-only files and exclusive locks |
-| `operations` | Durable work with replay fences and explicit uncertainty |
-| `database` | Transactional SQLite journals |
-| `streams` | Unary and four-mode streaming lifecycle with bounded media |
-| `credentials` | Read only the credential inputs declared by a capability |
-| `serving` | Bind a capability's own server to the host-approved surface |
+| `CapabilityApp`, `ApplicationStartup` | Application setup, handlers, readiness, settings and owned resources |
+| `Invocation.call`, `Invocation.stream` | Exact-target unary and four-mode clients; original-caller identity and bounded cleanup |
+| `Invocation.discover`, `discoverCapabilities` | Caller-scoped active/external discovery; observations grant no execution rights |
+| `CapabilityClient` | Exact descriptor observations, authorized reads and immutable inert proposals |
+| `JobDefinition`, `DurableJobs` | Native inference jobs, caller-private observations, replay reservations and recovery |
+| `credentials` | Declared credential reads with redaction, rotation and retirement |
+| `contracts`, `wire`, `storage`, `operations`, `database`, `streams` | Maintained Python contracts, IPC, protected state and governed/durable operation primitives |
+| `serving` | Bind an application server to its host-approved surface |
 
-The package contains no provider account integration, gateway signing key,
-installer or supervisor. Installation of this SDK does not authorize effects.
-The host independently authenticates callers and admits each capability call.
+Native composition supports read/inference work. Proposals contain request data;
+they confer no approval or execution authority. Existing governed Python
+consumers retain their actual protocol-four/runtime-two interfaces. Updating
+an SDK dependency does not change an application's runtime protocol.
 
-`SOURCE-MANIFEST.json` records SHA-256 for the exact qualified Python export.
-The initial export contains no repository history from the owner implementation.
+Python3.13 is the qualified author interpreter. Native hosting is qualified on
+macOS ARM64 and glibc2.34+ Linux x86_64/ARM64. TypeScript uses Node22.18 or later
+in the Node22 line; managed packaging selects the exact Node22.23.5 assets.
+Native Windows hosting is not qualified. Local development needs no model,
+GPU, fleet lease or Foxlight account. Managed installation requires compatible
+Skulk and an explicitly trusted runtime.
 
-## Author tools
+## Source and package boundaries
 
-[The Python author guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/main/docs/python-authoring.md) covers anonymous wheel installation, a model-free source starter, local run/watch/invoke/debug, unsigned builds, exact runtime acquisition, signing/inspection and revision-fenced host lifecycle commands. The `skulk-capability-tools` package provides `skulk-cap` and compatible legacy publisher entry points.
-
-The CLI and the runtime are separate packages. Runtime recipes retain owner 0.10.5/SDK 0.5.5 while these author interfaces use SDK 0.5.7. Package installation grants no Fabric authority. The local development harness currently exercises unary calls; application-framework, TypeScript and native adoption have separate qualification.
-
-## Shared native kernel
-
-The [MIT kernel source](kernel/README.md) includes native Rust, Python and Node
-interfaces and the `skulk.portable/1` candidate. Its [profile reference](docs/native-kernel.md)
-and independent conformance corpus describe the available boundary. Kernel
-qualification builds remain separate from the released Python SDK contract and
-managed-runtime adoption.
+`SOURCE-MANIFEST.json` and the package export audits identify the reviewed public
+source. The [shared kernel](kernel/README.md) supplies versioned canonical JSON,
+contracts, journals and transport; its existing profile bytes remain frozen.
+The public SDK contains no private owner/supervisor implementation, provider
+integration, account session or publisher signing key. Package acquisition,
+publisher registration and runtime authorization remain separate.

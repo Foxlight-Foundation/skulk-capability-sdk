@@ -9,10 +9,13 @@ from pathlib import Path
 
 from skulk_capability_sdk.contracts import Denied
 
-from .catalog import signed_record
 from .inspection import inspect_release, read_public
+from .publication_records import (
+    publication_release,
+    publication_runtime,
+    read_publication_record,
+)
 from .releases import RELEASE_METADATA_MAX_BYTES
-from .runtime_release import SignedRuntimeRelease
 
 
 def publish(
@@ -23,17 +26,14 @@ def publish(
     if destination.exists() or destination.is_symlink():
         raise Denied("Published destination must be new; existing bytes are immutable")
     raw = read_public(source / "release.json", RELEASE_METADATA_MAX_BYTES)
-    record = signed_record(raw)
-    release = (
-        record.runtime.release
-        if isinstance(record, SignedRuntimeRelease)
-        else record.release
-    )
+    record = read_publication_record(raw)
+    release = publication_release(record)
+    runtime = publication_runtime(record)
     names = ["bundle.pyz", "release.json"]
     sizes = [release.artifact_size, len(raw)]
-    if isinstance(record, SignedRuntimeRelease):
-        names.extend(wheel.filename for wheel in record.runtime.wheels)
-        sizes.extend(wheel.size for wheel in record.runtime.wheels)
+    if runtime is not None:
+        names.extend(wheel.filename for wheel in runtime.wheels)
+        sizes.extend(wheel.size for wheel in runtime.wheels)
     if len(set(names)) != len(names) or sum(sizes) > 256 * 1024 * 1024:
         raise Denied("Publication exceeds its bounded artifact inventory")
     destination.parent.mkdir(parents=True, exist_ok=True)

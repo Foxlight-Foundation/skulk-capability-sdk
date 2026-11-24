@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skulk-capability-sdk"
-version = "0.5.7"
+version = "1.0.1"
 description = "Public authoring contracts and lifecycle primitives for Skulk capabilities"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -13,13 +13,21 @@ dependencies = ["pydantic>=2.12,<3", "jsonschema>=4.26,<5", "packaging>=24"]
 
 [project.optional-dependencies]
 native-credentials = ["keyring>=25,<26"]
+native-discovery = ["httpx>=0.28.1,<1"]
 
 [project.urls]
 Source = "https://github.com/Foxlight-Foundation/skulk-capability-sdk"
 Documentation = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/tree/main/docs"
 
 [dependency-groups]
-dev = ["pytest==9.1.1", "pytest-asyncio==1.4.0", "ruff==0.14.11", "basedpyright==1.39.10", "types-jsonschema", "pydantic==2.13.5", "keyring>=25,<26"]
+dev = ["pytest==9.1.1", "pytest-asyncio==1.4.0", "ruff==0.14.11", "basedpyright==1.39.10", "types-jsonschema", "pydantic==2.13.5", "keyring>=25,<26", "httpx==0.28.1", "cryptography==50.0.2"]
+
+# Explicit compiler-free author-runtime qualification, separate from the legacy SDK.
+native-runtime = [
+    "skulk-capability-kernel @ https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-macosx_11_0_arm64.whl#sha256=ac66250223f65870bf59543a430930fa2f366cef7669ca3b0603b4d8e172c778 ; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "skulk-capability-kernel @ https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_aarch64.whl#sha256=1c86be3a6e318dcf4ad0ef83ff98446a72bacdbaface2b7ad40e24be30accdc0 ; sys_platform == 'linux' and platform_machine == 'aarch64'",
+    "skulk-capability-kernel @ https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk_capability_kernel-0.7.0-cp313-abi3-manylinux_2_34_x86_64.whl#sha256=27cd7bada32a6511448648fcd58543abf393bd33975c4a35f117a6e547268d65 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
 
 [tool.uv.workspace]
 members = ["packages/tools"]
@@ -37,11 +45,16 @@ include = ["/skulk_capability_sdk", "/LICENSE.md", "/README.md", "/SOURCE-MANIFE
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests", "packages/tools/tests"]
+pythonpath = ["."]
+markers = [
+    "requires_discovery_v1: new native discovery ABI acceptance, qualified separately from issued runtimes",
+    "pre_discovery_v1: explicit unsupported behavior on issued runtimes without discovery",
+]
 
 [tool.basedpyright]
 typeCheckingMode = "strict"
-include = ["skulk_capability_sdk", "tests", "tools", "packages/tools", "kernel/bindings/python"]
-extraPaths = ["kernel/bindings/python"]
+include = ["skulk_capability_sdk", "tests", "tools", "packages/tools", "kernel/bindings/python", "tests_native", "tests_typescript", "tests_packaged", "tests_authoring"]
+extraPaths = ["kernel/bindings/python", "tests_native"]
 
 [tool.ruff]
 target-version = "py313"

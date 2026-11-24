@@ -17,6 +17,7 @@ use tokio::task::JoinHandle;
 use tokio::time::{Instant, timeout_at};
 
 use crate::codec::{self, Value};
+use crate::{handshake, handshake_v2, managed, managed_v2, transport, transport_v2};
 
 /// Existing protocol-4 JSON header ceiling.
 pub const MAX_HEADER_BYTES: usize = 65_536;
@@ -562,15 +563,19 @@ impl Lifecycle {
         }
         Ok(())
     }
-    fn outgoing(&mut self, packet: Packet) -> Result<Option<Packet>> {
+    fn observe_output(&mut self, packet: &Packet) -> Result<()> {
         self.alive()?;
         if packet.is_end() {
             return Err(StreamError::Sequence);
         }
-        self.output.accept(&packet)?;
+        self.output.accept(packet)?;
         if self.mode == Mode::Client && packet.kind().as_deref() == Some("chunk") {
             return Err(StreamError::ClientChunk);
         }
+        Ok(())
+    }
+    fn outgoing(&mut self, packet: Packet) -> Result<Option<Packet>> {
+        self.observe_output(&packet)?;
         if packet.is_terminal() {
             self.terminal = Some(packet);
             Ok(None)
@@ -580,17 +585,157 @@ impl Lifecycle {
     }
 }
 
+/// Pure host-side observation of one protocol-six stream; this grants no rights.
+/// The enforcing host separately binds startup/call custody and current policy.
+/// Both directions use the same lifecycle as the native author session, while
+/// the provider end marker is observed independently from control completion.
+pub struct HostObserver {
+    state: Lifecycle,
+    call_id: Vec<u32>,
+    ended: bool,
+}
+
+impl HostObserver {
+    /// Bind an exact call and non-unary mode without opening a channel.
+    pub fn new(call_id: &str, mode: &str) -> Result<Self> {
+        if !identifier(call_id) {
+            return Err(StreamError::InvalidFrame);
+        }
+        Ok(Self {
+            state: Lifecycle {
+                input: Sequence::new(call_id, "caller_to_provider", 0),
+                output: Sequence::new(call_id, "provider_to_caller", 1),
+                mode: Mode::parse(mode)?,
+                terminal: None,
+                failure: None,
+                closed: false,
+            },
+            call_id: codec::points(call_id),
+            ended: false,
+        })
+    }
+
+    /// Admit one complete caller packet; invalid ingress permanently fences it.
+    pub fn accept_input(&mut self, bytes: &[u8]) -> Result<Packet> {
+        self.accept(bytes, true)
+    }
+
+    /// Admit provider output and exactly one matching end after its terminal.
+    /// A terminal alone is never evidence that the managed call completed.
+    pub fn accept_output(&mut self, bytes: &[u8]) -> Result<Packet> {
+        self.accept(bytes, false)
+    }
+
+    fn accept(&mut self, bytes: &[u8], input: bool) -> Result<Packet> {
+        let result = (|| {
+            self.state.alive()?;
+            let packet = transport_v2::decode_packet(bytes)?;
+            self.observe(&packet, input)?;
+            Ok(packet)
+        })();
+        if let Err(error) = result {
+            self.state.failure.get_or_insert(error);
+        }
+        result
+    }
+
+    /// Share lifecycle admission with native I/O without copying binary media.
+    /// The caller must have admitted the packet with transport/2 first.
+    pub(crate) fn observe(&mut self, packet: &Packet, input: bool) -> Result<()> {
+        let result = (|| {
+            self.state.alive()?;
+            if input {
+                self.state.incoming(packet)?;
+            } else if packet.is_end() {
+                if !self.state.output.terminal
+                    || get(packet.fields()?, "call_id")
+                        != Some(&Value::String(self.call_id.clone()))
+                {
+                    return Err(StreamError::Sequence);
+                }
+                self.state.closed = true;
+                self.ended = true;
+            } else {
+                self.state.observe_output(packet)?;
+            }
+            Ok(())
+        })();
+        if let Err(error) = result {
+            self.state.failure.get_or_insert(error);
+        }
+        result
+    }
+
+    /// Report a successful caller half-close, or a mode with no caller ingress.
+    pub fn input_completed(&self) -> bool {
+        self.state.failure.is_none()
+            && (self.state.mode == Mode::Server || self.state.input.terminal)
+    }
+
+    /// Report a provider terminal, independently of its later end marker.
+    pub fn output_terminated(&self) -> bool {
+        self.state.failure.is_none() && self.state.output.terminal
+    }
+
+    /// Require the exact terminal/end pair; control-result admission is external.
+    pub fn finished(&self) -> bool {
+        self.state.failure.is_none() && self.ended
+    }
+
+    /// Report irreversible framing/lifecycle failure without exposing content.
+    pub fn failed(&self) -> bool {
+        self.state.failure.is_some()
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Wire {
+    Legacy,
+    Portable,
+    Inference,
+}
+impl Wire {
+    async fn read(self, reader: &mut (impl AsyncRead + Unpin)) -> Result<Packet> {
+        match self {
+            Self::Legacy => read_packet(reader).await,
+            Self::Portable => transport::read_packet(reader).await,
+            Self::Inference => transport_v2::read_packet(reader).await,
+        }
+    }
+    async fn write(self, writer: &mut (impl AsyncWrite + Unpin), packet: &Packet) -> Result<()> {
+        match self {
+            Self::Legacy => write_packet(writer, packet).await,
+            Self::Portable => transport::write_packet(writer, packet).await,
+            Self::Inference => transport_v2::write_packet(writer, packet).await,
+        }
+    }
+}
+
+// A nullable execution budget is distinct from framing and startup watchdogs.
+// The enforcing host still owns live caller expiry, cancellation and revocation.
+async fn before_deadline<F: std::future::Future>(
+    deadline: Option<Instant>,
+    future: F,
+) -> std::result::Result<F::Output, tokio::time::error::Elapsed> {
+    if let Some(deadline) = deadline {
+        timeout_at(deadline, future).await
+    } else {
+        Ok(future.await)
+    }
+}
+
 /// Native asynchronous transport owner. Iterator execution is language-owned;
 /// `finish` is called only after its cleanup has completed. Drop aborts owned
 /// tasks/sockets; explicit `close` awaits their teardown. Health uses no session
 /// locks and remains independent of a blocked input/output/handler operation.
 pub struct Session {
+    wire: Wire,
     state: Arc<Mutex<Lifecycle>>,
     input: AsyncMutex<(mpsc::Receiver<Packet>, bool)>,
     writer: Arc<AsyncMutex<OwnedWriteHalf>>,
     failures: watch::Sender<Option<StreamError>>,
     tasks: Mutex<Vec<JoinHandle<()>>>,
-    deadline: Instant,
+    deadline: Option<Instant>,
     call_id: String,
 }
 impl Session {
@@ -603,21 +748,140 @@ impl Session {
         mode: Mode,
         seconds: f64,
     ) -> Result<Self> {
-        if !seconds.is_finite()
-            || !(0.0..=300.0).contains(&seconds)
-            || seconds == 0.0
+        let hello = validate_hello(hello, call_id)?;
+        Self::connect(
+            socket,
+            hello,
+            call_id,
+            mode,
+            Some(seconds),
+            Wire::Legacy,
+            seconds,
+        )
+        .await
+    }
+    /// Derive the stream endpoint and hello from one admitted startup. The host
+    /// still owns original caller, signed selection and one-use call admission.
+    pub async fn open_portable(
+        startup: &managed::Record,
+        call_id: &str,
+        mode: Mode,
+        seconds: f64,
+    ) -> Result<Self> {
+        let hello = handshake::from_startup(startup, Some(call_id))
+            .map_err(|_| StreamError::InvalidFrame)?;
+        let value: serde_json::Value =
+            serde_json::from_slice(startup.canonical()).map_err(|_| StreamError::InvalidFrame)?;
+        let socket = value["stream_socket"]
+            .as_str()
+            .ok_or(StreamError::InvalidFrame)?;
+        Self::connect(
+            socket,
+            hello.canonical().to_vec(),
+            call_id,
+            mode,
+            Some(seconds),
+            Wire::Portable,
+            seconds,
+        )
+        .await
+    }
+    /// Open the exact inference-cohort stream for an already host-admitted call.
+    ///
+    /// Startup supplies protected endpoints and hello binding; call ID, mode and
+    /// remaining seconds must come from actual host admission. None removes only
+    /// this SDK's overall generation timer, never real caller/parent/owner expiry.
+    /// Connect/hello and partial I/O retain their independent resource watchdogs.
+    pub async fn open_inference(
+        startup: &managed_v2::Record,
+        call_id: &str,
+        mode: Mode,
+        seconds: Option<f64>,
+    ) -> Result<Self> {
+        let hello = handshake_v2::from_startup(startup, Some(call_id))
+            .map_err(|_| StreamError::InvalidFrame)?;
+        let value: serde_json::Value =
+            serde_json::from_slice(startup.canonical()).map_err(|_| StreamError::InvalidFrame)?;
+        let socket = value["stream_socket"]
+            .as_str()
+            .ok_or(StreamError::InvalidFrame)?;
+        let handshake_seconds = value["manifest"]["bounds"]["startup_seconds"]
+            .as_f64()
+            .ok_or(StreamError::InvalidFrame)?;
+        Self::connect(
+            socket,
+            hello.canonical().to_vec(),
+            call_id,
+            mode,
+            seconds,
+            Wire::Inference,
+            handshake_seconds,
+        )
+        .await
+    }
+    /// Select language conversion without replacing legacy codec behavior.
+    pub fn is_portable(&self) -> bool {
+        matches!(self.wire, Wire::Portable | Wire::Inference)
+    }
+    /// Admit binding output using the session's explicit protocol, never a fallback.
+    pub fn packet(&self, projection: &str, media: Vec<u8>) -> Result<Packet> {
+        match self.wire {
+            Wire::Legacy => Packet::from_projection(projection, media),
+            Wire::Portable => transport::packet(projection, media),
+            Wire::Inference => transport_v2::packet(projection, media),
+        }
+    }
+    /// Return the canonical projection belonging to this session's number profile.
+    pub fn projection(&self, packet: &Packet) -> Result<String> {
+        match self.wire {
+            Wire::Legacy => packet.projection_json(),
+            Wire::Portable => transport::projection(packet),
+            Wire::Inference => transport_v2::projection(packet),
+        }
+    }
+    async fn connect(
+        socket: &str,
+        hello: Vec<u8>,
+        call_id: &str,
+        mode: Mode,
+        seconds: Option<f64>,
+        wire: Wire,
+        handshake_seconds: f64,
+    ) -> Result<Self> {
+        let maximum = if matches!(wire, Wire::Inference) {
+            9_007_199_254_740.0
+        } else {
+            300.0
+        };
+        if seconds
+            .is_some_and(|seconds| !seconds.is_finite() || seconds <= 0.0 || seconds > maximum)
+            || (seconds.is_none() && !matches!(wire, Wire::Inference))
+            || !handshake_seconds.is_finite()
+            || handshake_seconds <= 0.0
+            || handshake_seconds > 300.0
             || !identifier(call_id)
         {
             return Err(StreamError::InvalidFrame);
         }
-        let deadline = Instant::now() + Duration::from_secs_f64(seconds);
-        let hello = validate_hello(hello, call_id)?;
-        let stream = timeout_at(deadline, UnixStream::connect(socket))
+        let deadline = seconds
+            .map(|seconds| {
+                Instant::now()
+                    .checked_add(Duration::from_secs_f64(seconds))
+                    .ok_or(StreamError::InvalidFrame)
+            })
+            .transpose()?;
+        let handshake_deadline = Instant::now()
+            .checked_add(Duration::from_secs_f64(handshake_seconds))
+            .ok_or(StreamError::InvalidFrame)?;
+        let handshake_deadline = deadline.map_or(handshake_deadline, |deadline| {
+            deadline.min(handshake_deadline)
+        });
+        let stream = timeout_at(handshake_deadline, UnixStream::connect(socket))
             .await
             .map_err(|_| StreamError::Timeout)?
             .map_err(|_| StreamError::Transport)?;
         let (mut reader, mut writer) = stream.into_split();
-        timeout_at(deadline, async {
+        timeout_at(handshake_deadline, async {
             writer
                 .write_all(&(hello.len() as u32).to_be_bytes())
                 .await?;
@@ -641,9 +905,9 @@ impl Session {
         let reader_state = state.clone();
         let reader_failures = failures.clone();
         let receive = tokio::spawn(async move {
-            let result = timeout_at(deadline, async {
+            let result = before_deadline(deadline, async {
                 loop {
-                    let packet = read_packet(&mut reader).await?;
+                    let packet = wire.read(&mut reader).await?;
                     reader_state
                         .lock()
                         .map_err(|_| StreamError::Closed)?
@@ -659,20 +923,24 @@ impl Session {
                 fail(&reader_state, &reader_failures, error);
             }
         });
-        let timer_state = state.clone();
-        let timer_failures = failures.clone();
-        let timer_writer = writer.clone();
-        let timer = tokio::spawn(async move {
-            tokio::time::sleep_until(deadline).await;
-            fail(&timer_state, &timer_failures, StreamError::Timeout);
-            let _ = timer_writer.lock().await.shutdown().await;
-        });
+        let mut tasks = vec![receive];
+        if let Some(deadline) = deadline {
+            let timer_state = state.clone();
+            let timer_failures = failures.clone();
+            let timer_writer = writer.clone();
+            tasks.push(tokio::spawn(async move {
+                tokio::time::sleep_until(deadline).await;
+                fail(&timer_state, &timer_failures, StreamError::Timeout);
+                let _ = timer_writer.lock().await.shutdown().await;
+            }));
+        }
         Ok(Self {
+            wire,
             state,
             input: AsyncMutex::new((receiver, false)),
             writer,
             failures,
-            tasks: Mutex::new(vec![receive, timer]),
+            tasks: Mutex::new(tasks),
             deadline,
             call_id: call_id.into(),
         })
@@ -710,10 +978,21 @@ impl Session {
         result
     }
     async fn send_output_inner(&self, packet: Packet) -> Result<()> {
+        // Direct Rust callers cannot bypass the selected protocol's admission.
+        match self.wire {
+            Wire::Legacy => {}
+            Wire::Portable => {
+                transport::encode_packet(&packet)?;
+            }
+            Wire::Inference => {
+                transport_v2::encode_packet(&packet)?;
+            }
+        }
         // The writer gate also serializes the sequence transition and prevents
         // concurrent binding calls from placing chunks after the cleanup ack.
         let mut failures = self.failures.subscribe();
         let mut writer = self.writer.lock().await;
+        self.alive()?;
         let packet = self
             .state
             .lock()
@@ -722,7 +1001,7 @@ impl Session {
         if let Some(packet) = packet {
             let result = tokio::select! { biased;
                 _=failures.changed()=>{ self.alive()?; Err(StreamError::Closed) },
-                result=timeout_at(self.deadline,write_packet(&mut *writer,&packet))=>result.map_err(|_|StreamError::Timeout)?,
+                result=before_deadline(self.deadline,self.wire.write(&mut *writer,&packet))=>result.map_err(|_|StreamError::Timeout)?,
             };
             if let Err(error) = result {
                 fail(&self.state, &self.failures, error);
@@ -770,9 +1049,9 @@ impl Session {
         )?;
         let result = tokio::select! { biased;
             _=failures.changed()=>{ self.alive()?; Err(StreamError::Closed) },
-            result=timeout_at(self.deadline,async {
-                write_packet(&mut *writer,&terminal).await?;
-                write_packet(&mut *writer,&end).await
+            result=before_deadline(self.deadline,async {
+                self.wire.write(&mut *writer,&terminal).await?;
+                self.wire.write(&mut *writer,&end).await
             })=>result.map_err(|_|StreamError::Timeout)?,
         };
         if let Err(error) = result {
@@ -805,7 +1084,10 @@ impl Session {
         let _ = self.writer.lock().await.shutdown().await;
     }
     fn alive(&self) -> Result<()> {
-        if Instant::now() >= self.deadline {
+        if self
+            .deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
+        {
             return Err(StreamError::Timeout);
         }
         self.state.lock().map_err(|_| StreamError::Closed)?.alive()

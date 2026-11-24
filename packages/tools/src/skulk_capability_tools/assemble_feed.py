@@ -45,7 +45,14 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from packaging.utils import canonicalize_name, parse_wheel_filename
 from packaging.version import Version
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    TypeAdapter,
+    ValidationError,
+)
 
 from skulk_capability_sdk.contracts import Denied, Manifest, canonical
 from skulk_capability_sdk.storage import atomic_private, read_private, secure_directory
@@ -59,6 +66,7 @@ from .catalog import (
     verify_catalog,
 )
 from .describe import validate_discovery_compatibility
+from .native_catalog import NativeCatalog
 from .publication_admission import validate_publication_metadata
 from .releases import (
     RELEASE_METADATA_MAX_BYTES,
@@ -206,25 +214,69 @@ def _registry_names(lock: Lockfile) -> set[str]:
     }
 
 
-def release_reference(directory: Path, lock: Lockfile) -> ReleaseReference:
+def release_reference(
+    directory: Path, lock: Lockfile, *, native_candidate: bool = False
+) -> ReleaseReference:
     """Describe a built release as an independent rebuild, for comparison.
 
     Every wheel of a package the lock does not take from a registry was built
     from locked source; those, the bundle and the manifest are what the lock
-    cannot pin and a rebuild must.
+    cannot pin and a rebuild must. The explicit SDK1 candidate policy also
+    retains independently acquired URL-wheel sizes and qualified kernel receipts
+    for other platforms. Default legacy reference projection stays unchanged.
     """
     built = read_built(directory)
     release = built.runtime.release
-    registry = _registry_names(lock)
+    registry = (
+        {
+            str(canonicalize_name(package.name))
+            for package in lock.package
+            if "registry" in package.source
+        }
+        if native_candidate
+        else _registry_names(lock)
+    )
+    wheels = {
+        wheel.filename: ReferenceWheel(sha256=wheel.sha256, size=wheel.size)
+        for wheel in built.runtime.wheels
+        if wheel.distribution[0] not in registry
+    }
+    if native_candidate:
+        # A URL lock supplies its hash, but uv may omit its size. Retain this
+        # independent acquisition, and use the same qualified public receipts
+        # as native feeds for kernel binaries on the other release platforms.
+        # Neither source is nominated by the candidate being signed.
+        from .native_publishing import native_cohort
+
+        kernel = next(
+            (
+                wheel
+                for wheel in built.runtime.wheels
+                if wheel.distribution[0] == "skulk-capability-kernel"
+                and wheel.filename in wheels
+            ),
+            None,
+        )
+        if kernel is not None:
+            platforms = TypeAdapter(list[dict[str, JsonValue]]).validate_python(
+                native_cohort(kernel.distribution[1])["platforms"], strict=True
+            )
+            for item in platforms:
+                asset = TypeAdapter(dict[str, JsonValue]).validate_python(
+                    item["wheel"], strict=True
+                )
+                filename = TypeAdapter(str).validate_python(asset["name"], strict=True)
+                receipt = ReferenceWheel.model_validate(
+                    {"sha256": asset["sha256"], "size": asset["size"]}
+                )
+                if filename in wheels and wheels[filename] != receipt:
+                    raise Denied("independent kernel differs from its public receipt")
+                wheels[filename] = receipt
     return ReleaseReference(
         bundle_sha256=release.manifest.executable_sha256,
         bundle_size=release.artifact_size,
         manifest_sha256=manifest_digest(release.manifest),
-        built_wheels={
-            wheel.filename: ReferenceWheel(sha256=wheel.sha256, size=wheel.size)
-            for wheel in built.runtime.wheels
-            if wheel.distribution[0] not in registry
-        },
+        built_wheels=wheels,
     )
 
 
@@ -234,6 +286,8 @@ def expected_wheels(
     family: str,
     reference: ReleaseReference,
     additional: tuple[str, ...] = (),
+    *,
+    native_candidate: bool = False,
 ) -> dict[str, ReferenceWheel]:
     """The exact wheels a release for one platform must carry, by filename.
 
@@ -242,15 +296,31 @@ def expected_wheels(
     digest. A package built from locked source must have exactly one wheel of
     its locked name and version in the independent rebuild.
     """
-    tags = supported_tags(platform_policy(family))
+    tags = supported_tags(platform_policy(family, native_candidate=native_candidate))
     expected: dict[str, ReferenceWheel] = {}
     for package in runtime_closure(
-        lock, root, platform_environment(family), additional
+        lock,
+        root,
+        platform_environment(family),
+        additional,
+        native_candidate=native_candidate,
     ):
         if "registry" in package.source or "url" in package.source:
-            file = select_wheel(package, tags)
+            file = select_wheel(package, tags, native_candidate=native_candidate)
             if file.size is None:
-                raise Denied(f"the lock records no size for {file.filename}")
+                reference_file = reference.built_wheels.get(file.filename)
+                if (
+                    not native_candidate
+                    or "url" not in package.source
+                    or reference_file is None
+                    or reference_file.sha256 != file.sha256
+                ):
+                    raise Denied(f"the lock records no size for {file.filename}")
+                # A direct URL's locked hash remains mandatory. Its missing
+                # size comes only from an independently acquired/rebuilt input,
+                # never from the candidate the publisher is about to sign.
+                expected[file.filename] = reference_file
+                continue
             expected[file.filename] = ReferenceWheel(sha256=file.sha256, size=file.size)
             continue
         matches = [
@@ -273,6 +343,8 @@ def check_release_set(
     expectation: ReleaseExpectation,
     lock: Lockfile,
     root: str = DEFAULT_ROOT,
+    *,
+    native_candidate: bool = False,
 ) -> None:
     """Refuse anything but exactly the expected release for the expected platforms.
 
@@ -329,7 +401,12 @@ def check_release_set(
             for wheel in runtime.wheels
         }
         expected = expected_wheels(
-            lock, root, family, reference, manifest.runtime_dependencies
+            lock,
+            root,
+            family,
+            reference,
+            manifest.runtime_dependencies,
+            native_candidate=native_candidate,
         )
         if carried != expected:
             different = sorted(
@@ -405,6 +482,7 @@ def assemble(
     expectation: ReleaseExpectation,
     lock: Lockfile,
     root: str = DEFAULT_ROOT,
+    native_candidate: bool = False,
     feed_url: str,
     revision: int,
     expires_at: int,
@@ -419,7 +497,11 @@ def assemble(
     """
     if not feed_url.startswith("https://") or not feed_url.endswith("/"):
         raise Denied("the feed URL must be an HTTPS directory ending in /")
-    check_release_set(releases, expectation, lock, root)
+    # SDK1 owners also host legacy applications. Their newer dependency floor
+    # must not force a different manifest, effect policy or runtime protocol.
+    check_release_set(
+        releases, expectation, lock, root, native_candidate=native_candidate
+    )
     for built in releases:
         release = built.runtime.release
         # Build runners' clocks may run a little ahead of this one; a release
@@ -512,7 +594,9 @@ def verify_feed(
     return catalog
 
 
-def _summary(catalog: Catalog, document: bytes, public: str) -> Mapping[str, object]:
+def _summary(
+    catalog: Catalog | NativeCatalog, document: bytes, public: str
+) -> Mapping[str, object]:
     return {
         "publisher": catalog.publisher,
         "public_key": public,
@@ -542,6 +626,19 @@ def main(argv: list[str] | None = None) -> None:
     throwaway key.
     """
     parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
+    parser.add_argument(
+        "--native",
+        action="store_true",
+        help="Explicit runtime-five candidates and catalog-four feed",
+    )
+    parser.add_argument(
+        "--native-candidate",
+        action="store_true",
+        help=(
+            "Opt into locked SDK1 prereleases and the glibc2.34 dependency floor; "
+            "this does not select a manifest or runtime protocol"
+        ),
+    )
     key_source = parser.add_mutually_exclusive_group(required=True)
     key_source.add_argument("--private-key", type=Path, help="Owner-only key file")
     key_source.add_argument(
@@ -607,32 +704,58 @@ def main(argv: list[str] | None = None) -> None:
             reference=ReleaseReference.model_validate_json(args.reference.read_bytes()),
         )
         lock = load_lock(args.lock)
-        built = [read_built(directory) for directory in args.releases]
-        assemble(
-            built,
-            key,
-            expectation=expectation,
-            lock=lock,
-            root=args.root,
-            feed_url=args.feed_url,
-            revision=args.catalog_revision,
-            expires_at=args.catalog_expires_at,
-            output=args.output,
-            now=now,
-        )
         public = key.public_key().public_bytes_raw().hex()
         trust = PublisherTrust(
             revision=1,
             expires_at=args.catalog_expires_at,
             publishers={args.publisher: public},
         )
-        catalog = verify_feed(args.output, args.feed_url, trust, now=now)
+        if args.native:
+            from .native_feed import (
+                assemble_native,
+                read_native_built,
+                verify_native_feed,
+            )
+
+            assemble_native(
+                [read_native_built(directory) for directory in args.releases],
+                key,
+                expectation=expectation,
+                lock=lock,
+                root=args.root,
+                feed_url=args.feed_url,
+                revision=args.catalog_revision,
+                expires_at=args.catalog_expires_at,
+                output=args.output,
+                now=now,
+            )
+            native_catalog = verify_native_feed(
+                args.output, args.feed_url, trust, now=now
+            )
+            document = (args.output / "catalog-v4.json").read_bytes()
+            summary = _summary(native_catalog, document, public)
+        else:
+            assemble(
+                [read_built(directory) for directory in args.releases],
+                key,
+                expectation=expectation,
+                lock=lock,
+                root=args.root,
+                native_candidate=args.native_candidate,
+                feed_url=args.feed_url,
+                revision=args.catalog_revision,
+                expires_at=args.catalog_expires_at,
+                output=args.output,
+                now=now,
+            )
+            catalog = verify_feed(args.output, args.feed_url, trust, now=now)
+            document = (args.output / "catalog.json").read_bytes()
+            summary = _summary(catalog, document, public)
     except (Denied, ValidationError, ValueError, OSError) as refusal:
         parser.error(str(refusal))
     if args.trust_output is not None:
         atomic_private(args.trust_output, trust.model_dump_json().encode())
-    document = (args.output / "catalog.json").read_bytes()
-    print(json.dumps(_summary(catalog, document, public), indent=2))
+    print(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":

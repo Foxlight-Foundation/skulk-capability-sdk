@@ -3,6 +3,18 @@
 from collections.abc import Awaitable
 from typing import Literal
 
+def managed_profile_digest() -> str:
+    """Fingerprint the managed installation/startup specification."""
+    ...
+
+def managed_contract_json(name: Literal["Manifest", "Startup"], source: str) -> bytes:
+    """Normalize native managed records; startup bytes may contain secrets."""
+    ...
+
+def managed_contract_digest(name: Literal["Manifest", "Startup"], source: str) -> str:
+    """Bind the complete managed record to its profile/model domain."""
+    ...
+
 def portable_profile_digest() -> str:
     """Return the shared packaged normative profile fingerprint."""
     ...
@@ -67,6 +79,15 @@ def input_digest(scope: str, value: object) -> str:
     """Hash one object under its descriptor scope."""
     ...
 
+class NativeProcessFence:
+    """Early exclusion independent of journal open/recovery; close after cleanup."""
+    def __init__(self, directory: str) -> None: ...
+    def close(self) -> None: ...
+
+def open_process_fence(directory: str) -> Awaitable[NativeProcessFence]:
+    """Acquire the established directory fence off the Python event loop."""
+    ...
+
 class NativeJournal:
     """Native legacy journal and deterministic reconciliation ownership."""
     def __init__(self, path: str, bounds_json: str, now: int) -> None: ...
@@ -96,6 +117,19 @@ class NativeStream:
     def finish(self) -> Awaitable[None]: ...
     def close(self) -> Awaitable[None]: ...
 
+class NativeCallerStream:
+    """Caller media ownership; terminal/end alone never grants control success."""
+    def send_input(self, projection: str, media: bytes) -> Awaitable[None]: ...
+    def next_output(self) -> Awaitable[tuple[str, bytes] | None]: ...
+    def finish(self) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+def open_transport_v2_client_stream(
+    startup: ManagedV2Contract, call_id: str, mode: str, seconds: float | None = None
+) -> Awaitable[NativeCallerStream]:
+    """Connect the caller role using protected startup and a host-assigned grant."""
+    ...
+
 def operation_runner(
     journal: NativeJournal,
     logs: str,
@@ -117,3 +151,343 @@ class NativeOperationRunner:
     def log(self, operation_id: str, offset: int) -> Awaitable[str]: ...
     def next_request(self) -> Awaitable[str | None]: ...
     def respond(self, id: int, response: str) -> bool: ...
+
+def handshake_profile_digest() -> str:
+    """Return the explicit protocol-five handshake profile fingerprint."""
+
+class ManagedContract:
+    """Immutable native manifest/startup record with explicit protected exports."""
+    @staticmethod
+    def from_json(
+        name: Literal["Manifest", "Startup"], source: str
+    ) -> ManagedContract: ...
+    @property
+    def name(self) -> Literal["Manifest", "Startup"]: ...
+    @property
+    def digest(self) -> str: ...
+    def canonical(self) -> bytes: ...
+    def hello(self, call_id: str | None = None) -> HandshakeContract: ...
+    def admit_hello(
+        self, source: str, call_id: str | None = None
+    ) -> HandshakeContract: ...
+
+class HandshakeContract:
+    """Native-admitted handshake; parsing alone does not bind the peer."""
+    @staticmethod
+    def from_json(
+        name: Literal["Hello", "StreamHello"], source: str
+    ) -> HandshakeContract: ...
+    @property
+    def name(self) -> Literal["Hello", "StreamHello"]: ...
+    def canonical(self) -> bytes: ...
+
+def managed_v2_profile_digest() -> str:
+    """Fingerprint inference-capable managed admission, never permission."""
+    ...
+
+def handshake_v2_profile_digest() -> str:
+    """Fingerprint exact protocol-six protected startup matching."""
+    ...
+
+class ManagedV2Contract:
+    """Immutable native manifest/startup record with explicit protected exports."""
+    @staticmethod
+    def from_json(
+        name: Literal["Manifest", "Startup"], source: str
+    ) -> ManagedV2Contract: ...
+    @property
+    def name(self) -> Literal["Manifest", "Startup"]: ...
+    @property
+    def digest(self) -> str: ...
+    def canonical(self) -> bytes: ...
+    def hello(self, call_id: str | None = None) -> HandshakeV2Contract: ...
+    def admit_hello(
+        self, source: str, call_id: str | None = None
+    ) -> HandshakeV2Contract: ...
+
+class HandshakeV2Contract:
+    """Native-admitted handshake; parsing alone does not bind the peer."""
+    @staticmethod
+    def from_json(
+        name: Literal["Hello", "StreamHello"], source: str
+    ) -> HandshakeV2Contract: ...
+    @property
+    def name(self) -> Literal["Hello", "StreamHello"]: ...
+    def canonical(self) -> bytes: ...
+
+def composition_profile_digest() -> str:
+    """Fingerprint pure attenuation; this does not grant caller authority."""
+    ...
+
+class CompositionContract:
+    """Immutable sensitive caller metadata with no bearer-grant semantics."""
+    @staticmethod
+    def from_json(
+        name: Literal["Context", "DelegateRequest", "Policy"], source: str
+    ) -> CompositionContract: ...
+    @property
+    def name(self) -> Literal["Context", "DelegateRequest", "Policy"]: ...
+    def canonical(self) -> bytes: ...
+    def admit(
+        self,
+        request: CompositionContract,
+        policy: CompositionContract,
+        executor: str,
+        request_bytes: bytes,
+        now_unix_ms: int,
+        scope_id: str,
+    ) -> CompositionContract:
+        """Attenuate host observations without activating or executing the scope."""
+        ...
+
+def transport_profile_digest() -> str:
+    """Fingerprint protocol-five framing independently of author contracts."""
+    ...
+
+def encode_portable_control(source: str) -> bytes:
+    """Admit and frame a closed protocol-five control record."""
+    ...
+
+def decode_portable_control(packet: bytes) -> bytes:
+    """Return owned canonical control bytes; no legacy fallback."""
+    ...
+
+def encode_portable_packet(projection: str, media: bytes) -> bytes:
+    """Frame portable projection text and bounded binary attachment bytes."""
+    ...
+
+def decode_portable_packet(packet: bytes) -> tuple[str, bytes]:
+    """Return portable canonical metadata and exact media bytes."""
+    ...
+
+def open_portable_stream(
+    startup: ManagedContract, call_id: str, mode: str, seconds: float
+) -> Awaitable[NativeStream]:
+    """Derive endpoint/hello from admitted startup; share native lifecycle."""
+    ...
+
+class NativeControl:
+    """Native protected channel; interrupted I/O fences all later work."""
+    def receive(self) -> Awaitable[bytes]: ...
+    def send(self, source: str) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+def open_portable_control(
+    startup: ManagedContract, seconds: float
+) -> Awaitable[NativeControl]:
+    """Open only the startup endpoint; execution admission remains host-owned."""
+    ...
+
+def calls_profile_digest() -> str:
+    """Fingerprint explicit composed-call framing; not caller authority."""
+    ...
+
+def call_payload_size(source: str) -> int:
+    """Admit metadata for a bounded host read; complete frame admission is mandatory."""
+    ...
+
+def encode_call_frame(source: str, payload: bytes) -> bytes:
+    """Bind closed metadata to exact raw request bytes through the native codec."""
+    ...
+
+def decode_call_frame(packet: bytes) -> tuple[bytes, bytes]:
+    """Return separate owned canonical metadata and exact body bytes."""
+    ...
+
+class NativeCallControl:
+    """Startup-bound compiled call I/O; any interrupted operation fences reuse."""
+    def receive(self) -> Awaitable[tuple[bytes, bytes]]: ...
+    def send(self, source: str, payload: bytes) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+def open_call_control(
+    startup: ManagedContract, seconds: float
+) -> Awaitable[NativeCallControl]:
+    """Derive endpoint/hello natively; host separately authenticates and authorizes."""
+    ...
+
+def portable_v2_profile_digest() -> str:
+    """Fingerprint explicit inference declarations, separate from profile one."""
+    ...
+
+def portable_v2_contract_json(
+    name: Literal["Descriptor", "ContractEnvelope"], source: str
+) -> bytes:
+    """Validate protocol-six declarations; this grants no execution rights."""
+    ...
+
+def portable_v2_contract_digest(
+    name: Literal["Descriptor", "ContractEnvelope"], source: str
+) -> str:
+    """Bind the complete new author profile/model identity."""
+    ...
+
+def composition_v2_profile_digest() -> str:
+    """Fingerprint read/inference and processing-domain attenuation."""
+    ...
+
+class CompositionV2Contract:
+    """Immutable sensitive caller metadata with no bearer-grant semantics."""
+    @staticmethod
+    def from_json(
+        name: Literal["Context", "DelegateRequest", "Policy"], source: str
+    ) -> CompositionV2Contract: ...
+    @property
+    def name(self) -> Literal["Context", "DelegateRequest", "Policy"]: ...
+    def canonical(self) -> bytes: ...
+    def admit(
+        self,
+        request: CompositionV2Contract,
+        policy: CompositionV2Contract,
+        executor: str,
+        request_bytes: bytes,
+        now_unix_ms: int,
+        scope_id: str,
+    ) -> CompositionV2Contract:
+        """Attenuate host observations without activating or executing the scope."""
+        ...
+
+def composition_v3_profile_digest() -> str:
+    """Fingerprint read/inference and processing-domain attenuation."""
+    ...
+
+class CompositionV3Contract:
+    """Immutable sensitive caller metadata with no bearer-grant semantics."""
+    @staticmethod
+    def from_json(
+        name: Literal["Context", "DelegateRequest", "Policy"], source: str
+    ) -> CompositionV3Contract: ...
+    @property
+    def name(self) -> Literal["Context", "DelegateRequest", "Policy"]: ...
+    def canonical(self) -> bytes: ...
+    def admit(
+        self,
+        request: CompositionV3Contract,
+        policy: CompositionV3Contract,
+        executor: str,
+        request_bytes: bytes,
+        now_unix_ms: int,
+        scope_id: str,
+    ) -> CompositionV3Contract:
+        """Attenuate host observations without activating or executing the scope."""
+        ...
+
+def transport_v2_profile_digest() -> str:
+    """Fingerprint protocol-six framing independently of author contracts."""
+    ...
+
+def encode_transport_v2_control(source: str) -> bytes:
+    """Admit and frame a closed protocol-six control record."""
+    ...
+
+def decode_transport_v2_control(packet: bytes) -> bytes:
+    """Return owned canonical control bytes; no legacy fallback."""
+    ...
+
+def encode_transport_v2_packet(projection: str, media: bytes) -> bytes:
+    """Frame portable projection text and bounded binary attachment bytes."""
+    ...
+
+def decode_transport_v2_packet(packet: bytes) -> tuple[str, bytes]:
+    """Return portable canonical metadata and exact media bytes."""
+    ...
+
+def transport_v2_media_size(header: bytes) -> int:
+    """Admit a header hint before allocating media; still decode the full packet."""
+    ...
+
+class TransportV2Observer:
+    """Pure host framing/lifecycle observation; never caller authority."""
+    def __init__(self, call_id: str, mode: str) -> None: ...
+    def accept_input(self, packet: bytes) -> tuple[str, bytes]: ...
+    def accept_output(self, packet: bytes) -> tuple[str, bytes]: ...
+    @property
+    def input_completed(self) -> bool: ...
+    @property
+    def output_terminated(self) -> bool: ...
+    @property
+    def finished(self) -> bool: ...
+    @property
+    def failed(self) -> bool: ...
+
+def open_transport_v2_stream(
+    startup: ManagedV2Contract, call_id: str, mode: str, seconds: float | None = None
+) -> Awaitable[NativeStream]:
+    """Derive endpoint/hello from admitted startup; share native lifecycle."""
+    ...
+
+class NativeControlV2:
+    """Native protected channel; interrupted I/O fences all later work."""
+    def receive(self) -> Awaitable[bytes]: ...
+    def send(self, source: str) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+def open_transport_v2_control(
+    startup: ManagedV2Contract, seconds: float
+) -> Awaitable[NativeControlV2]:
+    """Open only the startup endpoint; execution admission remains host-owned."""
+    ...
+
+def calls_v2_profile_digest() -> str:
+    """Fingerprint explicit composed-call framing; not caller authority."""
+    ...
+
+def call_v2_payload_size(source: str) -> int:
+    """Admit metadata for a bounded host read; complete frame admission is mandatory."""
+    ...
+
+def encode_call_v2_frame(source: str, payload: bytes) -> bytes:
+    """Bind closed metadata to exact raw request bytes through the native codec."""
+    ...
+
+def decode_call_v2_frame(packet: bytes) -> tuple[bytes, bytes]:
+    """Return separate owned canonical metadata and exact body bytes."""
+    ...
+
+class NativeCallControlV2:
+    """Startup-bound compiled call I/O; any interrupted operation fences reuse."""
+    def receive(self) -> Awaitable[tuple[bytes, bytes]]: ...
+    def send(self, source: str, payload: bytes) -> Awaitable[None]: ...
+    def close(self) -> Awaitable[None]: ...
+
+def open_call_v2_control(
+    startup: ManagedV2Contract, seconds: float
+) -> Awaitable[NativeCallControlV2]:
+    """Derive endpoint/hello natively; host separately authenticates and authorizes."""
+    ...
+
+def discovery_profile_digest() -> str:
+    """Identify the independent optional parent-bound metadata protocol."""
+    ...
+
+def discovery_socket(startup: str) -> str:
+    """Derive only the private sibling endpoint of an admitted startup."""
+    ...
+
+def discovery_request(startup: str, context: str, parent: str, sequence: int) -> bytes:
+    """Frame startup proof and parent correlation without granting authority."""
+    ...
+
+def discovery_payload_size(source: str) -> int:
+    """Admit a bounded body allocation hint before reading media."""
+    ...
+
+def decode_discovery_frame(packet: bytes) -> tuple[bytes, bytes]:
+    """Admit a complete checksummed metadata frame without active-scope authority."""
+    ...
+
+def admit_discovery_request(startup: str, packet: bytes) -> bytes:
+    """Match private startup proof, returning only token-free parent identifiers."""
+    ...
+
+def discovery_reply(
+    startup: str, request: str, payload: bytes, error: str | None
+) -> bytes:
+    """Frame exact directory bytes or a body-free refusal."""
+    ...
+
+def discovery_response(
+    startup: str, request: str, packet: bytes
+) -> tuple[str | None, bytes]:
+    """Match every parent/query identifier before exposing a directory body."""
+    ...

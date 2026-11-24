@@ -25,6 +25,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from skulk_capability_sdk.contracts import Denied, Manifest
 
+from .native_publishing import NativeManifest
 from .release_runtime import dependency_inventory, dependency_roots
 
 SPEC_TABLE = ("tool", "skulk-capability")
@@ -656,7 +657,9 @@ def read_packed_file(source: Path, relative: str) -> bytes:
     return path.read_bytes()
 
 
-def validate_manifest(spec: CapabilitySpec, manifest: Manifest) -> None:
+def validate_manifest(
+    spec: CapabilitySpec, manifest: Manifest | NativeManifest
+) -> None:
     """Apply the capability's own manifest rules before any bytes are signed.
 
     A valid signature cannot repair stale descriptor semantics, and the rules

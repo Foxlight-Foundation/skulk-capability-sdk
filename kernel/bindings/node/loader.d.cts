@@ -3,6 +3,15 @@
 import type {Buffer} from 'node:buffer';
 
 type NativePacket = {projection: string; media: Buffer};
+declare class TransportV2Observer {
+  constructor(callId: string, mode: string);
+  acceptInput(packet: Buffer): NativePacket;
+  acceptOutput(packet: Buffer): NativePacket;
+  readonly inputCompleted: boolean;
+  readonly outputTerminated: boolean;
+  readonly finished: boolean;
+  readonly failed: boolean;
+}
 declare class PortableSchema {
   constructor(source: string);
   matches(source: string): boolean;
@@ -14,12 +23,25 @@ declare class NativeAuthorContract {
   streamPacket(): Buffer;
   constructorInput(): string;
 }
+/** Early local exclusion; acquire before journal recovery or facade metadata I/O. */
+declare class NativeProcessFence {
+  private constructor();
+  close(): void;
+}
 declare class NativeJournal {
   constructor(path: string, boundsJson: string, now: number);
   transact(request: string): string;
   acquireOwnership(): void;
   releaseOwnership(): void;
   close(): void;
+}
+/** Caller transport ownership; media end is distinct from delegate_finished. */
+declare class NativeCallerStream {
+  private constructor();
+  sendInput(projection: string, media: Buffer): Promise<void>;
+  nextOutput(): Promise<NativePacket | null>;
+  finish(): Promise<void>;
+  close(): Promise<void>;
 }
 declare class NativeStream {
   private constructor();
@@ -39,7 +61,76 @@ declare class NativeOperationRunner {
   nextRequest(): Promise<string | null>;
   respond(id: number, response: string): boolean;
 }
+declare class NativeControl {
+  private constructor();
+  receive(): Promise<Buffer>;
+  send(source: string): Promise<void>;
+  close(): Promise<void>;
+}
+interface CallFrame {metadata: Buffer; payload: Buffer;}
+declare class NativeCallControl {
+  private constructor();
+  receive(): Promise<CallFrame>;
+  send(source: string, payload: Buffer): Promise<void>;
+  close(): Promise<void>;
+}
 declare const native: {
+  TransportV2Observer: typeof TransportV2Observer;
+  transportV2MediaSize(header: Buffer): number;
+  callsV2ProfileDigest(): string;
+  callV2PayloadSize(source: string): number;
+  encodeCallV2Frame(source: string, payload: Buffer): Buffer;
+  decodeCallV2Frame(packet: Buffer): CallFrame;
+  openCallV2Control(startup: string, seconds: number): Promise<NativeCallControl>;
+  /** Explicit inference-aware structural admission, never caller authority. */
+  compositionV3ProfileDigest(): string;
+  compositionV3ContractJson(name: 'Context' | 'DelegateRequest' | 'Policy', source: string): Buffer;
+  admitDelegationV3Json(parent: string, request: string, policy: string, executor: string, requestBytes: Buffer, nowUnixMs: number, scopeId: string): Buffer;
+  transportV2ProfileDigest(): string;
+  encodeTransportV2Control(source: string): Buffer;
+  decodeTransportV2Control(packet: Buffer): Buffer;
+  encodeTransportV2Packet(projection: string, media: Buffer): Buffer;
+  decodeTransportV2Packet(packet: Buffer): NativePacket;
+  openTransportV2Stream(startup: string, callId: string, mode: string, seconds: number | null): Promise<NativeStream>;
+  openTransportV2ClientStream(startup: string, callId: string, mode: string, seconds: number | null): Promise<NativeCallerStream>;
+  openTransportV2Control(startup: string, seconds: number): Promise<NativeControl>;
+
+  callsProfileDigest(): string;
+  callPayloadSize(source: string): number;
+  encodeCallFrame(source: string, payload: Buffer): Buffer;
+  decodeCallFrame(packet: Buffer): CallFrame;
+  openCallControl(startup: string, seconds: number): Promise<NativeCallControl>;
+  /** Explicit inference-aware structural admission, never caller authority. */
+  compositionV2ProfileDigest(): string;
+  compositionV2ContractJson(name: 'Context' | 'DelegateRequest' | 'Policy', source: string): Buffer;
+  admitDelegationV2Json(parent: string, request: string, policy: string, executor: string, requestBytes: Buffer, nowUnixMs: number, scopeId: string): Buffer;
+  portableV2ProfileDigest(): string;
+  portableV2ContractJson(name: 'Descriptor' | 'ContractEnvelope', source: string): Buffer;
+  portableV2ContractDigest(name: 'Descriptor' | 'ContractEnvelope', source: string): string;
+  compositionProfileDigest(): string;
+  compositionContractJson(name: 'Context' | 'DelegateRequest' | 'Policy', source: string): Buffer;
+  admitDelegationJson(parent: string, request: string, policy: string, executor: string, requestBytes: Buffer, nowUnixMs: number, scopeId: string): Buffer;
+  transportProfileDigest(): string;
+  encodePortableControl(source: string): Buffer;
+  decodePortableControl(packet: Buffer): Buffer;
+  encodePortablePacket(projection: string, media: Buffer): Buffer;
+  decodePortablePacket(packet: Buffer): NativePacket;
+  openPortableStream(startup: string, callId: string, mode: string, seconds: number): Promise<NativeStream>;
+  openPortableControl(startup: string, seconds: number): Promise<NativeControl>;
+  handshakeProfileDigest(): string;
+  handshakeContractJson(name: 'Hello' | 'StreamHello', source: string): Buffer;
+  managedHelloJson(name: 'Manifest' | 'Startup', startup: string, callId?: string): Buffer;
+  managedAdmitHelloJson(name: 'Manifest' | 'Startup', startup: string, source: string, callId?: string): Buffer;
+  managedProfileDigest(): string;
+  managedContractJson(name: 'Manifest' | 'Startup', source: string): Buffer;
+  managedContractDigest(name: 'Manifest' | 'Startup', source: string): string;
+  handshakeV2ProfileDigest(): string;
+  handshakeV2ContractJson(name: 'Hello' | 'StreamHello', source: string): Buffer;
+  managedV2HelloJson(name: 'Manifest' | 'Startup', startup: string, callId?: string): Buffer;
+  managedV2AdmitHelloJson(name: 'Manifest' | 'Startup', startup: string, source: string, callId?: string): Buffer;
+  managedV2ProfileDigest(): string;
+  managedV2ContractJson(name: 'Manifest' | 'Startup', source: string): Buffer;
+  managedV2ContractDigest(name: 'Manifest' | 'Startup', source: string): string;
   portableProfileDigest(): string;
   PortableSchema: typeof PortableSchema;
   portableCanonicalJson(source: string): Buffer;
@@ -60,5 +151,23 @@ declare const native: {
   decodeStreamPacket(packet: Buffer): NativePacket;
   openStream(socket: string, hello: string, callId: string, mode: string, seconds: number): Promise<NativeStream>;
   NativeJournal: typeof NativeJournal;
+  NativeProcessFence: typeof NativeProcessFence;
+  openProcessFence(directory: string): Promise<NativeProcessFence>;
+/** Independent optional parent-bound metadata protocol fingerprint. */
+discoveryProfileDigest(): string;
+/** Private sibling of an admitted startup; no ambient endpoint fallback. */
+discoverySocket(startup: string): string;
+/** Sensitive startup proof and original-parent correlation; no caller authority. */
+discoveryRequest(startup: string, context: string, parent: string, sequence: string): Buffer;
+/** Bounded body allocation hint; full admission is still required. */
+discoveryPayloadSize(source: string): number;
+/** Exact native-admitted metadata and defensive payload copy. */
+decodeDiscoveryFrame(packet: Buffer): {metadata: Buffer; payload: Buffer};
+/** Match startup proof, returning only token-free parent identifiers. */
+admitDiscoveryRequest(startup: string, packet: Buffer): Buffer;
+/** Exact directory bytes or a bounded body-free refusal. */
+discoveryReply(startup: string, request: string, payload: Buffer, error: string | null): Buffer;
+/** Match every original parent/query identifier before exposing the body. */
+discoveryResponse(startup: string, request: string, packet: Buffer): {error?: string | null; payload: Buffer};
 };
 export = native;

@@ -1,0 +1,42 @@
+{
+  "format": 1,
+  "version": "22.23.5",
+  "sources": [
+    {
+      "platform": "macos-arm64",
+      "version": "22.23.5",
+      "archive_name": "node-v22.23.5-darwin-arm64.tar.xz",
+      "archive_sha256": "d0c68c321161bb2c6483efea9a343010dea8e5e7f60d73c6a7eba140016d662f",
+      "archive_size": 25919840,
+      "binary_sha256": "ff9365ccf73e95b7ac69867418124973addde63043650c0db96bd6a722c53cd8",
+      "binary_size": 113024160,
+      "license_sha256": "c738ae413cf561f174e34f6961f8ca458aae2369a73640dda6234c629b98bcc4",
+      "license_size": 145485,
+      "url": "https://nodejs.org/download/release/v22.23.5/node-v22.23.5-darwin-arm64.tar.xz"
+    },
+    {
+      "platform": "linux-glibc-x86_64",
+      "version": "22.23.5",
+      "archive_name": "node-v22.23.5-linux-x64.tar.xz",
+      "archive_sha256": "cdeb8670a0c81f51b4dc4ac61919f9b1ad917b304bf8221eb939570663d240f8",
+      "archive_size": 31062912,
+      "binary_sha256": "2f822d544601dfff107f57d945b649d15c5bf6302595735a6bd9cdc7ee9669bd",
+      "binary_size": 124909296,
+      "license_sha256": "c738ae413cf561f174e34f6961f8ca458aae2369a73640dda6234c629b98bcc4",
+      "license_size": 145485,
+      "url": "https://nodejs.org/download/release/v22.23.5/node-v22.23.5-linux-x64.tar.xz"
+    },
+    {
+      "platform": "linux-glibc-aarch64",
+      "version": "22.23.5",
+      "archive_name": "node-v22.23.5-linux-arm64.tar.xz",
+      "archive_sha256": "2babb9eb5264860d540849f4b064a6fbdebcdc323657d9d382ce23d313fd5e09",
+      "archive_size": 30222232,
+      "binary_sha256": "bb71f797d1b3d156d012c59b152c413cf7d4940156cafcde28f1731201ceaf1c",
+      "binary_size": 122295568,
+      "license_sha256": "c738ae413cf561f174e34f6961f8ca458aae2369a73640dda6234c629b98bcc4",
+      "license_size": 145485,
+      "url": "https://nodejs.org/download/release/v22.23.5/node-v22.23.5-linux-arm64.tar.xz"
+    }
+  ]
+}

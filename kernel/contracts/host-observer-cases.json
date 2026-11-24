@@ -1,0 +1,718 @@
+{
+  "format": 1,
+  "scope": "Host observer binding lifecycle witnesses; does not revise transport profile or grant execution authority.",
+  "traces": [
+    {
+      "id": "server_streaming",
+      "mode": "server_streaming",
+      "steps": [
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "kind": "end",
+            "call_id": "call"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            true,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "client_streaming",
+      "mode": "client_streaming",
+      "steps": [
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 0,
+            "kind": "started"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "kind": "end",
+            "call_id": "call"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            true,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bidirectional",
+      "mode": "bidirectional",
+      "steps": [
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 0,
+            "kind": "started"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "kind": "end",
+            "call_id": "call"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            true,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "half-close-with-raw-media",
+      "mode": "bidirectional",
+      "steps": [
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 0,
+            "kind": "started"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 1,
+            "kind": "chunk",
+            "payload": null,
+            "media": {
+              "kind": "inline",
+              "media_type": "audio/pcm"
+            }
+          },
+          "media_hex": "00ff0102",
+          "expected": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 2,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "chunk",
+            "payload": null,
+            "media": {
+              "kind": "inline",
+              "media_type": "audio/pcm"
+            }
+          },
+          "media_hex": "f0f10100",
+          "expected": [
+            true,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 2,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "kind": "end",
+            "call_id": "call"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            true,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "server-input",
+      "mode": "server_streaming",
+      "steps": [
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 0,
+            "kind": "started"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "client-output-chunk",
+      "mode": "client_streaming",
+      "steps": [
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "chunk",
+            "payload": {
+              "item": true
+            }
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "missing-input-start",
+      "mode": "bidirectional",
+      "steps": [
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 1,
+            "kind": "chunk",
+            "payload": {
+              "item": true
+            }
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "skipped-output-sequence",
+      "mode": "bidirectional",
+      "steps": [
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 2,
+            "kind": "chunk",
+            "payload": {
+              "item": true
+            }
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "foreign-call",
+      "mode": "bidirectional",
+      "steps": [
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "foreign",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "chunk",
+            "payload": {
+              "item": true
+            }
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "end-before-terminal",
+      "mode": "bidirectional",
+      "steps": [
+        {
+          "side": "output",
+          "projection": {
+            "kind": "end",
+            "call_id": "call"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "input-end",
+      "mode": "bidirectional",
+      "steps": [
+        {
+          "side": "input",
+          "projection": {
+            "kind": "end",
+            "call_id": "call"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "late-chunk",
+      "mode": "server_streaming",
+      "steps": [
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 2,
+            "kind": "chunk",
+            "payload": {
+              "item": true
+            }
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "foreign-end",
+      "mode": "server_streaming",
+      "steps": [
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "kind": "end",
+            "call_id": "foreign"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "duplicate-terminal",
+      "mode": "server_streaming",
+      "steps": [
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 1,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            true,
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "output",
+          "projection": {
+            "call_id": "call",
+            "direction": "provider_to_caller",
+            "sequence": 2,
+            "kind": "completed"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "id": "half-close-data",
+      "mode": "bidirectional",
+      "steps": [
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 0,
+            "kind": "started"
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "side": "input",
+          "projection": {
+            "call_id": "call",
+            "direction": "caller_to_provider",
+            "sequence": 1,
+            "kind": "completed",
+            "payload": {
+              "forbidden": true
+            }
+          },
+          "media_hex": "",
+          "expected": [
+            false,
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    }
+  ]
+}

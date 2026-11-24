@@ -1,0 +1,134 @@
+[
+  {
+    "behavior": "read",
+    "descriptor": {
+      "annotations": {},
+      "behavior": "read",
+      "contract_profile": "skulk.portable/2",
+      "description": "Synthetic contract",
+      "id": "example",
+      "input_chunk_schema": null,
+      "input_schema": {
+        "type": "object"
+      },
+      "io_mode": "unary",
+      "output_chunk_schema": null,
+      "output_schema": null,
+      "processing_domain": "external",
+      "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "payload": {
+      "input": "parity-\u00e9-\ud83e\udd8a",
+      "negative_zero": -0.0,
+      "items": [
+        true,
+        null,
+        1.0
+      ]
+    },
+    "request": "{\"input\":\"parity-\\u00e9-\\ud83e\\udd8a\",\"items\":[true,null,1],\"negative_zero\":0}",
+    "canonical": "{\"descriptor\":{\"annotations\":{},\"behavior\":\"read\",\"contract_profile\":\"skulk.portable/2\",\"description\":\"Synthetic contract\",\"id\":\"example\",\"input_chunk_schema\":null,\"input_schema\":{\"type\":\"object\"},\"io_mode\":\"unary\",\"output_chunk_schema\":null,\"output_schema\":null,\"processing_domain\":\"external\",\"profile_digest\":\"7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033\",\"title\":\"Example\",\"version\":\"1.0.0\"},\"destination\":{\"capability_id\":\"example\",\"descriptor_revision\":\"e10d2422fa1f7133eca78e20ad7e39679f64df8e6216a1dd76a62313b23a97bf\",\"node_id\":\"receiver\",\"version\":\"1.0.0\"},\"format\":1,\"kind\":\"capability_request_proposal\",\"payload\":{\"input\":\"parity-\\u00e9-\\ud83e\\udd8a\",\"items\":[true,null,1],\"negative_zero\":0},\"request_sha256\":\"27769ea928dd8e634c104896a1ed879eed6132677d1c98e6685e196b86402db3\"}",
+    "digest": "70af1b04eeeaed16b5c14b1dd35899ef9f447e9d6a2bb0956afce0fc42f0ffdb"
+  },
+  {
+    "behavior": "inference",
+    "descriptor": {
+      "annotations": {},
+      "behavior": "inference",
+      "contract_profile": "skulk.portable/2",
+      "description": "Synthetic contract",
+      "id": "example",
+      "input_chunk_schema": null,
+      "input_schema": {
+        "type": "object"
+      },
+      "io_mode": "unary",
+      "output_chunk_schema": null,
+      "output_schema": null,
+      "processing_domain": "external",
+      "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "payload": {
+      "input": "parity-\u00e9-\ud83e\udd8a",
+      "negative_zero": -0.0,
+      "items": [
+        true,
+        null,
+        1.0
+      ]
+    },
+    "request": "{\"input\":\"parity-\\u00e9-\\ud83e\\udd8a\",\"items\":[true,null,1],\"negative_zero\":0}",
+    "canonical": "{\"descriptor\":{\"annotations\":{},\"behavior\":\"inference\",\"contract_profile\":\"skulk.portable/2\",\"description\":\"Synthetic contract\",\"id\":\"example\",\"input_chunk_schema\":null,\"input_schema\":{\"type\":\"object\"},\"io_mode\":\"unary\",\"output_chunk_schema\":null,\"output_schema\":null,\"processing_domain\":\"external\",\"profile_digest\":\"7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033\",\"title\":\"Example\",\"version\":\"1.0.0\"},\"destination\":{\"capability_id\":\"example\",\"descriptor_revision\":\"0561684d4cf1d30a07129e1ac038a3149319ee9201cb3fc310f97b0840c39484\",\"node_id\":\"receiver\",\"version\":\"1.0.0\"},\"format\":1,\"kind\":\"capability_request_proposal\",\"payload\":{\"input\":\"parity-\\u00e9-\\ud83e\\udd8a\",\"items\":[true,null,1],\"negative_zero\":0},\"request_sha256\":\"27769ea928dd8e634c104896a1ed879eed6132677d1c98e6685e196b86402db3\"}",
+    "digest": "d0b974c82b245024c6469d3c0dcd4d40fcbb8cc3f242c6368c5441cb20af272c"
+  },
+  {
+    "behavior": "proposal",
+    "descriptor": {
+      "annotations": {},
+      "behavior": "proposal",
+      "contract_profile": "skulk.portable/2",
+      "description": "Synthetic contract",
+      "id": "example",
+      "input_chunk_schema": null,
+      "input_schema": {
+        "type": "object"
+      },
+      "io_mode": "unary",
+      "output_chunk_schema": null,
+      "output_schema": null,
+      "processing_domain": "external",
+      "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "payload": {
+      "input": "parity-\u00e9-\ud83e\udd8a",
+      "negative_zero": -0.0,
+      "items": [
+        true,
+        null,
+        1.0
+      ]
+    },
+    "request": "{\"input\":\"parity-\\u00e9-\\ud83e\\udd8a\",\"items\":[true,null,1],\"negative_zero\":0}",
+    "canonical": "{\"descriptor\":{\"annotations\":{},\"behavior\":\"proposal\",\"contract_profile\":\"skulk.portable/2\",\"description\":\"Synthetic contract\",\"id\":\"example\",\"input_chunk_schema\":null,\"input_schema\":{\"type\":\"object\"},\"io_mode\":\"unary\",\"output_chunk_schema\":null,\"output_schema\":null,\"processing_domain\":\"external\",\"profile_digest\":\"7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033\",\"title\":\"Example\",\"version\":\"1.0.0\"},\"destination\":{\"capability_id\":\"example\",\"descriptor_revision\":\"f6c39601ad6c427d2b486d393f00debaeae6f33c307547bb09364c413cc184c7\",\"node_id\":\"receiver\",\"version\":\"1.0.0\"},\"format\":1,\"kind\":\"capability_request_proposal\",\"payload\":{\"input\":\"parity-\\u00e9-\\ud83e\\udd8a\",\"items\":[true,null,1],\"negative_zero\":0},\"request_sha256\":\"27769ea928dd8e634c104896a1ed879eed6132677d1c98e6685e196b86402db3\"}",
+    "digest": "065687bfae9aecef6bb1039694651548e1ce93da08d03729de1ad61266123da8"
+  },
+  {
+    "behavior": "execute",
+    "descriptor": {
+      "annotations": {},
+      "behavior": "execute",
+      "contract_profile": "skulk.portable/2",
+      "description": "Synthetic contract",
+      "id": "example",
+      "input_chunk_schema": null,
+      "input_schema": {
+        "type": "object"
+      },
+      "io_mode": "unary",
+      "output_chunk_schema": null,
+      "output_schema": null,
+      "processing_domain": "external",
+      "profile_digest": "7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033",
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "payload": {
+      "input": "parity-\u00e9-\ud83e\udd8a",
+      "negative_zero": -0.0,
+      "items": [
+        true,
+        null,
+        1.0
+      ]
+    },
+    "request": "{\"input\":\"parity-\\u00e9-\\ud83e\\udd8a\",\"items\":[true,null,1],\"negative_zero\":0}",
+    "canonical": "{\"descriptor\":{\"annotations\":{},\"behavior\":\"execute\",\"contract_profile\":\"skulk.portable/2\",\"description\":\"Synthetic contract\",\"id\":\"example\",\"input_chunk_schema\":null,\"input_schema\":{\"type\":\"object\"},\"io_mode\":\"unary\",\"output_chunk_schema\":null,\"output_schema\":null,\"processing_domain\":\"external\",\"profile_digest\":\"7996ed84e821ddacfb48e00b99a5886948fd20e43bc2c7993c5ed98217834033\",\"title\":\"Example\",\"version\":\"1.0.0\"},\"destination\":{\"capability_id\":\"example\",\"descriptor_revision\":\"f01efbd44a92bfe20966ea801749774608bee2782c1c0c1ae2252653d6a2044a\",\"node_id\":\"receiver\",\"version\":\"1.0.0\"},\"format\":1,\"kind\":\"capability_request_proposal\",\"payload\":{\"input\":\"parity-\\u00e9-\\ud83e\\udd8a\",\"items\":[true,null,1],\"negative_zero\":0},\"request_sha256\":\"27769ea928dd8e634c104896a1ed879eed6132677d1c98e6685e196b86402db3\"}",
+    "digest": "d8fde77457c2c2f0696f754a65f7fb2394d48ff4e47c00e8cb5ba180ce3b9e43"
+  }
+]

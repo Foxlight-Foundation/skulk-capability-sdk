@@ -1,0 +1,545 @@
+{
+  "canonicalization": "skulk.portable-json/1",
+  "defaults": {
+    "Bounds": {
+      "backoff_seconds": 0.1,
+      "call_seconds": 5,
+      "concurrency": 1,
+      "health_seconds": 1,
+      "log_bytes": 0,
+      "max_children": 4,
+      "restart_budget": 3,
+      "shutdown_seconds": 1,
+      "startup_seconds": 5,
+      "stream_seconds": 300
+    },
+    "CredentialInput": {
+      "required": true
+    },
+    "Manifest": {
+      "arguments": [],
+      "bounds": {},
+      "credential_inputs": [],
+      "effect": "read",
+      "operations": null,
+      "preflight_profile": null,
+      "runtime_dependencies": [],
+      "steward": [],
+      "surfaces": [],
+      "title": null
+    },
+    "OperationBounds": {
+      "log_bytes": 262144,
+      "max_queued": 4,
+      "max_runtime_seconds": 3600,
+      "reservations": 65536,
+      "retain": 64,
+      "stale_after_seconds": 30
+    },
+    "Startup": {
+      "configuration": null,
+      "credential_config": null,
+      "serve_host": null,
+      "stream_socket": null
+    },
+    "StewardExposure": {
+      "summary": null
+    },
+    "Surface": {
+      "entry": "/",
+      "websocket": false
+    }
+  },
+  "descriptor_profile": "skulk.portable/1",
+  "descriptor_profile_digest": "ada52fb17016f873140aa4d6cd7ae2f8c9a0895eed997a92201ed5f45a60e3d3",
+  "limits": {
+    "configuration_bytes": 65536,
+    "contract_bytes": 262144
+  },
+  "models": {
+    "Bounds": {
+      "additionalProperties": false,
+      "properties": {
+        "backoff_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "type": "number"
+        },
+        "call_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "type": "number"
+        },
+        "concurrency": {
+          "const": 1
+        },
+        "health_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "type": "number"
+        },
+        "log_bytes": {
+          "const": 0
+        },
+        "max_children": {
+          "maximum": 16,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "restart_budget": {
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "shutdown_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 5,
+          "type": "number"
+        },
+        "startup_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "type": "number"
+        },
+        "stream_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_children",
+        "concurrency",
+        "startup_seconds",
+        "health_seconds",
+        "call_seconds",
+        "stream_seconds",
+        "shutdown_seconds",
+        "restart_budget",
+        "backoff_seconds",
+        "log_bytes"
+      ],
+      "type": "object"
+    },
+    "CredentialInput": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 2048,
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "title": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_id",
+        "title",
+        "description",
+        "required"
+      ],
+      "type": "object"
+    },
+    "Manifest": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "items": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "type": "array"
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds"
+        },
+        "bundle_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "bundle_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$",
+          "type": "string"
+        },
+        "contract_profile": {
+          "const": "skulk.managed/1"
+        },
+        "contracts": {
+          "type": "object"
+        },
+        "credential_inputs": {
+          "items": {
+            "$ref": "#/$defs/CredentialInput"
+          },
+          "maxItems": 16,
+          "type": "array"
+        },
+        "effect": {
+          "enum": [
+            "read",
+            "governed"
+          ]
+        },
+        "executable": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
+          "type": "string"
+        },
+        "executable_sha256": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "operations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OperationBounds"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "preflight_profile": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9._:@-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profile_digest": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 5
+        },
+        "runtime_dependencies": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "skulk_requires": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        "steward": {
+          "items": {
+            "$ref": "#/$defs/StewardExposure"
+          },
+          "maxItems": 16,
+          "type": "array"
+        },
+        "surfaces": {
+          "items": {
+            "$ref": "#/$defs/Surface"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "bundle_id",
+        "bundle_version",
+        "skulk_requires",
+        "executable",
+        "executable_sha256",
+        "arguments",
+        "contracts",
+        "bounds",
+        "effect",
+        "steward",
+        "title",
+        "surfaces",
+        "operations",
+        "credential_inputs",
+        "runtime_dependencies",
+        "preflight_profile"
+      ],
+      "type": "object"
+    },
+    "OperationBounds": {
+      "additionalProperties": false,
+      "properties": {
+        "log_bytes": {
+          "maximum": 16777216,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_queued": {
+          "maximum": 64,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_runtime_seconds": {
+          "maximum": 86400,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "reservations": {
+          "maximum": 1000000,
+          "minimum": 64,
+          "type": "integer"
+        },
+        "retain": {
+          "maximum": 1024,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "stale_after_seconds": {
+          "maximum": 3600,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_queued",
+        "max_runtime_seconds",
+        "stale_after_seconds",
+        "retain",
+        "log_bytes",
+        "reservations"
+      ],
+      "type": "object"
+    },
+    "Startup": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "contract_profile": {
+          "const": "skulk.managed/1"
+        },
+        "credential_config": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "executable": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "host_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "manifest": {
+          "$ref": "#/$defs/Manifest"
+        },
+        "manifest_digest": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "node_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        },
+        "profile_digest": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "protocol": {
+          "const": 5
+        },
+        "serve_host": {
+          "maxLength": 45,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "socket": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "stream_socket": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "token": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "transport_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:@-]+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_profile",
+        "profile_digest",
+        "protocol",
+        "executable",
+        "socket",
+        "stream_socket",
+        "token",
+        "node_id",
+        "host_id",
+        "transport_id",
+        "manifest",
+        "manifest_digest",
+        "configuration",
+        "credential_config",
+        "serve_host"
+      ],
+      "type": "object"
+    },
+    "StewardExposure": {
+      "additionalProperties": false,
+      "properties": {
+        "behavior": {
+          "enum": [
+            "read",
+            "proposal",
+            "execute"
+          ]
+        },
+        "qualified_id": {
+          "maxLength": 193,
+          "minLength": 1,
+          "type": "string"
+        },
+        "risk": {
+          "enum": [
+            "observation",
+            "billable",
+            "effect"
+          ]
+        },
+        "summary": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "qualified_id",
+        "behavior",
+        "risk",
+        "summary"
+      ],
+      "type": "object"
+    },
+    "Surface": {
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "proxied",
+            "link"
+          ]
+        },
+        "surface_id": {
+          "maxLength": 32,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "websocket": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "surface_id",
+        "title",
+        "kind",
+        "entry",
+        "websocket"
+      ],
+      "type": "object"
+    }
+  },
+  "profile": "skulk.managed/1",
+  "protocol": 5,
+  "semantics": [
+    "All nested descriptor contracts normalize through the unchanged portable profile. Duplicate identities, surfaces, credentials, exposures and dependencies refuse.",
+    "Manifest identity is full domain-separated SHA-256. Startup binds that exact normalized manifest digest. Neither digest is an execution authorization.",
+    "Manifest executable is a relative artifact entry without empty/dot segments, NUL or backslash. Startup executable and socket paths are absolute POSIX paths without dot segments or NUL. Host resolves and verifies the entry without rewriting the signed manifest. Runtime dependency roots exclude pip.",
+    "PEP 440 compatibility syntax is validated; the host must additionally enforce its actual version, supported profiles, signature, current trust and selection.",
+    "Read manifests contain only read descriptors. Steward exposure behavior agrees with its descriptor; only read/observation may be directly exposed without governance.",
+    "Durable operation annotations require operation bounds. Preflight declarations require configuration schema. Surface kind rules are enforced.",
+    "Startup settings obey the portable configuration schema and encoded size bound. Non-unary manifests require a stream socket. Serve hosts are unicast non-loopback IP literals.",
+    "Startup records contain secrets, must travel only over protected inherited IPC, and must never be logged or published. Refusal messages contain no input data."
+  ]
+}

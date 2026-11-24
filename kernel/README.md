@@ -1,5 +1,11 @@
 # Skulk capability kernel
 
+Version `0.7.0` is the stable packaging target for the SDK1 cohort. It preserves
+the implementation and every contract/profile byte qualified in `0.7.0rc7`.
+The new version requires its own three-platform artifacts, conformance and
+compiler-free installation evidence before publication. Earlier issued releases
+remain immutable; a version change does not qualify an owner or Core install.
+
 MIT shared Rust implementation with native Python and Node bindings. This source
 includes the `skulk.portable/1` descriptor/envelope candidate, compiled schemas,
 canonical JSON, stream primitives and durable-operation primitives.

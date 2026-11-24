@@ -7,11 +7,76 @@ from pathlib import Path
 
 import pytest
 
+from skulk_capability_sdk import runtime
 from tools.native_candidates import assemble, read_bundle, validate_corpora
 from tools.native_notices import render
 from tools.native_packages import require_wheel_platform, versions
 
 SOURCE = "a" * 40
+
+
+@pytest.mark.parametrize("version", ["0.7.0", "0.7.0rc7", "0.7.1"])
+def test_sdk_admits_only_explicit_execution_versions(
+    monkeypatch: pytest.MonkeyPatch, version: str
+) -> None:
+    """Stable adoption retains the closed cohort rather than a version range."""
+    sentinel = object()
+
+    def distribution_version(name: str) -> str:
+        assert name == "skulk-capability-kernel"
+        return version
+
+    def selected_module(name: str) -> object:
+        assert name == "_skulk_capability_kernel"
+        return sentinel
+
+    monkeypatch.setattr(runtime.importlib.metadata, "version", distribution_version)
+    monkeypatch.setattr(runtime.importlib, "import_module", selected_module)
+    if version == "0.7.1":
+        with pytest.raises(ValueError, match="explicit execution cohort"):
+            runtime.native_module()
+    else:
+        assert runtime.native_module() is sentinel
+
+
+@pytest.mark.parametrize("version", ["0.7.0", "0.7.0-rc.7"])
+def test_release_versions_require_matching_language_packages(
+    tmp_path: Path, version: str
+) -> None:
+    """Stable packaging must retain the same cross-language identity checks."""
+    kernel = tmp_path / "kernel"
+    kernel.mkdir()
+    (kernel / "Cargo.toml").write_text(f'[package]\nversion = "{version}"\n')
+    for language in ("python", "node"):
+        binding = kernel / "bindings" / language
+        binding.mkdir(parents=True)
+        (binding / "Cargo.toml").write_text(f'[package]\nversion = "{version}"\n')
+    python = version.replace("-rc.", "rc")
+    (kernel / "bindings/python/pyproject.toml").write_text(
+        f'[project]\nversion = "{python}"\n'
+    )
+    package = kernel / "bindings/node/package.json"
+    package.write_text(json.dumps({"version": version}))
+    assert versions(tmp_path) == (python, version)
+    package.write_text(json.dumps({"version": "0.7.1"}))
+    with pytest.raises(ValueError, match="versions differ"):
+        versions(tmp_path)
+
+
+def test_stable_release_cannot_omit_discovery_evidence(tmp_path: Path) -> None:
+    """Removing the prerelease suffix cannot drop an already qualified profile."""
+    archive = bundle(tmp_path / "candidate.zip")
+    with zipfile.ZipFile(archive) as source:
+        files = {
+            item.filename: source.read(item)
+            for item in source.infolist()
+            if item.filename != "discovery-node.json"
+        }
+    with zipfile.ZipFile(archive, "w") as destination:
+        for name, data in files.items():
+            destination.writestr(name, data)
+    with pytest.raises(ValueError, match="inventory differs"):
+        read_bundle(archive, SOURCE)
 
 
 def bundle(path: Path, *, clean: bool = True, source: str = SOURCE) -> Path:

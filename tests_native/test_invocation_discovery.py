@@ -27,7 +27,10 @@ async def test_scoped_discovery_owns_exact_parent_and_one_complete_response(
     fault: str,
 ) -> None:
     """The real SDK app authenticates replies and never emits caller replacements."""
-    assert importlib.metadata.version("skulk-capability-kernel") == "0.7.0rc7"
+    assert importlib.metadata.version("skulk-capability-kernel") in {
+        "0.7.0rc7",
+        "0.7.0",
+    }
     native = cast(DiscoveryNative, importlib.import_module("_skulk_capability_kernel"))
     app = CapabilityApp()
     observed: list[dict[str, JsonValue]] = []
@@ -124,7 +127,10 @@ async def test_scoped_discovery_owns_exact_parent_and_one_complete_response(
 @pytest.mark.pre_discovery_v1
 async def test_old_native_cohort_reports_unsupported_before_socket_access() -> None:
     """Existing applications keep their issued ABI and cannot guess another endpoint."""
-    assert importlib.metadata.version("skulk-capability-kernel") != "0.7.0rc7"
+    assert importlib.metadata.version("skulk-capability-kernel") not in {
+        "0.7.0rc7",
+        "0.7.0",
+    }
     app = CapabilityApp()
 
     async def handler(call: Invocation) -> dict[str, JsonValue]:

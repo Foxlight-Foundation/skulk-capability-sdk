@@ -318,7 +318,9 @@ def create_bundle(output: Path) -> Path:
             )
         )
     }
-    validate_corpora(evidence, discovery=python_version == "0.7.0rc7")
+    # Bundles must match this source's version. Discovery is part of this
+    # source's ABI, independently of whether its package version is prerelease.
+    validate_corpora(evidence, discovery=True)
     archive = output / f"native-candidate-{family}.zip"
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zipped:
         zipped.writestr("candidate.json", metadata.model_dump_json(indent=2) + "\n")
@@ -377,6 +379,7 @@ def read_bundle(
         *[
             f"{kind}-{backend}.json"
             for kind in [
+                "discovery",
                 "portable",
                 "managed",
                 "handshake",
@@ -394,10 +397,6 @@ def read_bundle(
             for backend in ["rust", "python", "node"]
         ],
     }
-    if bundle.version == "0.7.0rc7":
-        expected.update(
-            f"discovery-{backend}.json" for backend in ("rust", "python", "node")
-        )
     if set(files) != expected:
         raise ValueError("Native candidate bundle inventory differs")
     require_wheel_platform(bundle.wheel.name, bundle.platform)
@@ -436,7 +435,7 @@ def read_bundle(
     return (
         bundle,
         files,
-        validate_corpora(files, discovery=bundle.version == "0.7.0rc7"),
+        validate_corpora(files, discovery=True),
     )
 
 
@@ -499,7 +498,7 @@ def assemble(paths: list[Path], destination: Path, source: str) -> Path:
         "source_commit": source,
         "source_tree": checked[0][1].source_tree,
         "scope": (
-            "Native ABI prerelease candidate; "
+            "Native ABI artifact qualification; "
             "not SDK 1.0 or installed owner/Core acceptance"
         ),
         "runtime_adoption": False,

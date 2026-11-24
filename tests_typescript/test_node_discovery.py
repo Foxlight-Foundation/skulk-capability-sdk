@@ -34,7 +34,10 @@ async def test_node_discovery_retains_parent_and_its_separate_query_sequence(
     original caller permissions. This tests the independently installed Node
     client against real compiled Python framing, never a JavaScript codec mock.
     """
-    assert importlib.metadata.version("skulk-capability-kernel") == "0.7.0rc7"
+    assert importlib.metadata.version("skulk-capability-kernel") in {
+        "0.7.0rc7",
+        "0.7.0",
+    }
     native = cast(DiscoveryNative, importlib.import_module("_skulk_capability_kernel"))
     source, target = endpoint()
     app = NodeApplication(

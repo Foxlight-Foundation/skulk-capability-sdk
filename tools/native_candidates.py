@@ -498,7 +498,7 @@ def assemble(paths: list[Path], destination: Path, source: str) -> Path:
         "source_commit": source,
         "source_tree": checked[0][1].source_tree,
         "scope": (
-            "Native ABI prerelease candidate; "
+            "Native ABI artifact qualification; "
             "not SDK 1.0 or installed owner/Core acceptance"
         ),
         "runtime_adoption": False,

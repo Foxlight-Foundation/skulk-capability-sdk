@@ -125,7 +125,7 @@
     "tools/check_managed_profile.py": "04d958d2595b8f45363c87922838ecd80a721602831a1f1bf9c95ca302759439",
     "tools/check_portable_profile.py": "10811c27e0cb62e197ec57dcdeffebdcfa99949cf10f3a898de86664899c4647",
     "tools/check_transport_profile.py": "ebe7613a6d20f462b116686e81fc3fd1a7303fc45a402117c2e63a1c58723eb5",
-    "tools/native_candidates.py": "9288f148f962d2e31e50dcebe67c765209f45f0d7dde43e26b71f3ac2211e1e5",
+    "tools/native_candidates.py": "3fe79f66df298ed341fc3d35896ed9d8eef2381a353004e3683210c8458ff0d7",
     "tools/native_consumer.py": "e47e5f53cd9e632ecb0be7169e21e9e94a9fba5b822b2e5403f78d6858410b0a",
     "tools/native_notices.py": "e33e284fb8c2a0a078fc31da967222bcfc14f72e3dd69f53243483ded42c4721",
     "tools/native_packages.py": "27a285161fe968d1e19c7fc38a4c5f24f5c2c1f8b1ce5b82ecd82c0e8649355a",

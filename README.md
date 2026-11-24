@@ -25,7 +25,7 @@ qualification from the separately issued preview.
 - [Legacy Python author guide](docs/python-authoring.md): maintained governed
   protocol-four/runtime-two authoring and lifecycle commands.
 
-SDK1 Python/TypeScript packages use version `1.0.0`, author tools `0.2.0`, native
+SDK1 Python/TypeScript packages target version `1.0.1`, author tools `0.2.0`, native
 kernel `0.7.0` and selected managed Node `22.23.5`. Package, owner/Core and
 installed-application qualification are recorded separately. Consult the
 acquisition guide for issued artifacts and the compatible host cohort.

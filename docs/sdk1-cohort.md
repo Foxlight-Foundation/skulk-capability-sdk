@@ -1,21 +1,23 @@
 # SDK1 package and host cohort
 
-The SDK1 author contract is frozen. The final `1.0.0` Python/TypeScript packages
-and `0.2.0` tools are being qualified with the matching managed runtime. Native
+The SDK1 author contract is frozen. Python/TypeScript `1.0.0` and tools `0.2.0`
+are published. The `1.0.1` SDK patch is being qualified after a terminal-publication
+race was reproduced in both languages; matching runtime delivery is held until
+its new immutable package closure passes. Native
 kernel `0.7.0` is already [published](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0).
 Source checks, package publication and normal installed-host qualification have
 separate receipts; select compatible inputs together.
 
 | Component | SDK1 target | Current boundary |
 | --- | --- | --- |
-| Python SDK | `1.0.0` | Source/wheel qualification; canonical release pending |
-| TypeScript SDK | `1.0.0` | Native addon and matching Python credential-helper cohort |
+| Python SDK | `1.0.1` | Terminal-publication patch qualification |
+| TypeScript SDK | `1.0.1` | Native addon and matching Python credential-helper cohort |
 | Author tools | `0.2.0` | SDK1 dependency window and positive native0.7.0 receipt |
 | Native Python/Node bindings | `0.7.0` | Published on macOS ARM64 and glibc Linux x86_64/ARM64 |
 | Selected managed Node | `22.23.5` | Exact archive, executable and license identities |
-| Owner runtime | `0.18.0` | Matching new runtime/package qualification pending |
+| Owner runtime | New matched patch | Issued `0.18.0` input preserved; refreshed closure required |
 | Skulk host | Compatible `2.0.3` cohort | Normal install, service and caller qualification required |
-| Model-free reference | `0.2.0` | New SDK1 source; issued0.1.0 remains an immutable earlier input |
+| Model-free reference | `0.2.1` | Signed `0.2.0` input preserved; new SDK1.0.1 source qualification |
 
 The earlier [public package quickstart](native-public-quickstart.md) and
 [runtime acquisition recipe](native-runtime-acquisition.md) identify the issued
@@ -62,3 +64,15 @@ Python3.13 and the three named native artifact families are qualified. Node
 authoring supports22.18+ within the Node22 line; managed packages select22.23.5.
 Native Windows hosting is not qualified. Keep historical descriptors, journals,
 signed records and release assets attached to their actual versions.
+
+## Terminal-publication patch
+
+With concurrency one, a host can receive a completed result and immediately send
+the next request while the native send is still settling locally. SDK `1.0.0`
+could count that cleaned invocation as busy and close the control connection.
+The `1.0.1` patch joins only terminal publication before admitting the next call.
+Generation and resource cleanup still hold capacity, late delegated replies keep
+their correlation, and shutdown retains ownership of each send. Real native IPC
+regressions force this interleave in Python and TypeScript without sleeps.
+Published `1.0.0` packages, native `0.7.0` artifacts and prior signed inputs remain
+unchanged. This patch does not change contract profiles or authorize execution.

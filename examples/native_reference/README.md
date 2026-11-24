@@ -1,8 +1,10 @@
 # SDK Native Reference
 
-The current source is reference0.2.0 for SDK1.0.0/native0.7.0. See the
+The current source is reference0.2.1 for SDK1.0.1/native0.7.0. See the
 [SDK1 cohort](../../docs/sdk1-cohort.md) for matching runtime qualification.
-The earlier issued reference0.1.0 and its signed receipts remain unchanged.
+The earlier reference0.1.0 and signed0.2.0 inputs retain their original bytes.
+This is an optional developer example; normal Skulk and Integrator use do not
+require installing it.
 
 A model-free managed capability that demonstrates the public Python SDK and
 supplies a small reproducible native runtime for SDK1 author qualification.

@@ -97,3 +97,11 @@ requires the exact platform set, frozen wheel hashes and independent rebuild.
 `--native` continues to select runtime-five and catalog-four declarations;
 dependency policy does not perform a contract conversion. Existing legacy
 publication defaults and the issued native cohorts remain unchanged.
+
+Tools `0.2.0rc6` add the matching opt-in to
+`release_reference(directory, lock, native_candidate=True)`. It retains URL-wheel
+sizes from the independent rebuild/acquisition and supplies other-platform kernel
+sizes from the immutable qualified public cohort. An acquired kernel must match
+that receipt. The ordinary legacy reference projection stays unchanged. Use this
+policy in the independent reference job as well as acquisition and feed assembly;
+the signer must never derive missing sizes from candidate builds.

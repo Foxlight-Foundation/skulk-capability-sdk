@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from packaging.tags import Tag
+from pydantic import JsonValue
 from skulk_capability_tools.wheelhouse import (
     BUILD_BACKEND_LOCK,
     LockedFile,
@@ -720,3 +721,108 @@ def test_sdk1_feed_policy_still_rejects_a_wrong_locked_hash(tmp_path: Path) -> N
         assert not output.exists()
     finally:
         (tmp_path / "publisher.key").unlink()
+
+
+def _sdk1_url_reference(
+    tmp_path: Path,
+    architecture: str,
+    monkeypatch: pytest.MonkeyPatch,
+    mismatch: str = "",
+) -> tuple[Path, Lockfile, dict[str, tuple[str, int]]]:
+    """Keep fake URL locks size-free and supply independent fake cohort receipts."""
+    from skulk_capability_tools import native_publishing
+
+    _sdk1_legacy_feed(tmp_path, architecture)
+    (tmp_path / "publisher.key").unlink()
+    original = load_lock(tmp_path / "uv.lock")
+    packages: list[LockedPackage] = []
+    expected: dict[str, tuple[str, int]] = {}
+    kernel_name = ""
+    for item in original.package:
+        if item.name in {"skulk-capability-nodes", "skulk-capability-kernel"}:
+            wheel = item.wheels[0]
+            assert wheel.url is not None and wheel.size is not None
+            expected[wheel.filename] = (wheel.sha256, wheel.size)
+            if item.name == "skulk-capability-kernel":
+                kernel_name = wheel.filename
+            item = item.model_copy(
+                update={
+                    "source": {"url": wheel.url},
+                    "wheels": (wheel.model_copy(update={"size": None}),),
+                }
+            )
+        packages.append(item)
+    other = kernel_name.replace(
+        architecture, "aarch64" if architecture == "x86_64" else "x86_64"
+    )
+    expected[other] = (hashlib.sha256(other.encode()).hexdigest(), len(other))
+    assets: list[JsonValue] = []
+    for filename in (kernel_name, other):
+        digest, size = expected[filename]
+        if filename == kernel_name:
+            digest = "0" * 64 if mismatch == "hash" else digest
+            size += 1 if mismatch == "size" else 0
+        assets.append({"wheel": {"name": filename, "sha256": digest, "size": size}})
+
+    def cohort(version: str) -> dict[str, JsonValue]:
+        """Return a test-only independent receipt, never candidate measurements."""
+        assert version == "0.7.0rc7"
+        return {"platforms": assets}
+
+    monkeypatch.setattr(native_publishing, "native_cohort", cohort)
+    return (
+        tmp_path / "candidate",
+        original.model_copy(update={"package": tuple(packages)}),
+        expected,
+    )
+
+
+@pytest.mark.parametrize("architecture", ["x86_64", "aarch64"])
+@pytest.mark.parametrize("candidate", [False, True])
+def test_legacy_sdk1_reference_retains_independent_url_sizes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, architecture: str, candidate: bool
+) -> None:
+    """Carry independent URL/platform receipts only with explicit opt-in."""
+    from skulk_capability_tools.assemble_feed import expected_wheels, release_reference
+
+    directory, lock, expected = _sdk1_url_reference(tmp_path, architecture, monkeypatch)
+    reference = release_reference(directory, lock, native_candidate=candidate)
+    if not candidate:
+        assert reference.built_wheels == {}
+        with pytest.raises(Denied, match="no size"):
+            expected_wheels(
+                lock,
+                "skulk-capability-nodes",
+                f"linux-glibc-{architecture}",
+                reference,
+                native_candidate=True,
+            )
+        return
+    assert {
+        name: (value.sha256, value.size)
+        for name, value in reference.built_wheels.items()
+    } == expected
+    wanted = expected_wheels(
+        lock,
+        "skulk-capability-nodes",
+        f"linux-glibc-{architecture}",
+        reference,
+        native_candidate=True,
+    )
+    assert all(
+        wanted[name] == value
+        for name, value in reference.built_wheels.items()
+        if name in wanted
+    )
+
+
+@pytest.mark.parametrize("mismatch", ["hash", "size"])
+def test_legacy_sdk1_reference_refuses_disagreement_with_qualified_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mismatch: str
+) -> None:
+    """An independent binary must match its immutable public receipt before use."""
+    from skulk_capability_tools.assemble_feed import release_reference
+
+    directory, lock, _ = _sdk1_url_reference(tmp_path, "x86_64", monkeypatch, mismatch)
+    with pytest.raises(Denied, match="differs from its public receipt"):
+        release_reference(directory, lock, native_candidate=True)

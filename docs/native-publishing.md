@@ -124,3 +124,22 @@ identity, permissions and state-schema checks remain mandatory.
 
 Select `--native` only for actual managed/2 native declarations. Dependency-policy
 selection supplies no host authorization or governed-effect approval.
+
+With tools `0.2.0rc6`, the independent rebuild job should create its receipt with
+the same explicit policy:
+
+```python
+from pathlib import Path
+from skulk_capability_tools.assemble_feed import release_reference
+from skulk_capability_tools.wheelhouse import load_lock
+
+reference = release_reference(
+    Path("independent/release"), load_lock(Path("uv.lock")), native_candidate=True
+)
+```
+
+This records independently acquired direct-URL wheel sizes where uv's lock
+contains only a hash. Other-platform kernel sizes come from the versioned public
+qualification receipt; a local binary that disagrees is refused. The bundle and
+manifest still come from that separate rebuild. Default legacy references and
+the signed runtime/manifest protocols do not change.

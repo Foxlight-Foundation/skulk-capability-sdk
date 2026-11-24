@@ -45,7 +45,14 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from packaging.utils import canonicalize_name, parse_wheel_filename
 from packaging.version import Version
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    TypeAdapter,
+    ValidationError,
+)
 
 from skulk_capability_sdk.contracts import Denied, Manifest, canonical
 from skulk_capability_sdk.storage import atomic_private, read_private, secure_directory
@@ -207,25 +214,69 @@ def _registry_names(lock: Lockfile) -> set[str]:
     }
 
 
-def release_reference(directory: Path, lock: Lockfile) -> ReleaseReference:
+def release_reference(
+    directory: Path, lock: Lockfile, *, native_candidate: bool = False
+) -> ReleaseReference:
     """Describe a built release as an independent rebuild, for comparison.
 
     Every wheel of a package the lock does not take from a registry was built
     from locked source; those, the bundle and the manifest are what the lock
-    cannot pin and a rebuild must.
+    cannot pin and a rebuild must. The explicit SDK1 candidate policy also
+    retains independently acquired URL-wheel sizes and qualified kernel receipts
+    for other platforms. Default legacy reference projection stays unchanged.
     """
     built = read_built(directory)
     release = built.runtime.release
-    registry = _registry_names(lock)
+    registry = (
+        {
+            str(canonicalize_name(package.name))
+            for package in lock.package
+            if "registry" in package.source
+        }
+        if native_candidate
+        else _registry_names(lock)
+    )
+    wheels = {
+        wheel.filename: ReferenceWheel(sha256=wheel.sha256, size=wheel.size)
+        for wheel in built.runtime.wheels
+        if wheel.distribution[0] not in registry
+    }
+    if native_candidate:
+        # A URL lock supplies its hash, but uv may omit its size. Retain this
+        # independent acquisition, and use the same qualified public receipts
+        # as native feeds for kernel binaries on the other release platforms.
+        # Neither source is nominated by the candidate being signed.
+        from .native_publishing import native_cohort
+
+        kernel = next(
+            (
+                wheel
+                for wheel in built.runtime.wheels
+                if wheel.distribution[0] == "skulk-capability-kernel"
+                and wheel.filename in wheels
+            ),
+            None,
+        )
+        if kernel is not None:
+            platforms = TypeAdapter(list[dict[str, JsonValue]]).validate_python(
+                native_cohort(kernel.distribution[1])["platforms"], strict=True
+            )
+            for item in platforms:
+                asset = TypeAdapter(dict[str, JsonValue]).validate_python(
+                    item["wheel"], strict=True
+                )
+                filename = TypeAdapter(str).validate_python(asset["name"], strict=True)
+                receipt = ReferenceWheel.model_validate(
+                    {"sha256": asset["sha256"], "size": asset["size"]}
+                )
+                if filename in wheels and wheels[filename] != receipt:
+                    raise Denied("independent kernel differs from its public receipt")
+                wheels[filename] = receipt
     return ReleaseReference(
         bundle_sha256=release.manifest.executable_sha256,
         bundle_size=release.artifact_size,
         manifest_sha256=manifest_digest(release.manifest),
-        built_wheels={
-            wheel.filename: ReferenceWheel(sha256=wheel.sha256, size=wheel.size)
-            for wheel in built.runtime.wheels
-            if wheel.distribution[0] not in registry
-        },
+        built_wheels=wheels,
     )
 
 

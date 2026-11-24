@@ -39,7 +39,10 @@ async def query(
     The metadata resource lifetime is thirty seconds, attenuated by the parent.
     The caller owns cancellation and must join this query before completing.
     """
-    if importlib.metadata.version("skulk-capability-kernel") != "0.7.0rc7":
+    if importlib.metadata.version("skulk-capability-kernel") not in {
+        "0.7.0rc7",
+        "0.7.0",
+    }:
         raise DiscoveryError("unsupported")
     native = cast(NativeDiscovery, native_module())
     source = startup.decode()

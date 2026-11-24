@@ -588,6 +588,7 @@ class _Delegations:
                 "0.7.0rc5",
                 "0.7.0rc6",
                 "0.7.0rc7",
+                "0.7.0",
             }:
                 raise ValueError("application caller streams require native rc5 or rc6")
             mode = _STREAM_MODE.validate_python(fields["io_mode"], strict=True)

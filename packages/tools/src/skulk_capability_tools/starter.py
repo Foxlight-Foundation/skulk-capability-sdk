@@ -117,15 +117,17 @@ def initialize(destination: Path, name: str) -> None:
         )
         (stage / "capability.toml").write_text(
             f'package = "{name}"\npackage_root = "{name}"\nentry = "{name}.app"\n'
-            'dependencies = ["skulk-capability-sdk>=0.5.5,<0.6"]\n'
+            'dependencies = ["skulk-capability-sdk>=1.0.0,<2"]\n'
         )
         (stage / "pyproject.toml").write_text(
             f'[project]\nname = "{name.replace("_", "-")}"\nversion = "0.1.0"\n'
             'requires-python = ">=3.13"\n'
-            'dependencies = ["skulk-capability-sdk>=0.5.5,<0.6"]\n\n'
+            'dependencies = ["skulk-capability-sdk>=1.0.0,<2"]\n\n'
             "[tool.uv.sources]\nskulk-capability-sdk = { url = "
             '"https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/'
-            'download/v0.5.6/skulk_capability_sdk-0.5.6-py3-none-any.whl" }\n'
+            "download/v1.0.0/skulk_capability_sdk-1.0.0-py3-none-any.whl#sha256="
+            "8605545905a63f577a7f6d611f0fcdee"
+            '592dcf7667a9a5c28ec8534a3f6bc99f" }\n'
         )
         (stage / ".gitignore").write_text(".venv/\n__pycache__/\n.skulk-cap/\ndist/\n")
         (stage / "README.md").write_text(

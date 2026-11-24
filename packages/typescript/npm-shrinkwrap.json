@@ -1,17 +1,17 @@
 {
   "name": "@foxlight/skulk-capability-sdk",
-  "version": "0.5.16-rc.1",
+  "version": "1.0.0",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@foxlight/skulk-capability-sdk",
-      "version": "0.5.16-rc.1",
+      "version": "1.0.0",
       "license": "MIT",
       "dependencies": {
-        "@foxlight/skulk-kernel-linux-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk-capability-kernel-0.7.0rc7-linux-glibc-aarch64.tgz",
-        "@foxlight/skulk-kernel-linux-x64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk-capability-kernel-0.7.0rc7-linux-glibc-x86_64.tgz",
-        "@foxlight/skulk-kernel-macos-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk-capability-kernel-0.7.0rc7-macos-arm64.tgz",
+        "@foxlight/skulk-kernel-linux-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk-capability-kernel-0.7.0-linux-glibc-aarch64.tgz",
+        "@foxlight/skulk-kernel-linux-x64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk-capability-kernel-0.7.0-linux-glibc-x86_64.tgz",
+        "@foxlight/skulk-kernel-macos-arm64": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk-capability-kernel-0.7.0-macos-arm64.tgz",
         "@types/node": "22.18.0"
       },
       "devDependencies": {
@@ -23,27 +23,27 @@
     },
     "node_modules/@foxlight/skulk-kernel-linux-arm64": {
       "name": "@foxlight/skulk-capability-kernel-qualification",
-      "version": "0.7.0-rc.7",
-      "resolved": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk-capability-kernel-0.7.0rc7-linux-glibc-aarch64.tgz",
-      "integrity": "sha512-BnnkosJw7oArRG+TVjOZQheLDK2WlyJAwQrNLJV5KveMo7TKpakpDEVuovS9aah/nfNUhAdqhyH3mH2lXeonhg==",
+      "version": "0.7.0",
+      "resolved": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk-capability-kernel-0.7.0-linux-glibc-aarch64.tgz",
+      "integrity": "sha512-HZOkIk/xyh76Olk6r+yzZ3xCYlUQ6Y9nJJBo+IWERt9TVaFEHSnvAEwAqz3TMRFlOu5ulSIArD+8oJ9S6RQmrw==",
       "engines": {
         "node": "^22.18.0"
       }
     },
     "node_modules/@foxlight/skulk-kernel-linux-x64": {
       "name": "@foxlight/skulk-capability-kernel-qualification",
-      "version": "0.7.0-rc.7",
-      "resolved": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk-capability-kernel-0.7.0rc7-linux-glibc-x86_64.tgz",
-      "integrity": "sha512-OG9A5cO8DHovZykm1dS3LsN95dymmp/jfgFJE1ZE2Py+/McaaK1emquC6v7dmx7yhRVDy9QjOOXpQzS2wxrFew==",
+      "version": "0.7.0",
+      "resolved": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk-capability-kernel-0.7.0-linux-glibc-x86_64.tgz",
+      "integrity": "sha512-ll2fF0tI8pj2dv1fcpUAyXt6TLWe8+IhTrJt85JqIGRQ3Nme3rht6sbZta/n12nS+gXXPqE4gO3G+Cq0TIoVZQ==",
       "engines": {
         "node": "^22.18.0"
       }
     },
     "node_modules/@foxlight/skulk-kernel-macos-arm64": {
       "name": "@foxlight/skulk-capability-kernel-qualification",
-      "version": "0.7.0-rc.7",
-      "resolved": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0-rc.7/skulk-capability-kernel-0.7.0rc7-macos-arm64.tgz",
-      "integrity": "sha512-OuRQYus9dQZ07kCM1nBNpI2k1a/q8PcAFIQijxSVbTTO/hdikd89RuFQgiN/nMjPdpXxkTfhEPtxkY7HP6mrZw==",
+      "version": "0.7.0",
+      "resolved": "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-v0.7.0/skulk-capability-kernel-0.7.0-macos-arm64.tgz",
+      "integrity": "sha512-rP6hTtYUbwuqLYy/ysGkri37FCJcdvEHBSIRzxanw5FBKvGiJykovkSgUGy27evsDlsk77pFnwy0cLWZ+ZSB+A==",
       "engines": {
         "node": "^22.18.0"
       }

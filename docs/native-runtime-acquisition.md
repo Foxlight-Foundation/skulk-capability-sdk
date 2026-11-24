@@ -1,5 +1,9 @@
 # Acquire the native author runtime
 
+For new SDK1 applications, consult the [matching SDK1 cohort](sdk1-cohort.md).
+The acquisition receipt below is the separately issued SDK16/owner8 preview;
+its immutable package identities are preserved.
+
 Native owner **0.18.0rc8**, SDK **0.5.16rc1** and kernel **0.7.0rc7** now have
 explicit, hash-pinned runtime recipes. Use author tools **0.2.0rc4** from the
 [public package quickstart](native-public-quickstart.md). These are SDK1

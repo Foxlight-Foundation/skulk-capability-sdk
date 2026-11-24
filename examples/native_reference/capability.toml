@@ -1,4 +1,4 @@
 package = "sdk_reference"
 package_root = "sdk_reference"
 entry = "sdk_reference.app"
-dependencies = ["skulk-capability-sdk==0.5.16rc1"]
+dependencies = ["skulk-capability-sdk==1.0.0"]

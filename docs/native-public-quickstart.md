@@ -1,5 +1,9 @@
 # Start from public native candidate packages
 
+For SDK1 source/package qualification and matching runtime requirements, see
+the [SDK1 cohort](sdk1-cohort.md). This reproducible quickstart retains its
+issued SDK16/native7/owner8 preview inputs.
+
 You can create, run and debug a Python or TypeScript capability without a Skulk
 checkout, private repository access, Foxlight account, model or fleet. This
 recipe selects SDK0.5.16rc1, author tools0.2.0rc4, native0.7.0rc7 and Node22.23.5.

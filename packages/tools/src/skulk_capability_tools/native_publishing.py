@@ -30,6 +30,7 @@ _SCHEMA: TypeAdapter[dict[str, JsonValue] | bool | None] = TypeAdapter(
     dict[str, JsonValue] | bool | None
 )
 _COHORTS = {
+    "0.7.0": "78edbcc881f26458328af87246379531a9e547f6719be0d328b3a1ce087d991d",
     "0.7.0rc7": "d0b616e5b73111904cbfbc071ce2ad7f0b111624ba02ed5e7649ce6a8ec02de3",
     "0.7.0rc5": "fb6ca9e81f80cebd2cb6da735b30f888dc49f8ee6f38d57abc544e9362906f51",
     "0.7.0rc3": "da446b54ddd8996ea21cbd61f1155bc1e840ddfff2e36f435ffc973806c865ae",
@@ -194,7 +195,7 @@ class NativeManifest(Contract):
 class NativeProfiles(Contract):
     """Exact public native cohort selection, distinct from author and host authority."""
 
-    version: Literal["0.7.0rc3", "0.7.0rc4", "0.7.0rc5", "0.7.0rc7"] = Field(
+    version: Literal["0.7.0rc3", "0.7.0rc4", "0.7.0rc5", "0.7.0rc7", "0.7.0"] = Field(
         description="Selected binary version."
     )
     source_commit: str = Field(
@@ -242,7 +243,7 @@ class NativeProfiles(Contract):
             "skulk.calls/2": kernel.calls_v2_profile_digest(),
             "skulk.transport/2": kernel.transport_v2_profile_digest(),
         }
-        if version == "0.7.0rc7":
+        if version in {"0.7.0rc7", "0.7.0"}:
             observed["skulk.discovery/1"] = kernel.discovery_profile_digest()
         expected = {
             _TEXT.validate_python(item["profile"], strict=True): item["profile_digest"]

@@ -1,5 +1,9 @@
 # TypeScript native application candidate
 
+The SDK1 TypeScript package target is1.0.0 with native0.7.0 and the matching
+Python1.0.0 credential helper. See the [SDK1 cohort](sdk1-cohort.md). Older
+version/publication notes below retain their original qualification scope.
+
 The public TypeScript source package is `@foxlight/skulk-capability-sdk`
 **0.5.14-rc.1**. It is an SDK1 source candidate, not a stable SDK1 publication.
 It supplies managed application setup, cached readiness/surfaces, exact-version

@@ -1,5 +1,9 @@
 # SDK Native Reference
 
+The current source is reference0.2.0 for SDK1.0.0/native0.7.0. See the
+[SDK1 cohort](../../docs/sdk1-cohort.md) for matching runtime qualification.
+The earlier issued reference0.1.0 and its signed receipts remain unchanged.
+
 A model-free managed capability that demonstrates the public Python SDK and
 supplies a small reproducible native runtime for SDK1 author qualification.
 The source is MIT, like the SDK. The separately supplied owner runtime keeps

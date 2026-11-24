@@ -1,5 +1,9 @@
 # Develop a native capability locally
 
+SDK1 uses Python/TypeScript1.0.0, tools0.2.0 and native0.7.0. See the
+[SDK1 cohort](sdk1-cohort.md) for current package/host qualification and the
+separate issued preview. The examples below describe the source author workflow.
+
 The explicit native author CLI creates model-free Python and TypeScript projects
 and runs the same compiled managed/2, calls/2 and transport/2 interfaces used by
 the application runtime. It supports unary, server-streaming, client-streaming

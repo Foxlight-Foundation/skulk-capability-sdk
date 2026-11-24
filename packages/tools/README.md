@@ -1,6 +1,11 @@
 # Skulk capability author tools
 
 Generic author and publisher tooling for Skulk capabilities, licensed under MIT.
+
+Tools `0.2.0` use SDK1 `1.0.0` and the issued native `0.7.0` cohort. New
+projects declare the SDK1 compatibility window; historical runtime recipes
+retain their original identities. Select a matching owner/Core runtime from
+the acquisition guide before installing a new SDK1 application.
 The package provides `skulk-cap` and the existing `capability-build`,
 `capability-wheelhouse`, `capability-catalog` and `capability-feed` commands.
 It depends on the public author SDK and packages from public package indexes.

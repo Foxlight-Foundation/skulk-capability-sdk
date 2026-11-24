@@ -1,5 +1,9 @@
 # Native candidate publishing
 
+The SDK1 source uses tools0.2.0 and the published native0.7.0 cohort. See
+[SDK1 package/host compatibility](sdk1-cohort.md). The older issued receipts
+and examples below retain their own package versions.
+
 The experimental **SDK0.5.16rc1 / author tools0.2.0rc4** supplies an explicit
 compiler-free native build path. The Python application interface is unchanged.
 The public tools contain authoring, artifact and signature contracts; the owner,

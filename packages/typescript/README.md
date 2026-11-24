@@ -1,50 +1,44 @@
 # Skulk capability SDK for TypeScript
 
-This is the SDK1 source candidate. The public package uses the issued native
-0.7.0rc7 addons without a source-build fallback. Package installation grants no
-Fabric authority. Managed installation and complete author journeys require
-their own matching host/runtime qualification.
+The public MIT `@foxlight/skulk-capability-sdk` package provides SDK1 application
+and client APIs over the exact prebuilt native0.7.0 addon cohort. The loader
+checks every selected addon member before loading it and has no source-build
+fallback. Package installation grants no Fabric or provider authority.
 
-`Invocation.discover()` is an additional SDK15 source candidate for active
-original-caller discovery. This source candidate selects the published native7
-cohort and verifies its exact addon bytes. A matching owner/Core companion
-channel and installed qualification are required. Older hosts explicitly report
-unsupported; no service bearer replaces the parent invocation.
+Use `CapabilityApp` for setup, readiness, settings, and unary/server/client/bidirectional I/O.
+`Invocation.call` and `Invocation.stream` preserve exact destination and request
+identities, original-caller scope, deadlines and cancellation ownership.
+`Invocation.discover` uses the active parent's protected companion channel;
+`discoverCapabilities` uses an explicitly enrolled client key and caller-filtered
+HTTPS directory. Neither discovery route grants execution rights.
 
-`discoverCapabilities` reads Core's caller-filtered native directory with an
-explicit enrolled client key. Immutable `CapabilityDirectory`/`CapabilityOffer`
-values preserve exact descriptors, resource settings and observed generations.
-HTTPS trust, bounded transfers, cancellation and revocation are explicit;
-discovery grants no execution rights. See the
-[discovery guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/initiative/sdk1-completion/docs/native-discovery.md).
+`CapabilityClient` exposes exact descriptors, authorized reads and immutable
+inert proposals. A proposal is request data for review and cannot execute work.
+Native composition is read/inference; existing governed Python applications
+retain their own protocol-four/runtime-two interfaces.
 
-Repository TLS qualification tests use the OpenSSL CLI to create disposable
-test certificates. The runtime client uses Node's built-in HTTP(S)/TLS modules.
+`JobDefinition` and `DurableJobs` share Python's native declarations, caller-private
+observations, replay reservations and state binding. Acquire `jobs.serve(startup,
+{directory, signal})` during setup and declare both endpoints and operation bounds.
+Journal work runs in an owned helper process. Keep the adapter's AbortSignal
+through backend calls and retain ownership until actual cleanup finishes.
 
-Supported author runtimes are Node 22.18 or later in the Node 22 line, on
-macOS ARM64 and glibc 2.34+ Linux x86_64/ARM64. The exact supported addon is
-selected and verified before it loads. Unsupported platforms refuse explicitly.
+Credential reads use the explicitly selected matching public Python SDK helper.
+Values are redacted, rotation/retirement remain visible, and cancellation reaps
+owned helpers. No ambient interpreter or credential backend fallback is chosen.
 
-The source packaging candidate additionally pins managed execution to Node
-22.23.5. A module's default `ApplicationFactory` receives selected runtime
-metadata and returns `CapabilityApp`; its Python zipapp bootstrap preserves the
-owning process PID while executing the measured Node wheel. See
-[`docs/node-packaging.md`](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/initiative/sdk1-completion/docs/node-packaging.md)
-for staging, signing, limits and the remaining signed-installation gate.
+Supported author runtimes are Node22.18 or later in the Node22 line on macOS ARM64
+and glibc2.34+ Linux x86_64/ARM64. Managed packaging selects the exact measured
+Node22.23.5 wheel; the Python bootstrap preserves its owning process identity.
+The matching host/runtime authenticates startup and every call. Unsupported
+platforms and older feature profiles refuse explicitly.
 
-Declared credential reads require an explicitly selected matching public Python
-SDK helper. Values are redacted, reads observe rotation/retirement, and owned
-helpers are reaped on cancellation. No ambient interpreter or backend fallback
-is selected. Signed Node/runtime and native OS-session qualification remain
-separate from source and clean-package checks.
+See the repository's [native author guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/initiative/sdk1-completion/docs/native-authoring.md),
+[TypeScript API guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/initiative/sdk1-completion/docs/typescript-authoring.md),
+[discovery guide](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/initiative/sdk1-completion/docs/native-discovery.md)
+and [versioned runtime acquisition](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/initiative/sdk1-completion/docs/native-runtime-acquisition.md).
+Source/package checks, real native credential sessions and signed installed
+owner/Core journeys retain their own exact-version qualification receipts.
 
-`JobDefinition` and `DurableJobs` provide native durable inference with the same
-descriptors, caller partitions, replay reservations and state binding as Python.
-Acquire `jobs.serve(startup, {directory, signal})` from application setup and
-register both read/work descriptors plus operation bounds in the signed manifest.
-Journal/SQLite work runs in an owned helper process. Shared process custody lasts
-until that process exits and actual adapter cleanup finishes. Pass the adapter's
-AbortSignal through backend operations; the managed owner supplies final process
-containment for noncooperative code. See the public repository's
-[`docs/typescript-authoring.md`](https://github.com/Foxlight-Foundation/skulk-capability-sdk/blob/initiative/sdk1-completion/docs/typescript-authoring.md)
-for the API, uncertainty semantics and remaining signed runtime qualification.
+Repository TLS tests use the OpenSSL CLI for disposable certificates. The
+runtime client uses Node's built-in HTTP(S)/TLS modules.

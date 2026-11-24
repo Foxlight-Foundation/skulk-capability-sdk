@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1 — terminal-publication patch qualification
+
+- Preserve consecutive-call admission when a result reaches the host before its
+  native send settles, in both Python and TypeScript. Generation, cleanup, late
+  delegated reply correlation and publication custody retain their boundaries.
+- Add deterministic real-native-IPC regressions for the failing interleave.
+  Issued `1.0.0` packages and native `0.7.0` artifacts remain immutable.
+
 ## 1.0.0 — package qualification
 
 The SDK1 author contract is frozen for Python and TypeScript. Matching package

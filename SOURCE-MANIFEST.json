@@ -76,9 +76,9 @@
       "adjustment": "Standalone-package import grouping only"
     },
     "skulk_capability_sdk/application.py": {
-      "source_sha256": "d91703c9f68701014da5b743a59fdf774ae6144f572865a10dea0bc036b2fb8a",
-      "exported_sha256": "d91703c9f68701014da5b743a59fdf774ae6144f572865a10dea0bc036b2fb8a",
-      "adjustment": "Public stable 0.7.0 feature admission alongside issued cohorts; exact execution contracts and host authority unchanged"
+      "source_sha256": "c12343fb0844e9da30708b6b8429bdfe327ceb9a3e7e4aaaa65c1a1ffe772d6f",
+      "exported_sha256": "c12343fb0844e9da30708b6b8429bdfe327ceb9a3e7e4aaaa65c1a1ffe772d6f",
+      "adjustment": "Public terminal-publication custody fix; no owner/provider source or contract changes"
     },
     "skulk_capability_sdk/jobs.py": {
       "source_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",

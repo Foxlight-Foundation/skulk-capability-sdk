@@ -91,6 +91,7 @@ export interface ApplicationOptions {
 interface Job {
   readonly controller: AbortController;
   done: boolean;
+  publishing: boolean;
   task: Promise<void>;
   calls: Delegations | undefined;
 }
@@ -217,10 +218,16 @@ export class CapabilityApp {
           await control.send(frame('health', {nonce: request.nonce ?? null,
             ready: this.#options.ready?.() ?? true, surfaces: this.#options.surfaces?.() ?? []}), Buffer.alloc(0));
         } else if (request.kind === 'invoke') {
-          for (const [identity, job] of jobs) if (job.done && !job.calls?.awaitingReply) jobs.delete(identity);
+          for (const [identity, job] of jobs) {
+            // Terminal bytes can reach the host before the native send promise
+            // settles. Join that publication before reusing cleaned capacity;
+            // never wait here on running behavior or child cleanup replies.
+            if (job.publishing) await job.task;
+            if (job.done && !job.calls?.awaitingReply) jobs.delete(identity);
+          }
           const identity = text(request.call_id);
           if (jobs.has(identity) || jobs.size >= number(bounds.concurrency)) throw new TypeError('Application workload capacity exceeded');
-          const job: Job = {controller: new AbortController(), task: Promise.resolve(), done: false, calls: undefined};
+          const job: Job = {controller: new AbortController(), task: Promise.resolve(), done: false, publishing: false, calls: undefined};
           jobs.set(identity, job);
           job.task = this.#execute(control, startup, value, descriptors, unary, streams, request, packet.payload, job);
           void job.task.then(() => { job.done = true; }, () => { job.done = true; void control.close().catch(() => undefined); });
@@ -303,6 +310,7 @@ export class CapabilityApp {
       job.controller.signal.removeEventListener('abort', retire);
       if (job.controller.signal.aborted && error === null) error = job.controller.signal.reason instanceof Expired ? 'timeout' : 'cancelled';
       if (error !== null) encoded = Buffer.alloc(0);
+      job.publishing = true;
       await control.send(frame('result', {call_id: request.call_id ?? null, error, payload_size: encoded.length}), encoded);
     }
   }

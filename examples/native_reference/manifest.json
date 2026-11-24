@@ -14,7 +14,7 @@
     "stream_seconds": 300
   },
   "bundle_id": "foxlight.sdk-reference",
-  "bundle_version": "0.2.0",
+  "bundle_version": "0.2.1",
   "contract_profile": "skulk.managed/2",
   "contracts": {
     "configuration_schema": {
@@ -248,5 +248,5 @@
   "skulk_requires": ">=2.0.3,<3",
   "steward": [],
   "surfaces": [],
-  "title": "foxlight.sdk-reference"
+  "title": "Foxlight SDK Reference"
 }

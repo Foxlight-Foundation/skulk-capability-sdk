@@ -134,6 +134,7 @@ class _InvocationJob:
     task: asyncio.Task[None] | None = None
     work: asyncio.Task[None] | None = None
     cancelled: bool = False
+    publishing: bool = False
     calls: _Delegations | None = None
 
     def retire(self) -> None:
@@ -1462,6 +1463,7 @@ class CapabilityApp:
             finally:
                 if error is not None:
                     encoded = b""
+                job.publishing = True
                 await control.send(
                     frame(
                         "result",
@@ -1493,6 +1495,11 @@ class CapabilityApp:
                     )
                 elif kind == "invoke":
                     for identifier, job in list(jobs.items()):
+                        # Terminal bytes may precede native send settlement. Join
+                        # publication before reusing cleaned capacity, retaining
+                        # custody without waiting on running behavior or replies.
+                        if job.publishing and job.task is not None:
+                            await asyncio.shield(job.task)
                         if job.task is not None and job.task.done():
                             job.task.result()
                             # Local cancellation may finish behavior before the

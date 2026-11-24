@@ -28,7 +28,7 @@ MAX_ASSET_BYTES = 32 * 1024 * 1024
 
 
 def versions(root: Path = ROOT) -> tuple[str, str]:
-    """Require one equivalent prerelease version across Rust, Python and Node."""
+    """Require one equivalent release version across Rust, Python and Node."""
     rust = cast(
         str,
         tomllib.loads((root / "kernel/Cargo.toml").read_text())["package"]["version"],
@@ -40,12 +40,8 @@ def versions(root: Path = ROOT) -> tuple[str, str]:
         ]["version"],
     )
     node = json.loads((root / "kernel/bindings/node/package.json").read_text())
-    if (
-        not Version(python).is_prerelease
-        or Version(rust) != Version(python)
-        or node["version"] != rust
-    ):
-        raise ValueError("Native candidate versions differ or are not prereleases")
+    if Version(rust) != Version(python) or node["version"] != rust:
+        raise ValueError("Native candidate versions differ")
     for name in ["python", "node"]:
         cargo = tomllib.loads((root / f"kernel/bindings/{name}/Cargo.toml").read_text())
         if cargo["package"]["version"] != rust:

@@ -7,10 +7,10 @@
     "aarch64-unknown-linux-gnu"
   ],
   "inputs": {
-    "kernel/Cargo.lock": "56e4d741f7040445dac14c08e9c662564f88658da9d1826ac9ceff33d6d39cde",
-    "kernel/Cargo.toml": "66abcc6d08b5bcaf80285509a879d0ef9345faa21c9a3a2b1f24e5021cfd2937",
-    "kernel/bindings/python/Cargo.toml": "498cb2076e5b1511dd99c8ec7ca5454490c05a42f400acaf3f0f4e8091cbbaff",
-    "kernel/bindings/node/Cargo.toml": "7805ef7de79860c2708d35490aebc52d05bf067c30590f27eacce9cd17b923ec"
+    "kernel/Cargo.lock": "1048d08dc26fcef5edfcdff80216b58fb5f108fca9f891b8a3e8a6f5234bf9a7",
+    "kernel/Cargo.toml": "d57ae6cd38bd6ef7fc472abaad029844c6e13e3f5dfb0c5b79fed0c997a1ee48",
+    "kernel/bindings/python/Cargo.toml": "ae3f0340a9a6a053901c587d1112ee1264143d0b0125d79d1e9356100cd4d6f6",
+    "kernel/bindings/node/Cargo.toml": "362c034db929e9b35eb43e6ffbf89e28b8b63c15ae16e38b0a8769dce0f24b3e"
   },
   "packages": [
     {

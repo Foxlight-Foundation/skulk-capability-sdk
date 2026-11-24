@@ -86,9 +86,9 @@
       "adjustment": "Public native job authoring and shared runtime ownership; no private host/provider source or imports"
     },
     "skulk_capability_sdk/runtime.py": {
-      "source_sha256": "f6bb44020205d8d221c19eebb736529497cfc8c3c65c1c5f2b9318f1e8862e11",
-      "exported_sha256": "f6bb44020205d8d221c19eebb736529497cfc8c3c65c1c5f2b9318f1e8862e11",
-      "adjustment": "Public optional native discovery compatibility; no owner or provider implementation"
+      "source_sha256": "34a3757069fd4f0b639cfd3a2621b58af5ad4972355e51204fec47f3e60337f1",
+      "exported_sha256": "34a3757069fd4f0b639cfd3a2621b58af5ad4972355e51204fec47f3e60337f1",
+      "adjustment": "Public stable 0.7.0 execution cohort admission; earlier issued cohorts retained, no range or private runtime implementation"
     },
     "skulk_capability_sdk/_credential_bridge.py": {
       "source_sha256": "922d5e0584bc90e7410493631eb2a2075a6400c2df7a4c64ed672a843294a4ca",

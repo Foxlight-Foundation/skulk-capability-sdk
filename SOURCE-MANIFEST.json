@@ -76,9 +76,9 @@
       "adjustment": "Standalone-package import grouping only"
     },
     "skulk_capability_sdk/application.py": {
-      "source_sha256": "b831a1bfa27d065491f8ff4876254eb28f3fb235304046c358b969535124cbd1",
-      "exported_sha256": "b831a1bfa27d065491f8ff4876254eb28f3fb235304046c358b969535124cbd1",
-      "adjustment": "Public invocation-bound metadata client and native compatibility; no private host or provider imports"
+      "source_sha256": "d91703c9f68701014da5b743a59fdf774ae6144f572865a10dea0bc036b2fb8a",
+      "exported_sha256": "d91703c9f68701014da5b743a59fdf774ae6144f572865a10dea0bc036b2fb8a",
+      "adjustment": "Public stable 0.7.0 feature admission alongside issued cohorts; exact execution contracts and host authority unchanged"
     },
     "skulk_capability_sdk/jobs.py": {
       "source_sha256": "86b71e152194ebd8bd34dbc127b620ef1197fc222abec2c030e6c397ab65d4de",
@@ -116,9 +116,9 @@
       "adjustment": "Public typed caller-authorized native discovery and exact descriptor identities; no private host or provider implementation"
     },
     "skulk_capability_sdk/_invocation_discovery.py": {
-      "source_sha256": "df36bae5ed67b38b577d198cd4f2b2deb66692fda8cb7ab78711b778550f670f",
-      "exported_sha256": "df36bae5ed67b38b577d198cd4f2b2deb66692fda8cb7ab78711b778550f670f",
-      "adjustment": "Public invocation-bound metadata client; no private owner or provider implementation"
+      "source_sha256": "5dc8723205c304c512a4fa75cf6b6a056a006d315efbdebc3b4b043c942f1ba6",
+      "exported_sha256": "5dc8723205c304c512a4fa75cf6b6a056a006d315efbdebc3b4b043c942f1ba6",
+      "adjustment": "Public stable 0.7.0 feature admission alongside issued cohorts; exact execution contracts and host authority unchanged"
     },
     "skulk_capability_sdk/capabilities.py": {
       "source_sha256": "20d4b58df7a4e733a9f6bea9696954fabc6f48adbf8d69c7e89b297def331acf",

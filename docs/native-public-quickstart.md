@@ -1,13 +1,15 @@
-# Start from public native candidate packages
+# Start from public SDK1 packages
 
-For SDK1 source/package qualification and matching runtime requirements, see
-the [SDK1 cohort](sdk1-cohort.md). This reproducible quickstart retains its
-issued SDK16/native7/owner8 preview inputs.
+Use Python/TypeScript **1.0.1**, author tools **0.2.0**, native kernel **0.7.0**
+and selected Node **22.23.5**. These packages are published as immutable GitHub
+release downloads; the instructions do not assume a PyPI or npm registry release.
+The [SDK1 cohort](sdk1-cohort.md) records the matching owner/runtime and host
+requirements. The [earlier preview quickstart](native-preview-quickstart.md)
+retains its original package identities.
 
 You can create, run and debug a Python or TypeScript capability without a Skulk
-checkout, private repository access, Foxlight account, model or fleet. This
-recipe selects SDK0.5.16rc1, author tools0.2.0rc4, native0.7.0rc7 and Node22.23.5.
-They are explicit SDK1 candidates, not stable SDK1.
+checkout, private repository access, Foxlight account, model or fleet. Package
+publication does not make a compatible Skulk host available on your machine.
 
 Use macOS ARM64 or glibc2.34+ Linux x86_64/ARM64, `uv`, and Python3.13.
 TypeScript development also needs npm; the starter obtains its TypeScript
@@ -39,49 +41,57 @@ base = "https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/dow
 choices = {
     ("Darwin", "arm64"): (
         "macosx_11_0_arm64",
-        "8b77f0e30457c7b6a3c49d477464b657fc26dc81ddeec31ba32843886fe3e0fc",
+        "ac66250223f65870bf59543a430930fa2f366cef7669ca3b0603b4d8e172c778",
         "2137ce717c312a109eec259fe469dbd4d0d34d3b5d44205b94078bfd716a668a",
     ),
     ("Linux", "x86_64"): (
         "manylinux_2_34_x86_64",
-        "d56b3a2e61571db4f56884c1bf5ed1119479f158f1d4a70e243fc52acffea129",
+        "27cd7bada32a6511448648fcd58543abf393bd33975c4a35f117a6e547268d65",
         "1870c7d939a74934975bfbfc947820c25484a56b4d74ef25ba962549f84d9705",
     ),
     ("Linux", "aarch64"): (
         "manylinux_2_34_aarch64",
-        "7bae8593f19f067c420b4d906f85076aeda1c3b51fe3e4bda4d1c7ceaabb615b",
+        "1c86be3a6e318dcf4ad0ef83ff98446a72bacdbaface2b7ad40e24be30accdc0",
         "db24b11bd9faae8e25d52940c0e9d36c9dfb63cfab5c29379c415ba68d832e1f",
     ),
 }
 selected = choices.get((platform.system(), platform.machine()))
 if selected is None:
-    raise SystemExit("This candidate has no binary for this platform")
+    raise SystemExit("This release has no binary for this platform")
 wheel_platform, kernel_hash, node_hash = selected
 packages = [
-    ("v0.5.16-rc.1", "skulk_capability_sdk-0.5.16rc1-py3-none-any.whl",
-     "f61591b608e2f3991ad4052ce607ef57af9384c880b81472dc1fc3b897e4a15f"),
-    ("v0.5.16-rc.1", "skulk_capability_tools-0.2.0rc4-py3-none-any.whl",
-     "4bc535e6f32839a4a8466b841c1d687041af53ef980fcf23cfdb8b923ecd0958"),
-    ("native-v0.7.0-rc.7", f"skulk_capability_kernel-0.7.0rc7-cp313-abi3-{wheel_platform}.whl", kernel_hash),
+    ("v1.0.1", "skulk_capability_sdk-1.0.1-py3-none-any.whl",
+     "df30b89d8fa8588d94b12af03894dcfe3845acd2397b371194481801d9e46c0a"),
+    ("v1.0.1", "skulk_capability_tools-0.2.0-py3-none-any.whl",
+     "76cc28efec91727085aaafcd85ba38d5504f51b4283f2b9b502b2da11b36db9f"),
+    ("native-v0.7.0", f"skulk_capability_kernel-0.7.0-cp313-abi3-{wheel_platform}.whl", kernel_hash),
     ("v0.5.13-rc.1", f"skulk_node_runtime-22.23.5-py3-none-{wheel_platform}.whl", node_hash),
 ]
 requirements = "".join(base + tag + "/" + name + "#sha256=" + digest + "\n"
                        for tag, name, digest in packages)
-archive = Path("foxlight-skulk-capability-sdk-0.5.16-rc.1.tgz")
-with urlopen(base + "v0.5.16-rc.1/" + archive.name, timeout=60) as response:
-    content = response.read(51406)
-if len(content) != 51405 or hashlib.sha256(content).hexdigest() != "0360e7edff2c70747db5ed2ade1e258dc2647b6b4d8ab8d854b88c607d7850b7":
-    raise SystemExit("TypeScript archive differs from the selected candidate")
+archive = Path("foxlight-skulk-capability-sdk-1.0.1.tgz")
+with urlopen(base + "v1.0.1/" + archive.name, timeout=60) as response:
+    content = response.read(51403)
+if len(content) != 51402 or hashlib.sha256(content).hexdigest() != "dde740907bed604b092140db889d0c0d4e90f04202c30b6644f20484712eb7e4":
+    raise SystemExit("TypeScript archive differs from the selected release")
 with Path("author-requirements.txt").open("x") as output:
     output.write(requirements)
 with archive.open("xb") as output:
+    output.write(content)
+wheel = Path("skulk_capability_sdk-1.0.1-py3-none-any.whl")
+with urlopen(base + "v1.0.1/" + wheel.name, timeout=60) as response:
+    content = response.read(88464)
+if len(content) != 88463 or hashlib.sha256(content).hexdigest() != "df30b89d8fa8588d94b12af03894dcfe3845acd2397b371194481801d9e46c0a":
+    raise SystemExit("Python SDK wheel differs from the selected release")
+with wheel.open("xb") as output:
     output.write(content)
 PYTHON
 
 uv pip install --no-config --python .author-env/bin/python \
   --only-binary :all: -r author-requirements.txt
 AUTHOR="$PWD/.author-env/bin/skulk-cap"
-SDK_TARBALL="$PWD/foxlight-skulk-capability-sdk-0.5.16-rc.1.tgz"
+SDK_TARBALL="$PWD/foxlight-skulk-capability-sdk-1.0.1.tgz"
+SDK_WHEEL="$PWD/skulk_capability_sdk-1.0.1-py3-none-any.whl"
 NODE_BIN="$(.author-env/bin/python -I -c 'import sys; from pathlib import Path; from skulk_capability_sdk.node_runtime import select_node; print(select_node(Path(sys.prefix)).executable.parent)')"
 export PATH="$NODE_BIN:$PATH"
 ```
@@ -96,7 +106,8 @@ Node22.23.5 bytes; it does not downgrade the SDK or native kernel.
 Choose a language. Python uses the installed SDK:
 
 ```sh
-"$AUTHOR" init --native --language python --name hello_capability ./hello
+"$AUTHOR" init --native --language python --name hello_capability \
+  --sdk-package "$SDK_WHEEL" ./hello
 ```
 
 TypeScript, as the alternative to the Python command:
@@ -150,4 +161,4 @@ downloaded SDK/tools/native/Node packages, with no source checkout or private
 runtime installed. Both generated languages passed all four modes, exact binary
 media, live debug, watch refresh, retained state and owned child cleanup. Existing
 three-platform package/CLI tests remain separate evidence; this walkthrough does
-not claim a Linux independent-author run or stable SDK1 acceptance.
+not qualify a Linux independent-author walkthrough or the final coordinated Skulk release.

@@ -1,6 +1,6 @@
 # Develop a native capability locally
 
-SDK1 uses Python/TypeScript1.0.0, tools0.2.0 and native0.7.0. See the
+SDK1 uses Python/TypeScript1.0.1, tools0.2.0 and native0.7.0. See the
 [SDK1 cohort](sdk1-cohort.md) for current package/host qualification and the
 separate issued preview. The examples below describe the source author workflow.
 
@@ -9,18 +9,11 @@ and runs the same compiled managed/2, calls/2 and transport/2 interfaces used by
 the application runtime. It supports unary, server-streaming, client-streaming
 and bidirectional handlers. No provider account, model, GPU or fleet is needed.
 
-This is an SDK1 candidate source journey. SDK **0.5.16rc1** and tools
-**0.2.0rc4** are not stable SDK1 releases. The complete independent
-author/feed/Store journey has a separate acceptance gate. Public, compiler-free
-runtime inputs are available through the [native runtime recipes](native-runtime-acquisition.md).
-Current SDK and tools packages are public in
-[v0.5.16-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.16-rc.1).
-The unchanged three selected Node runtime wheels remain available in
-[v0.5.13-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.13-rc.1).
-
-For a clean environment using only public release downloads, start with the
-[public package quickstart](native-public-quickstart.md). The source recipe below
-is useful when developing the SDK itself.
+For a clean environment using published packages, start with the
+[public SDK1 quickstart](native-public-quickstart.md). The source recipe below
+is useful when developing the SDK itself. Managed distribution requires the
+[matched runtime recipes](native-runtime-acquisition.md) and a separately
+qualified compatible host; local development grants no host permissions.
 
 ## Prepare an author environment
 
@@ -50,9 +43,9 @@ npm ci --ignore-scripts --prefix packages/typescript
 npm run build --prefix packages/typescript
 mkdir -p .runtime
 npm pack ./packages/typescript --pack-destination .runtime
-SDK_TARBALL="$PWD/.runtime/foxlight-skulk-capability-sdk-0.5.16-rc.1.tgz"
+SDK_TARBALL="$PWD/.runtime/foxlight-skulk-capability-sdk-1.0.1.tgz"
 uv run --no-sync python tools/check_typescript_export.py \
-  .runtime/foxlight-skulk-capability-sdk-0.5.16-rc.1.tgz
+  .runtime/foxlight-skulk-capability-sdk-1.0.1.tgz
 uv run --no-sync python tools/prepare_node_qualification.py \
   --output .runtime/selected-node
 ```

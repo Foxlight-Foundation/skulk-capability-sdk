@@ -1,28 +1,29 @@
 # SDK1 package and host cohort
 
-The SDK1 author contract is frozen. Python/TypeScript `1.0.0` and tools `0.2.0`
-are published. The `1.0.1` SDK patch is being qualified after a terminal-publication
-race was reproduced in both languages; matching runtime delivery is held until
-its new immutable package closure passes. Native
-kernel `0.7.0` is already [published](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0).
-Source checks, package publication and normal installed-host qualification have
-separate receipts; select compatible inputs together.
+The SDK1 author contract is frozen. Python/TypeScript **1.0.1** and author tools
+**0.2.0** are [published](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v1.0.1).
+Native kernel **0.7.0** is [published separately](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0).
+The matched owner **0.18.1** / model-free reference **0.2.1** packages are signed
+and published through the Store. This does not complete the coordinated Skulk
+release: final consumer packages, OS-service setup and host release qualification
+remain separate gates.
 
 | Component | SDK1 target | Current boundary |
 | --- | --- | --- |
-| Python SDK | `1.0.1` | Terminal-publication patch qualification |
+| Python SDK | `1.0.1` | Published terminal-publication fix |
 | TypeScript SDK | `1.0.1` | Native addon and matching Python credential-helper cohort |
 | Author tools | `0.2.0` | SDK1 dependency window and positive native0.7.0 receipt |
 | Native Python/Node bindings | `0.7.0` | Published on macOS ARM64 and glibc Linux x86_64/ARM64 |
 | Selected managed Node | `22.23.5` | Exact archive, executable and license identities |
-| Owner runtime | New matched patch | Issued `0.18.0` input preserved; refreshed closure required |
+| Owner runtime | `0.18.1` | Signed Store closure; public versioned acquisition recipes |
 | Skulk host | Compatible `2.0.3` cohort | Normal install, service and caller qualification required |
-| Model-free reference | `0.2.1` | Signed `0.2.0` input preserved; new SDK1.0.1 source qualification |
+| Model-free reference | `0.2.1` | Published signed model-free reference; earlier inputs preserved |
 
-The earlier [public package quickstart](native-public-quickstart.md) and
-[runtime acquisition recipe](native-runtime-acquisition.md) identify the issued
-SDK16/native7/owner8 preview. Those receipts stay valid for their original bytes;
-they are not a runtime for a new SDK1 application.
+Start with the [public SDK1 package quickstart](native-public-quickstart.md) and
+[matched runtime acquisition recipes](native-runtime-acquisition.md). The earlier
+[preview quickstart](native-preview-quickstart.md) and
+[preview recipes](native-preview-runtime-acquisition.md) retain their original
+SDK16/native7/owner8 package identities. Do not mix those inputs with SDK1 apps.
 
 ## Work from source without a host
 
@@ -76,3 +77,11 @@ their correlation, and shutdown retains ownership of each send. Real native IPC
 regressions force this interleave in Python and TypeScript without sleeps.
 Published `1.0.0` packages, native `0.7.0` artifacts and prior signed inputs remain
 unchanged. This patch does not change contract profiles or authorize execution.
+
+## Current limitations
+
+The TypeScript setup bridge still has a 64 KiB JSON/copy bound where the native
+startup contract permits 256 KiB. Keep startup records within the smaller bound
+until [SDK issue 52](https://github.com/Foxlight-Foundation/skulk-capability-sdk/issues/52)
+is resolved; unrestricted large-startup parity is not qualified. Native Windows
+hosting and task routing are outside this release's qualified contract.

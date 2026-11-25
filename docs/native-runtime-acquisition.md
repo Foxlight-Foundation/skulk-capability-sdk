@@ -1,13 +1,12 @@
-# Acquire the native author runtime
+# Acquire the SDK1 native author runtime
 
-For new SDK1 applications, consult the [matching SDK1 cohort](sdk1-cohort.md).
-The acquisition receipt below is the separately issued SDK16/owner8 preview;
-its immutable package identities are preserved.
-
-Native owner **0.18.0rc8**, SDK **0.5.16rc1** and kernel **0.7.0rc7** now have
-explicit, hash-pinned runtime recipes. Use author tools **0.2.0rc4** from the
-[public package quickstart](native-public-quickstart.md). These are SDK1
-candidates; they are not stable SDK1 or a stable Skulk host release.
+Owner **0.18.1**, SDK **1.0.1** and kernel **0.7.0** have matching, hash-pinned
+runtime recipes. Use author tools **0.2.0** from the
+[public package quickstart](native-public-quickstart.md). The
+[SDK1 cohort](sdk1-cohort.md) separates these published inputs from final
+application and Skulk-release qualification. The
+[earlier preview recipes](native-preview-runtime-acquisition.md) remain available
+for their original package versions.
 
 The recipes download complete runtime wheelhouses without a private checkout,
 Foxlight account, provider account, model, Rust compiler or fleet lease. The
@@ -21,13 +20,13 @@ Use Python 3.13 with one of these supported runtime families:
 
 | Family / recipe file | Host | Recipe SHA256 |
 | --- | --- | --- |
-| `macos-arm64.json` | Apple Silicon, macOS 11+ | `6158e11954f681c5a4baaba09919df8740c58b380e15261952fc957964ce967f` |
-| `linux-glibc-x86_64.json` | Linux x86_64, glibc 2.34+ | `b7bee0be25fd471f5e06174fdf0502793784707b06fb818d28f8118053b7e832` |
-| `linux-glibc-aarch64.json` | Linux ARM64, glibc 2.34+ | `bfdc12d59409447e82fe8cf0021d231247532427592b9132ee2ba4f81ee09909` |
+| `macos-arm64.json` | Apple Silicon, macOS 11+ | `bbd95adb1f93a23afed0aa709960f8debd6745ea98648c5816833d6558afcfda` |
+| `linux-glibc-x86_64.json` | Linux x86_64, glibc 2.34+ | `3b210a0cffed4f2784171214f718b6dfbd0fd371efe4e0ec9309aaa091f08314` |
+| `linux-glibc-aarch64.json` | Linux ARM64, glibc 2.34+ | `649746117747109200418400646b9f3ae51d2ee88f41c4c3ae86133891ec468c` |
 
 The reviewed source copies and checksum inventory are under
-[`runtime-recipes/native-owner-0.18.0rc8`](../runtime-recipes/native-owner-0.18.0rc8/).
-The [native runtime preview release](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-runtime-v0.18.0-rc.8)
+[`runtime-recipes/native-owner-0.18.1`](../runtime-recipes/native-owner-0.18.1/).
+The [SDK1 runtime recipe release](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-runtime-v0.18.1)
 supplies those same three JSON files and `SHA256SUMS`. The recipe format is 2;
 each file binds the exact platform, owner source, runtime identity, native ABI
 cohort, wheel URLs, byte lengths and hashes.
@@ -39,8 +38,8 @@ digest from the table. This example selects macOS ARM64:
 
 ```sh
 RECIPE=macos-arm64.json
-RECIPE_SHA256=6158e11954f681c5a4baaba09919df8740c58b380e15261952fc957964ce967f
-BASE=https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-runtime-v0.18.0-rc.8
+RECIPE_SHA256=bbd95adb1f93a23afed0aa709960f8debd6745ea98648c5816833d6558afcfda
+BASE=https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/download/native-runtime-v0.18.1
 curl --fail --location --proto '=https' --max-time 60 \
   "$BASE/$RECIPE" --output "$RECIPE"
 .author-env/bin/python -I - "$RECIPE" "$RECIPE_SHA256" <<'PYTHON'
@@ -84,8 +83,8 @@ publisher trust document or installation approval.
 ## Host and qualification scope
 
 These inputs come from the signed model-free `foxlight.sdk-reference` release,
-sequence 45233353911, served by the Foxlight Store. The preview host input is
-[Core 40379228c](https://github.com/Foxlight-Foundation/Skulk/tree/40379228cabe7726641cc7d5d1ee6ab581c4429f),
+sequence 45512577737, served by the Foxlight Store. The qualified host input is
+[Core 0996766a8](https://github.com/Foxlight-Foundation/Skulk/tree/0996766a8da6cb5262207c911f25f5b6c95030ca),
 on the SDK1 initiative. A released Skulk version must independently support the
 selected native cohort before it can install the runtime. Authoring without a
 compiler does not remove Core's own build and service prerequisites.
@@ -94,7 +93,6 @@ All three signed reference packages passed normal Core/owner installation,
 revision-fenced enable, enrolled unary HTTP and three streaming modes with
 binary media, manager/owner restart with existing access, and uninstall.
 Independent production Store readback and anonymous acquisition of all 91
-wheel references bind these recipes to their actual served bytes. This does not
-establish a complete independent Linux author journey, application migration,
-provider-account behavior or the final coordinated SDK1 release. Complete
-Python/TypeScript author/feed/Store journeys retain their own acceptance gates.
+wheel references bind these recipes to their actual served bytes. These receipts do not qualify application migrations, provider-account behavior
+or the final coordinated Skulk release. Public acquisition, independent author
+journeys and installed applications retain their own acceptance receipts.

@@ -1,18 +1,13 @@
 # Native candidate publishing
 
-The SDK1 source uses tools0.2.0 and the published native0.7.0 cohort. See
-[SDK1 package/host compatibility](sdk1-cohort.md). The older issued receipts
-and examples below retain their own package versions.
-
-The experimental **SDK0.5.16rc1 / author tools0.2.0rc4** supplies an explicit
-compiler-free native build path. The Python application interface is unchanged.
-The public tools contain authoring, artifact and signature contracts; the owner,
-supervisor, runtime installer and provider code are independently supplied.
-Current SDK and author tools packages are available in
-[v0.5.16-rc.1](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.16-rc.1).
-The [public quickstart](native-public-quickstart.md) supplies the separate local
-Python/TypeScript development path without a private runtime.
-They remain candidates; SDK1's complete installed and consumer gates are separate.
+SDK **1.0.1** and author tools **0.2.0** supply the explicit compiler-free
+native build path with the published native **0.7.0** cohort. See the
+[SDK1 package/host compatibility record](sdk1-cohort.md). The public tools contain
+authoring, artifact and signature contracts; the owner, supervisor, runtime
+installer and provider code are independently supplied. Start with the
+[public SDK1 quickstart](native-public-quickstart.md) for local Python/TypeScript
+development without a private runtime. Final application and Skulk-release
+qualification remain separate from package publication.
 
 A native build selects `skulk.managed/2`, release protocol3, runtime protocol5
 and `skulk.calls/2`. It uses the actual public compiled author reader, full native
@@ -25,7 +20,7 @@ size and platform. No legacy revision is truncated or padded.
 
 Use Python3.13 and install the public SDK, author tools and one exact public
 native wheel for your host. The workspace's `native-runtime` group selects
-[native-v0.7.0-rc.7](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.7).
+[native-v0.7.0](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0).
 Python and TypeScript select this same declared-discovery cohort. Separately
 issued older cohorts remain readable and independently selectable.
 No compiler, Foxlight account or publisher registration is needed to acquire
@@ -41,7 +36,7 @@ The validator does not receive a legacy Python `Manifest`.
 Build each supported platform from an exact runtime lock. That lock must include
 the separately obtained owner package and all capability dependencies. The
 [public native runtime recipes](native-runtime-acquisition.md) acquire the
-qualified owner 0.18.0rc8 / SDK 0.5.16rc1 / kernel 0.7.0rc7 wheel closure anonymously.
+qualified owner 0.18.1 / SDK 1.0.1 / kernel 0.7.0 wheel closure anonymously.
 Use the explicit `runtime --native --recipe` path; ordinary built-in runtime
 recipes retain their legacy cohort. Your application lock and independent
 rebuild remain separate inputs to feed signing.

@@ -1,11 +1,12 @@
 # Native durable inference jobs
 
-The SDK1 source candidate provides `skulk_capability_sdk.jobs`. It wraps the
+SDK1.0.1 provides `skulk_capability_sdk.jobs`. It wraps the
 published native journal and scheduler; Python does not implement a second
 queue or recovery policy. Use the separately installed qualified native kernel
 and a compatible managed/2 host, as described in [native applications](native-application.md).
-This is candidate authoring support, not a stable SDK1 release or a completed
-signed independent-author installation journey.
+Start with the [public SDK1 quickstart](native-public-quickstart.md). A local
+job example does not establish a new application's signed installed behavior;
+its host, backend authority and recovery paths still need qualification.
 
 A durable job differs from a streaming request: accepting a job persists its
 identity and returns while the backend continues. Cancelling or losing the

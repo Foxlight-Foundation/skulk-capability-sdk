@@ -1,9 +1,11 @@
-# Selected Node application packaging candidate
+# Selected Node application packaging
 
-This SDK1 source candidate packages native TypeScript/JavaScript applications
-without changing managed/2, release/3 or runtime/5. It is not a stable SDK1
-publication. Normal signed owner/Core installation and the complete native
-`init/run/watch/invoke/debug` journey remain separate acceptance work.
+SDK1.0.1 packages native TypeScript/JavaScript applications using managed/2,
+release/3 and runtime/5, with native0.7.0 and selected Node22.23.5. Begin with the
+[public package quickstart](native-public-quickstart.md), then the
+[author CLI](native-authoring.md) and [matched runtime](native-runtime-acquisition.md).
+SDK package publication does not qualify a new application's signed owner/Core
+installation. Its exact bundle, runtime and host remain independently verified.
 
 The installed application has three measured parts:
 
@@ -61,7 +63,7 @@ entry = "app.mjs"
 license = "LICENSE"
 ```
 
-Use the same candidate version of the Python SDK and the staged npm SDK. The
+Use matching1.0.1 versions of the Python SDK and the staged npm SDK. The
 manifest must explicitly include the generated application dependency in
 `runtime_dependencies`: `skulk-node-app-` followed by the first 24 lowercase
 hex characters of SHA256 of the UTF-8 `bundle_id`. This stable namespace avoids

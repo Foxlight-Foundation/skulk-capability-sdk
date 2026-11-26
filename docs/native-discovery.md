@@ -1,25 +1,26 @@
 # Discover caller-authorized capabilities
 
-SDK 0.5.14rc1 adds typed discovery in Python and TypeScript over Core's existing
+SDK1.0.1 provides typed discovery in Python and TypeScript over Core's existing
 `GET /v1/native-inference` API. Supply a Skulk client key enrolled in **Settings →
 Inference access**. Core returns only the ready destinations permitted to that
 client. An enrolled client with no permitted destinations receives an empty
 directory. A revoked or invalid key is refused.
 
-This is an SDK1 candidate component. It requires the matching native SDK reader
-and a compatible Core host; the [installed author setup](native-authoring.md#install-and-enable-on-a-compatible-host)
+Use published native0.7.0 with the matching SDK1.0.1 reader
+and a compatible Core host; the [installed author setup](native-authoring.md#configure-and-authorize-an-installed-application)
 explains host and caller prerequisites. Provider account tokens stay in their
 capability. A directory observation grants no authority and does not replace
 Core's current-policy checks when work is dispatched.
 This is an external client API using that client's own enrolled identity.
 Application invocations retain their original caller through the separate
 `Invocation.call`/stream composition interfaces; a service bearer cannot replace
-an invocation's parent scope. Generic governed and Steward exposure remains a
-separate SDK1 acceptance item.
+an invocation's parent scope. The [generic capability interface](native-capabilities.md) supplies authorized
+reads and inert proposals. Native governed execution and routing-specific
+Steward integration are separate from this discovery API.
 
 ## Discovery inside an active invocation
 
-The [SDK 0.5.15rc1 prerelease](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.15-rc.1)
+The earlier [SDK0.5.15rc1 receipt](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/v0.5.15-rc.1)
 adds `await invocation.discover()` in both
 Python and TypeScript. It takes no client key or caller argument. Core resolves
 the actual active parent on its protected owner connection and intersects fresh
@@ -49,7 +50,7 @@ The host rechecks caller credentials, policy, parent and owner before delivery.
 There is no service bearer, permission cache, retry, automatic selection or route.
 
 This optional feature uses the separately fingerprinted `skulk.discovery/1`
-companion channel in native 0.7.0rc7 and requires a matching owner/Core bridge.
+companion channel first issued in native0.7.0rc7 and retained by0.7.0; it requires a matching owner/Core bridge.
 Issued calls/2 and startup bytes retain their meaning. Older cohorts or hosts
 report `DiscoveryError("unsupported")`; they never try a different endpoint.
 The published SDK15 Python and TypeScript packages select the

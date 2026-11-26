@@ -1,39 +1,19 @@
 # Native Python application runtime
 
-SDK **0.5.14rc1** provides `skulk_capability_sdk.application` as an explicit
-prerelease author runtime. The existing protocol-4 modules retain their frozen
-schemas and bytes. Importing the SDK does not import a native extension or select
-a runtime. This module requires the separately installed, immutable native
-**0.7.0rc3**, **0.7.0rc4**, **0.7.0rc5**, or **0.7.0rc6**; other versions fail explicitly.
-The rc4 candidate adds host observer APIs while preserving all thirteen wire
-profile identities. The author runtime uses the same execution ABI across these candidates.
-The published rc5 candidate adds low-level caller-side media ownership for
-Python and Node. The workspace pins its verified public artifacts. The Python
-invocation-scoped stream client below requires rc5 or rc6 and a matching owner/Core
-candidate. Signed installed composition still requires separate acceptance.
-The rc6 candidate adds early facade ownership independent of opening/recovering
-the job journal. It keeps the same profiles and existing application behavior;
-its raw process fence does not by itself provide a complete TypeScript job service.
+SDK **1.0.1** provides `skulk_capability_sdk.application` and the matching
+TypeScript application framework over published native kernel **0.7.0**.
+Use the [public package quickstart](native-public-quickstart.md),
+[local author guide](native-authoring.md) and [SDK1 cohort](sdk1-cohort.md).
+The framework selects managed/2, composition/3, calls/2 and transport/2 rather
+than asking applications to implement their own authority or framing.
 
-Use the wheels from [native-v0.7.0-rc.5](https://github.com/Foxlight-Foundation/skulk-capability-sdk/releases/tag/native-v0.7.0-rc.5),
-verify their published SHA256SUMS and install the matching platform wheel.
-Python 3.13+ on macOS ARM64 or glibc Linux x86_64/aarch64 is qualified; a Rust
-compiler and Foxlight account are unnecessary. This source checkout additionally
-locks all three public wheel URLs/hashes in the `native-runtime` dependency group.
-Its explicit suite fails on a missing/wrong native package, rather than skipping.
-
-```sh
-uv sync --frozen --all-packages --no-editable --group native-runtime
-uv run --no-sync pytest tests_native
-```
-
-A compatible host must separately select the signed runtime5/release3 managed2
-closure. Installing a Python package grants no caller/effect authority and does
-not convert an existing installed application. The public app's native socket
-tests qualify its author side. Those tests alone do not qualify installed
-owner/Core admission, signed application composition or provider adoption; retain
-separate host and application qualification only for their exact checked versions
-and scope.
+Importing the Python SDK does not select a native runtime. Native application
+execution requires the explicitly installed matching compiled kernel. Existing
+governed Python applications retain their actual protocol-four/runtime-two
+interfaces; package installation does not convert them to native managed/2.
+Earlier prerelease receipts remain attached to their original bytes. Signed
+installation, caller permission and provider behavior are separate from local
+authoring and package publication.
 
 ## Register explicit handlers
 
@@ -72,8 +52,8 @@ The version-less shorthand is accepted only for a unique signed ID; ambiguous
 or undeclared registrations fail before setup or connection. Calls never fall
 back to a different version or mode. `Invocation.version` exposes the admitted
 executor version. Use the [explicit public native builder](native-publishing.md) for managed/2
-release3/runtime5 candidates. The legacy check/dev/inspect and catalog paths
-retain their existing contracts. Building a candidate does not qualify signed
+release3/runtime5 cohorts. The legacy check/dev/inspect and catalog paths
+retain their existing contracts. Building a package does not qualify signed
 installed startup, caller authorization or application state adoption.
 
 `Invocation` supplies the exact raw request bytes, an owned JSON payload and a

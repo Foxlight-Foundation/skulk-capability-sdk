@@ -1,14 +1,14 @@
-# Native caller media candidate
+# Native caller media
 
-Native **0.7.0rc5** adds a caller role for the existing `skulk.transport/2`
-channel. It preserves all thirteen issued wire profile identities. Source and
+Published native **0.7.0** supplies the caller role for `skulk.transport/2`,
+first issued in0.7.0rc5. Issued profile identities remain immutable. Source and
 local qualification are separate from binary publication, high-level application
 clients and matched owner/Core installed acceptance.
 
 The Python author runtime wraps this transport in
 [`Invocation.stream`](native-application.md#call-an-exact-streaming-capability),
 including parent ownership, one pending child, schema checks and exact final
-control correlation. It requires rc5 and matching host support. The typed Node
+control correlation. Use SDK1.0.1/native0.7.0 and matching host support. The typed Node
 API on this page remains the lower-level transport facade.
 
 Python exposes `open_transport_v2_client_stream(startup, media_call_id, mode,

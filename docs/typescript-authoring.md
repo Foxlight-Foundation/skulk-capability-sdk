@@ -1,16 +1,16 @@
-# TypeScript native application candidate
+# TypeScript native applications
 
-The SDK1 TypeScript package target is1.0.0 with native0.7.0 and the matching
-Python1.0.0 credential helper. See the [SDK1 cohort](sdk1-cohort.md). Older
-version/publication notes below retain their original qualification scope.
+The public `@foxlight/skulk-capability-sdk` **1.0.1** package uses native
+**0.7.0** and the matching Python **1.0.1** credential helper. Download its
+immutable release tarball using the [public SDK1 quickstart](native-public-quickstart.md).
+No npm-registry publication or Foxlight account is assumed. The
+[SDK1 cohort](sdk1-cohort.md) identifies compatible owner/runtime requirements.
 
-The public TypeScript source package is `@foxlight/skulk-capability-sdk`
-**0.5.14-rc.1**. It is an SDK1 source candidate, not a stable SDK1 publication.
-It supplies managed application setup, cached readiness/surfaces, exact-version
-unary and all three streaming handlers, invocation-owned resources, and unary
-and streaming child calls, declared credentials and durable inference jobs.
-It uses the already published native **0.7.0rc6**
-cohort; it contains no owner, provider integration or router.
+The package supplies application setup, cached readiness/surfaces, unary and
+all three streaming handlers, invocation-owned resources and typed child calls,
+declared credentials and durable inference jobs. It contains no owner, provider
+integration or router. Existing candidate receipts retain their original scope;
+this guide selects the released SDK1 package.
 
 ## Acquire and build
 
@@ -27,11 +27,11 @@ npm run check --prefix packages/typescript
 npm test --prefix packages/typescript
 mkdir -p .runtime
 npm pack ./packages/typescript --pack-destination .runtime
-uv run python tools/check_typescript_export.py .runtime/foxlight-skulk-capability-sdk-0.5.14-rc.1.tgz
+uv run python tools/check_typescript_export.py .runtime/foxlight-skulk-capability-sdk-1.0.1.tgz
 ```
 
 Install that audited tarball into an author's own project with
-`npm install --ignore-scripts /path/to/foxlight-skulk-capability-sdk-0.5.14-rc.1.tgz`.
+`npm install --ignore-scripts /path/to/foxlight-skulk-capability-sdk-1.0.1.tgz`.
 The package contains JavaScript and declarations, with exact public native asset
 URLs and integrity in its shrinkwrap. Installing/using it needs neither a native
 compiler nor a Foxlight publishing account. TypeScript is needed only to compile
@@ -100,12 +100,12 @@ The application receives an explicit `PythonCredentialHelper` through
 selected interpreter and its SHA256, not a program looked up on PATH. That
 interpreter must be a regular file owned by root or the application user and
 must not be group/world writable. The selected runtime must contain the matching
-public Python SDK0.5.14rc1 reader; native
+public Python SDK1.0.1 reader; native
 backends additionally need its `native-credentials` dependencies and OS service.
-The [selected Node packaging candidate](node-packaging.md) supplies a public
+The [selected Node packaging guide](node-packaging.md) supplies a public
 factory launcher, deterministic application/runtime wheels and the existing
-native signing path. Normal signed owner/Core admission and the complete native
-development CLI journey are still being completed.
+native signing path. Normal signed owner/Core admission and the native development CLI have
+separate versioned qualification; package acquisition is not host permission.
 For source development, supply this measured runtime explicitly. A missing
 helper refuses reads, including optional reads; it never chooses ambient Python
 or a different backend.
@@ -310,8 +310,8 @@ they do not establish provider-specific adoption or signed runtime installation.
 The [native author guide](native-authoring.md) records the CLI/templates and
 signed Python/TypeScript lifecycle evidence. Actual OS-session credential reads
 use a separate [native-storage suite](native-credentials.md), independent of
-these synthetic backend tests. Complete independent author/feed/Store journeys
-and final matched SDK1 installation remain release gates. A Python runtime
+these synthetic backend tests. Independent author/feed/Store journeys and final matched host installation
+have separate receipts; use the [SDK1 cohort](sdk1-cohort.md) for current status. A Python runtime
 closure is not a Node runtime, and ambient `node` availability is not installed
 runtime qualification. See [native publishing](native-publishing.md) and
 [native jobs](native-jobs.md) for their separately scoped contracts.

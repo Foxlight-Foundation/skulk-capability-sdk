@@ -1,7 +1,7 @@
 # Describe capabilities, perform reads and prepare proposals
 
-The SDK 0.5.16rc1 candidate provides the same common interfaces in Python and
-TypeScript. It uses the issued native7 readers and the existing invocation
+Published SDK1.0.1 provides the same common interfaces in Python and
+TypeScript. It uses published native0.7.0 readers and the existing invocation
 discovery/call channels. It adds no host, credential, native execution profile,
 automatic model selection or routing.
 

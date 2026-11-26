@@ -1,4 +1,19 @@
-# Native composed-call transport candidate
+# Native composed-call transport
+
+SDK1.0.1 applications use typed `Invocation.call`/stream clients over
+`skulk.calls/2` with original-caller `skulk.composition/3` contexts. Published
+native0.7.0 supplies the compiled readers in Python and Node. See the
+[application API](native-application.md), [caller streams](native-caller-streams.md)
+and normative [calls/2 contract](../kernel/contracts/calls-v2.json).
+A reader or context value is not execution authority; the host authenticates the
+original caller and rechecks current permissions at dispatch.
+
+## Historical calls/1 reader
+
+The sections below describe the explicitly versioned older calls/1 profile.
+They remain useful for compatibility readers and their retained receipts; they
+are not the wire profile selected by a new SDK1 application. Do not downgrade a
+current runtime or combine the older contexts with calls/2.
 
 `skulk.calls/1` is an explicit candidate control profile for carrying host-owned
 `skulk.composition/1` contexts and delegation requests. It is not selected by the

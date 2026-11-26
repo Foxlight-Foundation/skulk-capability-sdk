@@ -1,4 +1,20 @@
-# Host-owned caller composition candidate
+# Host-owned caller composition
+
+SDK1.0.1 native applications compose work through their invocation's typed
+clients. The current framework selects `skulk.composition/3` and `skulk.calls/2`
+from published native0.7.0. The host retains the original caller and current
+policy; application-visible metadata and proposals grant no execution authority.
+Use [native applications](native-application.md),
+[typed capability interfaces](native-capabilities.md) and the normative
+[composition/3 contract](../kernel/contracts/composition-v3.json).
+
+## Historical composition/1 reader
+
+The remaining sections describe the older composition/1 structural/attenuation
+profile and its original receipts. They are retained compatibility information,
+not instructions to select that profile for a new SDK1 application. Current
+application startup, dispatch and installed qualification are identified by the
+[SDK1 cohort](sdk1-cohort.md).
 
 Native 0.5.0rc1 adds the independent [`skulk.composition/1`
 specification](../kernel/contracts/composition-v1.json). It provides structural
